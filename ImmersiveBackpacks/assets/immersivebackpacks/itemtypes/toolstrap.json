@@ -1,0 +1,14 @@
+{
+	"code": "toolstrap",
+	"class": "Item",
+	"maxstacksize": 1,
+	"shape": { "base": "game:item/resource/leather-fine" },
+	"creativeinventory": { "general": ["*"] },
+	"attributes": {
+		"immersiveBackpackAttachment": {
+			"category": "toolstrap",
+			"quantitySlots": 3,
+			"slotType": "tools"
+		}
+	}
+}

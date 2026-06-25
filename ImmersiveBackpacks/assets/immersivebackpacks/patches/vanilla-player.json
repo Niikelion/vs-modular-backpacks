@@ -1,0 +1,8 @@
+[
+	{
+		"op": "add",
+		"path": "/client/behaviors/0",
+		"value": { "code": "immersivebackpacklight" },
+		"file": "game:entities/humanoid/player.json"
+	}
+]

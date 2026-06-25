@@ -1,0 +1,11 @@
+{
+	"item-immersivebackpacks-pouch-general": "General Pouch",
+	"item-immersivebackpacks-pouch-tools": "Tool Pouch",
+	"item-immersivebackpacks-pouch-ore": "Ore Pouch",
+	"item-immersivebackpacks-toolstrap": "Tool Strap",
+
+	"immersivebackpacks:open-cargo": "Open cargo",
+	"immersivebackpacks:attach-item": "Attach item",
+	"immersivebackpacks:remove-attachment": "Remove attachment",
+	"immersivebackpacks:cargo-dialog-title": "Backpack Cargo"
+}

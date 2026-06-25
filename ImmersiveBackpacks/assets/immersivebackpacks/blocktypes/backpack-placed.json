@@ -1,0 +1,11 @@
+{
+	"code": "backpack-placed",
+	"class": "ImmersiveBackpack",
+	"entityClass": "ImmersiveBackpackBE",
+	"drawtype": "Empty",
+	"sideopaque": { "all": false },
+	"sidesolid": { "all": false },
+	"replaceable": 0,
+	"resistance": 2.5,
+	"drops": []
+}

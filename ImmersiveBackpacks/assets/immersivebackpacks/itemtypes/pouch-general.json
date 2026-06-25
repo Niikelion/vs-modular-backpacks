@@ -1,0 +1,19 @@
+{
+	"code": "pouch-general",
+	"class": "Item",
+	"maxstacksize": 1,
+	"creativeinventory": {
+		"general": [ "*" ]
+	},
+	"shape": { "base": "game:item/bag/linensack" },
+	"textures": {
+		"linen": { "base": "game:item/bag/linensack/linen" },
+		"top": { "base": "game:item/bag/linensack/top" }
+	},
+	"attributes": {
+		"immersiveBackpackAttachment": {
+			"category": "pouch",
+			"quantitySlots": 6
+		}
+	}
+}

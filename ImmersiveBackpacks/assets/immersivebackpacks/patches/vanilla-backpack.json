@@ -1,0 +1,41 @@
+[
+	{
+		"op": "add",
+		"path": "/class",
+		"value": "ImmersiveBag",
+		"file": "game:itemtypes/wearable/bag/backpack.json"
+	},
+	{
+		"op": "add",
+		"path": "/behaviors/0",
+		"value": { "name": "ImmersiveBackpackPlacement" },
+		"file": "game:itemtypes/wearable/bag/backpack.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackByType",
+		"value": {
+			"*-normal": {
+				"attachmentPoints": [
+					{ "code": "left",        "hitbox": [0.05, 0.10, 0.38, 0.30, 0.45, 0.63], "categories": ["sack", "pouch"] },
+					{ "code": "right",       "hitbox": [0.70, 0.10, 0.38, 0.95, 0.45, 0.63], "categories": ["sack", "pouch"] },
+					{ "code": "front_left",  "hitbox": [0.25, 0.05, 0.667, 0.50, 0.40, 0.917], "categories": ["pouch"] },
+					{ "code": "front_right", "hitbox": [0.50, 0.05, 0.667, 0.75, 0.40, 0.917], "categories": ["pouch"] },
+					{ "code": "strap",       "hitbox": [0.30, 0.40, 0.707, 0.70, 0.70, 0.907], "categories": ["toolstrap"] },
+					{ "code": "light",       "hitbox": [0.35, 0.673, 0.35, 0.65, 0.923, 0.65], "categories": ["light"] }
+				]
+			},
+			"*-sturdy": {
+				"attachmentPoints": [
+					{ "code": "left",        "hitbox": [0.05, 0.10, 0.38, 0.30, 0.45, 0.63], "categories": ["sack", "pouch"] },
+					{ "code": "right",       "hitbox": [0.70, 0.10, 0.38, 0.95, 0.45, 0.63], "categories": ["sack", "pouch"] },
+					{ "code": "front_left",  "hitbox": [0.25, 0.05, 0.667, 0.50, 0.40, 0.917], "categories": ["pouch"] },
+					{ "code": "front_right", "hitbox": [0.50, 0.05, 0.667, 0.75, 0.40, 0.917], "categories": ["pouch"] },
+					{ "code": "strap",       "hitbox": [0.30, 0.40, 0.707, 0.70, 0.70, 0.907], "categories": ["toolstrap"] },
+					{ "code": "light",       "hitbox": [0.35, 0.673, 0.35, 0.65, 0.923, 0.65], "categories": ["light"] }
+				]
+			}
+		},
+		"file": "game:itemtypes/wearable/bag/backpack.json"
+	}
+]
