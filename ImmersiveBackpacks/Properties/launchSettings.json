@@ -11,6 +11,12 @@
       "executablePath": "dotnet",
       "commandLineArgs": "\"$(VINTAGE_STORY)/VintagestoryServer.dll\" --tracelog --addModPath \"$(ProjectDir)/bin/$(Configuration)/Mods\"",
       "workingDirectory": "$(VINTAGE_STORY)"
+    },
+    "Update Mod (assets)": {
+      "commandName": "Executable",
+      "executablePath": "powershell",
+      "commandLineArgs": "-NoProfile -ExecutionPolicy Bypass -Command \"$dst = '$(ProjectDir)bin\\$(Configuration)\\Mods\\mod'; if (-not (Test-Path $dst)) { throw 'Build the mod once (Client) before using this action.' }; Copy-Item -Path '$(ProjectDir)assets' -Destination $dst -Recurse -Force; Copy-Item -Path '$(ProjectDir)modinfo.json' -Destination $dst -Force; Write-Host 'Mod assets synced to' $dst '- load a world to apply.'\"",
+      "workingDirectory": "$(ProjectDir)"
     }
   }
 }

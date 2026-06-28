@@ -7,23 +7,55 @@ namespace ImmersiveBackpacks.blocks;
 
 public class BlockImmersiveBackpack : Block
 {
-    private static readonly Cuboidf BodyBox = new(0.25f, 0f, 0.25f, 0.75f, 0.75f, 0.75f);
-
+    // The body box comes from the standard blocktype selectionBoxes/collisionBoxes (backpack-placed.json);
+    // we add the per-slot attachment boxes on top of it for the selection (interaction) boxes.
     public override Cuboidf[] GetSelectionBoxes(IBlockAccessor blockAccessor, BlockPos pos)
     {
         var be = blockAccessor.GetBlockEntity(pos) as BlockEntityImmersiveBackpack;
-        if (be == null || be.AttachmentPoints.Length == 0)
-            return [BodyBox];
+        if (be == null) return base.GetSelectionBoxes(blockAccessor, pos);
 
-        var boxes = new Cuboidf[1 + be.AttachmentPoints.Length];
-        boxes[0] = BodyBox;
+        float angle = be.MeshAngleRad;
+        var body = SelectionBoxes ?? [];
+        var boxes = new Cuboidf[body.Length + be.AttachmentPoints.Length];
+        for (int i = 0; i < body.Length; i++)
+            boxes[i] = RotateBoxY(body[i], angle);
         for (int i = 0; i < be.AttachmentPoints.Length; i++)
-            boxes[i + 1] = be.AttachmentPoints[i].Hitbox;
+            boxes[body.Length + i] = RotateBoxY(be.AttachmentPoints[i].Hitbox, angle);
         return boxes;
     }
 
+    // Rotates a hitbox about the block's vertical centre axis to follow the placed orientation, then
+    // re-axis-aligns it. Placement snaps to 90deg, so the result is always a proper axis-aligned box.
+    // Uses the same pivot (0.5, 0.5) and handedness as the renderer's RotateY so the boxes track the
+    // drawn addons.
+    private static Cuboidf RotateBoxY(Cuboidf box, float angleRad)
+    {
+        float cos = GameMath.Cos(angleRad);
+        float sin = GameMath.Sin(angleRad);
+        float[] cornerX = { box.X1, box.X2, box.X2, box.X1 };
+        float[] cornerZ = { box.Z1, box.Z1, box.Z2, box.Z2 };
+        float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
+        for (int i = 0; i < 4; i++)
+        {
+            float dx = cornerX[i] - 0.5f, dz = cornerZ[i] - 0.5f;
+            float rx = dx * cos + dz * sin + 0.5f;
+            float rz = -dx * sin + dz * cos + 0.5f;
+            minX = GameMath.Min(minX, rx); maxX = GameMath.Max(maxX, rx);
+            minZ = GameMath.Min(minZ, rz); maxZ = GameMath.Max(maxZ, rz);
+        }
+        return new Cuboidf(minX, box.Y1, minZ, maxX, box.Y2, maxZ);
+    }
+
     public override Cuboidf[] GetCollisionBoxes(IBlockAccessor blockAccessor, BlockPos pos)
-        => [BodyBox];
+    {
+        var be = blockAccessor.GetBlockEntity(pos) as BlockEntityImmersiveBackpack;
+        float angle = be?.MeshAngleRad ?? 0f;
+        var src = CollisionBoxes ?? [];
+        var result = new Cuboidf[src.Length];
+        for (int i = 0; i < src.Length; i++)
+            result[i] = RotateBoxY(src[i], angle);
+        return result;
+    }
 
     public override byte[] GetLightHsv(IBlockAccessor blockAccessor, BlockPos pos = null, ItemStack stack = null)
     {

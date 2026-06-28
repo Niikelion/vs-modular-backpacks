@@ -2,25 +2,25 @@
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "quantitySlots": 5 },
+		"value": { "category": "sack" },
 		"file": "game:itemtypes/wearable/bag/linensack.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "quantitySlots": 12, "slotType": "ore" },
+		"value": { "category": "sack", "slotType": "ore" },
 		"file": "game:itemtypes/wearable/bag/miningbag.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "quantitySlots": 14, "slotType": "ore" },
+		"value": { "category": "sack", "slotType": "ore" },
 		"file": "game:itemtypes/wearable/bag/miningbagsturdy.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "light", "worn": { "scale": 0.85 } },
+		"value": { "category": "light", "attachedTransform": { "scale": 0.38 } },
 		"file": "game:blocktypes/metal/lantern.json"
 	}
 ]

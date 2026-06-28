@@ -28,6 +28,14 @@ public static class BackpackSlotLayout
         _ => new(type, (EnumItemStorageFlags)DefaultStorageFlags, null)
     };
 
+    /// <summary>
+    /// Number of cargo slots an addon contributes. Slot-bearing addons are always bags (vanilla sacks and
+    /// our pouches/toolstrap, all via the HeldBag behavior), so the count is exactly what the bag provides
+    /// when worn and its contents map 1:1 in and out on attach/detach. Non-bag addons (lantern) contribute 0.
+    /// </summary>
+    public static int AddonSlotCount(ItemStack stack)
+        => stack?.Collectible?.GetCollectibleInterface<IHeldBag>()?.GetQuantitySlots(stack) ?? 0;
+
     /// <summary>Builds the full slot layout: base general slots followed by each addon's slots.</summary>
     public static SlotSpec[] Build(int baseSlots, IReadOnlyList<ItemStack> addonStacks)
     {
@@ -38,10 +46,9 @@ public static class BackpackSlotLayout
         if (addonStacks != null)
             foreach (var stack in addonStacks)
             {
-                var attr = stack?.Collectible?.Attributes?["immersiveBackpackAttachment"];
-                if (attr == null || !attr.Exists) continue;
-                int qty = attr["quantitySlots"].AsInt(0);
-                var type = attr["slotType"].AsString() switch
+                int qty = AddonSlotCount(stack);
+                if (qty <= 0) continue;
+                var type = stack.Collectible.Attributes?["immersiveBackpackAttachment"]?["slotType"]?.AsString() switch
                 {
                     "ore" => BackpackSlotType.Ore,
                     "tools" => BackpackSlotType.Tools,

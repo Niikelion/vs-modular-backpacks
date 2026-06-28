@@ -1,0 +1,24 @@
+[
+	{
+		"ingredientPattern": "LT,LL",
+		"ingredients": {
+			"L": { "type": "item", "code": "game:leather-normal-plain" },
+			"T": { "type": "item", "code": "game:flaxtwine" }
+		},
+		"width": 2,
+		"height": 2,
+		"name": "pouch",
+		"output": { "type": "item", "code": "pouch-normal" }
+	},
+	{
+		"ingredientPattern": "LT,LL",
+		"ingredients": {
+			"L": { "type": "item", "code": "game:leather-sturdy-plain" },
+			"T": { "type": "block", "code": "game:linen-*" }
+		},
+		"width": 2,
+		"height": 2,
+		"name": "pouch",
+		"output": { "type": "item", "code": "pouch-sturdy" }
+	}
+]

@@ -30,7 +30,11 @@ public class BackpackPlacementBehavior(CollectibleObject collObj) : CollectibleB
         }
 
         Block onBlock = world.BlockAccessor.GetBlock(blockSel.Position);
-        Block placedBlock = world.GetBlock(new AssetLocation("immersivebackpacks:backpack-placed"));
+        // The placed block is a variant block matching the bag's type, so each variant carries its own
+        // vanilla selection/collision box.
+        var variant = itemslot.Itemstack.Collectible.Variant;
+        string type = variant != null && variant.TryGetValue("type", out var t) ? t : "normal";
+        Block placedBlock = world.GetBlock(new AssetLocation("immersivebackpacks:backpack-placed-" + type));
         if (placedBlock == null) return;
         if (!onBlock.CanAttachBlockAt(world.BlockAccessor, placedBlock, blockSel.Position, BlockFacing.UP)) return;
 
@@ -44,8 +48,9 @@ public class BackpackPlacementBehavior(CollectibleObject collObj) : CollectibleB
         if (world.BlockAccessor.GetBlockEntity(placePos) is BlockEntityImmersiveBackpack be)
         {
             // Set the placement orientation before InitFromItemStack so the first sync carries it.
-            // Flip 180° to face the player and snap to 45° increments.
-            const float step = GameMath.PI / 4f;
+            // Flip 180° to face the player and snap to 90° increments (so attachment hitboxes stay
+            // axis-aligned when rotated to match the placement).
+            const float step = GameMath.PI / 2f;
             float yaw = byEntity.Pos.Yaw + GameMath.PI;
             be.MeshAngleRad = (float)System.Math.Round(yaw / step) * step;
             be.InitFromItemStack(itemslot.Itemstack);

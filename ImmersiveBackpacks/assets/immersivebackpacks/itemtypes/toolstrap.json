@@ -4,10 +4,11 @@
 	"maxstacksize": 1,
 	"shape": { "base": "game:item/resource/leather-fine" },
 	"creativeinventory": { "general": ["*"] },
+	"behaviors": [ { "name": "HeldBag" } ],
 	"attributes": {
+		"backpack": { "quantitySlots": 3 },
 		"immersiveBackpackAttachment": {
 			"category": "toolstrap",
-			"quantitySlots": 3,
 			"slotType": "tools"
 		}
 	}

@@ -46,9 +46,9 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
         }
 
         // The chunk lighting engine reads GetLightHsv on load/placement; just record what it lit so a
-        // later addon change can diff against it.
-        if (api.Side == EnumAppSide.Server)
-            lastEmittedLight = ComputeLightHsv();
+        // later addon change can diff against it. Tracked per-side: client and server each run their own
+        // lighting engine, so each must diff against what it last emitted.
+        lastEmittedLight = ComputeLightHsv();
     }
 
     /// <summary>Brightest light emitted by the attached addons, or null. Read by Block.GetLightHsv.</summary>
@@ -56,10 +56,12 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
         => Api == null ? null : BackpackLight.Brightest(AttachedItems, Api.World.BlockAccessor);
 
     // Re-trigger chunk lighting when the emitted light changes: remove the old contribution, then
-    // exchange the block with itself so the engine re-reads GetLightHsv (vanilla dynamic-light pattern).
+    // exchange the block with itself so the engine re-reads GetLightHsv (vanilla dynamic-light pattern,
+    // see BlockEntityGroundStorage.LightUpdate). Runs on both sides: the server spreads light to
+    // neighbours/other players, while the client owns the light actually rendered for the local player.
     private void UpdateEmittedLight()
     {
-        if (Api == null || Api.Side != EnumAppSide.Server) return;
+        if (Api == null) return;
 
         var old = lastEmittedLight;
         lastEmittedLight = ComputeLightHsv();
@@ -80,7 +82,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
     public void InitFromItemStack(ItemStack stack)
     {
         BackpackItemCode = stack.Collectible.Code;
-        LoadAttachmentConfig(stack.Collectible);
+        LoadAttachmentConfig(Api, stack.Collectible);
         AttachedItems = new ItemStack[AttachmentPoints.Length];
 
         var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
@@ -95,7 +97,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
             }
         }
 
-        ResizeCargo();
+        cargoInv = NewCargoInv(Layout());
 
         var slotsTree = stack.Attributes?.GetTreeAttribute("backpack")?.GetTreeAttribute("slots");
         if (slotsTree != null)
@@ -135,25 +137,120 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
     {
         var point = AttachmentPoints[pointIndex];
         var activeSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
+        var oldAttached = (ItemStack[])AttachedItems.Clone();
 
         if (AttachedItems[pointIndex] == null)
         {
             if (activeSlot.Empty) return;
             if (!CanAcceptInPoint(point, activeSlot.Itemstack)) return;
 
-            AttachedItems[pointIndex] = activeSlot.Itemstack.Clone();
-            AttachedItems[pointIndex].StackSize = 1;
+            var addon = activeSlot.Itemstack.Clone();
+            addon.StackSize = 1;
+            AttachedItems[pointIndex] = addon;
             activeSlot.TakeOut(1);
             activeSlot.MarkDirty();
+
+            // Base + other addons keep their cargo (RebuildCargo), then this bag's own contents flow into
+            // the slots it just added.
+            RebuildCargo(oldAttached, byPlayer);
+            LoadAddonIntoCargo(addon, point.Code);
         }
         else
         {
-            if (!byPlayer.InventoryManager.TryGiveItemstack(AttachedItems[pointIndex]))
-                Api.World.SpawnItemEntity(AttachedItems[pointIndex], Pos.ToVec3d().Add(0.5, 0.5, 0.5));
+            var addon = AttachedItems[pointIndex];
+
+            // A bag addon carries its cargo back inside itself. Non-bag addons (the lantern) contribute no
+            // slots, so this is a no-op for them; the guard just avoids writing an empty bag tree onto them.
+            if (addon.Collectible?.GetCollectibleInterface<IHeldBag>() != null)
+                StoreCargoIntoAddon(addon, point.Code);
+
+            Expel(addon, byPlayer);
             AttachedItems[pointIndex] = null;
+
+            RebuildCargo(oldAttached, byPlayer);
         }
 
-        OnAttachmentChanged();
+        UpdateEmittedLight();
+        MarkDirty(true);
+    }
+
+    // Hand a stack back to the interacting player, dropping it at the block if their inventory is full.
+    private void Expel(ItemStack stack, IPlayer byPlayer)
+    {
+        if (stack == null) return;
+        if (byPlayer != null && byPlayer.InventoryManager.TryGiveItemstack(stack)) return;
+        Api?.World.SpawnItemEntity(stack, Pos.ToVec3d().Add(0.5, 0.5, 0.5));
+    }
+
+    // Cargo slot indices (into the current cargoInv) contributed by the addon at the given point.
+    private List<int> CargoSlotIndices(string pointCode, ItemStack[] attached)
+    {
+        var owners = SlotOwners(attached);
+        var indices = new List<int>();
+        int count = cargoInv?.Count ?? 0;
+        for (int i = 0; i < owners.Count && i < count; i++)
+            if (owners[i] == pointCode) indices.Add(i);
+        return indices;
+    }
+
+    // Move a freshly-attached bag's stored contents into the cargo slots it now owns, then strip them from
+    // the bag stack. While attached, the unified cargo inventory is the single home for those items (so the
+    // bag is not persisted with a duplicate copy and the items are not re-imported on reload).
+    private void LoadAddonIntoCargo(ItemStack addon, string pointCode)
+    {
+        var slots = AddonSlotsTree(addon, create: false);
+        if (slots == null) return;
+
+        var indices = CargoSlotIndices(pointCode, AttachedItems);
+        for (int k = 0; k < indices.Count; k++)
+        {
+            var s = (slots["slot-" + k] as ItemstackAttribute)?.value;
+            if (s == null) continue;
+            s.ResolveBlockOrItem(Api.World);
+            cargoInv[indices[k]].Itemstack = s;
+        }
+        addon.Attributes.GetTreeAttribute("backpack")?.RemoveAttribute("slots");
+    }
+
+    // Move the cargo from a bag's owned slots back inside the bag stack (vanilla IHeldBag layout) and clear
+    // those cargo slots, so the detached bag carries its contents and RebuildCargo won't also expel them.
+    private void StoreCargoIntoAddon(ItemStack addon, string pointCode)
+    {
+        var indices = CargoSlotIndices(pointCode, AttachedItems);
+        var slots = new TreeAttribute();
+        for (int k = 0; k < indices.Count; k++)
+        {
+            slots["slot-" + k] = new ItemstackAttribute(cargoInv[indices[k]].Itemstack);
+            cargoInv[indices[k]].Itemstack = null;
+        }
+
+        var backpack = addon.Attributes.GetTreeAttribute("backpack");
+        if (backpack == null)
+        {
+            backpack = new TreeAttribute();
+            addon.Attributes["backpack"] = backpack;
+        }
+        backpack["slots"] = slots;
+    }
+
+    // The vanilla IHeldBag content tree on a bag stack: backpack -> slots -> slot-{i}.
+    private static ITreeAttribute AddonSlotsTree(ItemStack addon, bool create)
+    {
+        var backpack = addon.Attributes.GetTreeAttribute("backpack");
+        if (backpack == null)
+        {
+            if (!create) return null;
+            backpack = new TreeAttribute();
+            addon.Attributes["backpack"] = backpack;
+        }
+        var slots = backpack.GetTreeAttribute("slots");
+        if (slots == null)
+        {
+            if (!create) return null;
+            slots = new TreeAttribute();
+            backpack["slots"] = slots;
+        }
+        return slots;
     }
 
     private bool CanAcceptInPoint(AttachmentPoint point, ItemStack stack)
@@ -161,13 +258,6 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
         var category = stack.Collectible.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
         if (category == null) return false;
         return Array.IndexOf(point.Categories, category) >= 0;
-    }
-
-    private void OnAttachmentChanged()
-    {
-        ResizeCargo();
-        UpdateEmittedLight();
-        MarkDirty(true);
     }
 
     private void OpenCargoDialog(IPlayer byPlayer)
@@ -224,18 +314,54 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
         return inv;
     }
 
-    private void ResizeCargo()
+    // Owner key per cargo slot for a given attachment set, aligned 1:1 with BackpackSlotLayout.Build:
+    // "" for a base slot, otherwise the attachment-point code that contributed the slot. Lets RebuildCargo
+    // keep each item with the addon (or base) it belongs to even though an addon's slots sit mid-layout.
+    private List<string> SlotOwners(ItemStack[] attached)
+    {
+        var owners = new List<string>();
+        for (int i = 0; i < GetBaseSlots(); i++) owners.Add("");
+        for (int i = 0; i < AttachmentPoints.Length; i++)
+        {
+            int qty = BackpackSlotLayout.AddonSlotCount(attached[i]);
+            for (int j = 0; j < qty; j++) owners.Add(AttachmentPoints[i].Code);
+        }
+        return owners;
+    }
+
+    // Resize cargo for the current AttachedItems while moving each item to the slot run owned by the same
+    // base/addon it was in. Items whose owning addon was just detached are expelled (to the player, else
+    // dropped) instead of silently sliding into a neighbouring addon's differently-filtered slots.
+    private void RebuildCargo(ItemStack[] oldAttached, IPlayer byPlayer)
     {
         var newInv = NewCargoInv(Layout());
+        var oldOwners = SlotOwners(oldAttached);
+        var newOwners = SlotOwners(AttachedItems);
 
-        int copy = Math.Min(cargoInv?.Count ?? 0, newInv.Count);
-        for (int i = 0; i < copy; i++)
-            newInv[i].Itemstack = cargoInv[i].Itemstack;
-
-        for (int i = newInv.Count; i < (cargoInv?.Count ?? 0); i++)
+        // New slot indices grouped by owner, in order.
+        var newSlotsByOwner = new Dictionary<string, List<int>>();
+        for (int i = 0; i < newOwners.Count; i++)
         {
-            if (cargoInv[i].Itemstack == null) continue;
-            Api?.World.SpawnItemEntity(cargoInv[i].Itemstack, Pos.ToVec3d().Add(0.5, 0.5, 0.5));
+            if (!newSlotsByOwner.TryGetValue(newOwners[i], out var slots))
+                newSlotsByOwner[newOwners[i]] = slots = new List<int>();
+            slots.Add(i);
+        }
+
+        var filled = new Dictionary<string, int>();   // owner -> how many of its new slots are taken
+        int oldCount = cargoInv?.Count ?? 0;
+        for (int oldIdx = 0; oldIdx < oldCount; oldIdx++)
+        {
+            var stack = cargoInv[oldIdx].Itemstack;
+            if (stack == null) continue;
+
+            string owner = oldIdx < oldOwners.Count ? oldOwners[oldIdx] : "";
+            int pos = filled.TryGetValue(owner, out var c) ? c : 0;
+            filled[owner] = pos + 1;
+
+            if (newSlotsByOwner.TryGetValue(owner, out var slots) && pos < slots.Count)
+                newInv[slots[pos]].Itemstack = stack;
+            else
+                Expel(stack, byPlayer);
         }
 
         cargoInv = newInv;
@@ -248,27 +374,52 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
         return item?.Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
     }
 
-    private void LoadAttachmentConfig(CollectibleObject coll)
+    private void LoadAttachmentConfig(ICoreAPI api, CollectibleObject coll)
     {
-        var pointsJson = coll.Attributes?["immersiveBackpack"]?["attachmentPoints"];
+        var ibAttr = coll.Attributes?["immersiveBackpack"];
+        var pointsJson = ibAttr?["attachmentPoints"];
         if (pointsJson == null || !pointsJson.Exists)
         {
             AttachmentPoints = [];
             return;
         }
 
+        // Slots authored as slot_<code> markers in the bag's item shape (16-unit) take precedence: the box
+        // becomes the [0,1] hitbox and the marker's composed rotation is the placed orientation. The patch
+        // "hitbox"/"placed" are the fallback for unported bags. Use the passed api (during FromTreeAttributes
+        // the BE's own Api is not set yet, so callers pass worldForResolving.Api).
+        var shapeBase = (coll as Item)?.Shape?.Base?.ToString() ?? (coll as Block)?.Shape?.Base?.ToString();
+        var shapeSlots = api != null
+            ? AttachmentMesh.ReadSlots(api, shapeBase, coll.Code.Domain)
+            : new Dictionary<string, AttachmentMesh.SlotMarker>();
+
         var raw = pointsJson.AsArray();
         var points = new List<AttachmentPoint>();
         foreach (var entry in raw)
         {
             var code = entry["code"].AsString();
-            var hb = entry["hitbox"].AsArray<float>();
-            if (hb == null || hb.Length < 6) continue;
             var cats = entry["categories"].AsArray<string>() ?? [];
-            var hitbox = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
-            var placed = AttachmentTransform.FromJson(entry["placed"]);
-            var worn = AttachmentTransform.FromJson(entry["worn"]);
-            points.Add(new AttachmentPoint(code, hitbox, cats, placed, worn));
+
+            Cuboidf hitbox;
+            AttachmentTransform placed;
+            if (code != null && shapeSlots.TryGetValue(code, out var marker))
+            {
+                // Geometry comes entirely from the slot marker: box -> [0,1] hitbox, composed rotation ->
+                // the placed orientation. The addon's own attachedTransform (scale etc.) is folded in later.
+                var b = marker.Box;
+                hitbox = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
+                placed = AttachmentTransform.FromRotation(marker.Rotation);
+            }
+            else
+            {
+                // No marker: fall back to a patch-defined hitbox/placed (legacy/unported bags).
+                var hb = entry["hitbox"].AsArray<float>();
+                if (hb == null || hb.Length < 6) continue;
+                hitbox = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
+                placed = AttachmentTransform.FromJson(entry["placed"]);
+            }
+
+            points.Add(new AttachmentPoint(code, hitbox, cats, placed, AttachmentTransform.Identity));
         }
         AttachmentPoints = [.. points];
     }
@@ -294,7 +445,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
         BackpackItemCode = new AssetLocation(tree.GetString("backpackItemCode", "game:linensack"));
         MeshAngleRad = tree.GetFloat("meshAngle", 0f);
         var item = worldForResolving.GetItem(BackpackItemCode);
-        if (item != null) LoadAttachmentConfig(item);
+        if (item != null) LoadAttachmentConfig(worldForResolving.Api, item);
 
         var addonsTree = tree.GetTreeAttribute("placed_addons");
         AttachedItems = new ItemStack[AttachmentPoints.Length];
@@ -316,6 +467,13 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
 
         base.FromTreeAttributes(tree, worldForResolving);
         renderer?.MarkDirty();
+
+        // Attachment changes are processed server-side and reach the client only through this sync. The
+        // client renders its own world lighting, so re-run the light diff here to make a freshly attached
+        // (or removed) torch glow without relogging. Server already relights in OnAttachmentChanged; guard
+        // to client so load-time calls (Api still null) and server are unaffected.
+        if (Api?.Side == EnumAppSide.Client)
+            UpdateEmittedLight();
     }
 
     public override void OnBlockUnloaded()
