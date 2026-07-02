@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ImmersiveBackpacks.attachments;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -165,9 +166,11 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             var key = AttachmentMeshKey(i, stack);
             if (attachmentBounds.ContainsKey(key)) continue;
 
-            // Addons can be items (pouches, toolstrap) or blocks (lantern); tesselate accordingly (honouring
-            // per-stack appearance like the lantern's metal) and remember which atlas the resulting UVs index.
-            MeshData mesh = AttachmentMesh.Tesselate(capi, stack);
+            // Addons can be items (pouches, toolstrap) or blocks (lantern); compose through the shared core so
+            // a container addon (a toolstrap) folds its own children (tools) into the mesh, while a leaf addon
+            // is just tesselated (honouring per-stack appearance like the lantern's metal). Remember which
+            // atlas the resulting UVs index (a container of items stays in the item atlas).
+            MeshData mesh = AttachmentComposer.MeshFor(capi, AttachmentFactory.For(stack, capi.World));
             if (mesh == null) continue;
             int texId = stack.Item != null
                 ? capi.ItemTextureAtlas.AtlasTextures[0].TextureId
@@ -208,8 +211,11 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
         _ => false
     };
 
+    // Keyed by the stack's full content hash (not just its collectible code) so two toolstraps holding
+    // different tools - or any addon whose composed mesh depends on nested content - get distinct meshes.
+    // ItemStack.GetHashCode() folds the attribute tree, so nested child stacks are already reflected.
     private static string AttachmentMeshKey(int pointIndex, ItemStack stack)
-        => $"{pointIndex}:{stack?.Collectible?.Code}";
+        => $"{pointIndex}:{stack?.GetHashCode()}";
 
     private void DisposeMeshes()
     {

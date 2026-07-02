@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using ImmersiveBackpacks.attachments;
 using ImmersiveBackpacks.inventory;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -11,7 +12,7 @@ using Vintagestory.GameContent;
 
 namespace ImmersiveBackpacks.blocks;
 
-public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
+public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttachmentHost
 {
     public record AttachmentPoint(string Code, Cuboidf Hitbox, string[] Categories,
         AttachmentTransform Placed, AttachmentTransform Worn);
@@ -170,9 +171,23 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer
             RebuildCargo(oldAttached, byPlayer);
         }
 
+        OnAttachmentContentChanged();
+    }
+
+    // The single coarse re-derive after an attachment's content changes (attach/detach today; a nested
+    // toolstrap's tool swap once that lands): re-light, re-mesh, persist + sync. The design's IAttachmentHost
+    // push routes here too. Re-lighting and MarkDirty run on both sides; the renderer exists only client-side
+    // (server relights + syncs, the sync re-marks the client renderer via FromTreeAttributes anyway).
+    private void OnAttachmentContentChanged()
+    {
         UpdateEmittedLight();
+        renderer?.MarkDirty();
         MarkDirty(true);
     }
+
+    /// <summary>IAttachmentHost: a hosted attachment reports its content changed. Coarse by design — re-derive
+    /// everything content-derived (model, light, save); layout changes are attach/detach, handled separately.</summary>
+    public void OnAttachmentInvalidated(IAttachment source) => OnAttachmentContentChanged();
 
     // Hand a stack back to the interacting player, dropping it at the block if their inventory is full.
     private void Expel(ItemStack stack, IPlayer byPlayer)
