@@ -118,19 +118,21 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     public override bool OnPlayerRightClick(IPlayer byPlayer, BlockSelection blockSel)
     {
-        if (blockSel.SelectionBoxIndex == 0)
+        int pointIndex = blockSel.SelectionBoxIndex - 1;
+
+        // Shift + right-click on an attachment-point box attaches/detaches the addon there. Selection box 0 is
+        // the bag body; boxes 1+ are the attachment points.
+        if (byPlayer.Entity.Controls.ShiftKey)
         {
-            if (Api.Side == EnumAppSide.Client)
-                OpenCargoDialog(byPlayer);
+            if (pointIndex < 0 || pointIndex >= AttachmentPoints.Length) return false;
+            if (Api.Side == EnumAppSide.Server)
+                OnPlayerInteractWithPoint(pointIndex, byPlayer);
             return true;
         }
 
-        int pointIndex = blockSel.SelectionBoxIndex - 1;
-        if (pointIndex >= AttachmentPoints.Length) return false;
-
-        if (Api.Side == EnumAppSide.Server)
-            OnPlayerInteractWithPoint(pointIndex, byPlayer);
-
+        // Plain right-click anywhere on the bag opens the cargo dialog.
+        if (Api.Side == EnumAppSide.Client)
+            OpenCargoDialog(byPlayer);
         return true;
     }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -95,36 +96,63 @@ public class BlockImmersiveBackpack : Block
     public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection blockSel, IPlayer forPlayer)
     {
         var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityImmersiveBackpack;
-        if (be == null) return [];
 
-        int idx = blockSel.SelectionBoxIndex;
-        if (idx == 0)
+        // Plain right-click anywhere opens the cargo dialog.
+        var interactions = new List<WorldInteraction>
         {
-            return
-            [
-                new WorldInteraction
-                {
-                    ActionLangCode = "immersivebackpacks:open-cargo",
-                    MouseButton = EnumMouseButton.Right
-                }
-            ];
-        }
+            new() { ActionLangCode = "immersivebackpacks:open-cargo", MouseButton = EnumMouseButton.Right }
+        };
 
-        int pointIndex = idx - 1;
-        if (pointIndex >= be.AttachmentPoints.Length) return [];
-
-        var point = be.AttachmentPoints[pointIndex];
-        bool occupied = be.AttachedItems[pointIndex] != null;
-
-        return
-        [
-            new WorldInteraction
+        // On an attachment-point box (indices 1+; box 0 is the bag body), sneak+right-click attaches/detaches.
+        int pointIndex = blockSel.SelectionBoxIndex - 1;
+        if (be != null && pointIndex >= 0 && pointIndex < be.AttachmentPoints.Length)
+        {
+            var point = be.AttachmentPoints[pointIndex];
+            bool occupied = be.AttachedItems[pointIndex] != null;
+            interactions.Add(new()
             {
                 ActionLangCode = occupied
                     ? "immersivebackpacks:remove-attachment"
                     : "immersivebackpacks:attach-item",
-                MouseButton = EnumMouseButton.Right
+                MouseButton = EnumMouseButton.Right,
+                HotKeyCode = "sneak",
+                // Empty point: cycle through every addon that can attach here so the options are discoverable.
+                Itemstacks = occupied ? null : AttachableStacks(point.Categories)
+            });
+        }
+
+        return interactions.ToArray().Append(base.GetPlacedBlockInteractionHelp(world, blockSel, forPlayer));
+    }
+
+    // Every addon stack whose declared category is accepted by the point, for the interaction-help cycle.
+    // Built once from the collectible registry and cached (the attachable set is fixed after load).
+    private ItemStack[] AttachableStacks(string[] categories)
+    {
+        if (categories == null || categories.Length == 0) return null;
+
+        var byCategory = ObjectCacheUtil.GetOrCreate(api, "immersivebackpacks:attachablesByCategory", () =>
+        {
+            var map = new Dictionary<string, List<ItemStack>>();
+            foreach (var obj in api.World.Collectibles)
+            {
+                var cat = obj.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
+                if (cat == null) continue;
+                ItemStack stack = obj switch
+                {
+                    Block bl => new ItemStack(bl),
+                    Item it => new ItemStack(it),
+                    _ => null
+                };
+                if (stack == null) continue;
+                if (!map.TryGetValue(cat, out var list)) map[cat] = list = new List<ItemStack>();
+                list.Add(stack);
             }
-        ];
+            return map;
+        });
+
+        var stacks = new List<ItemStack>();
+        foreach (var cat in categories)
+            if (byCategory.TryGetValue(cat, out var list)) stacks.AddRange(list);
+        return stacks.Count > 0 ? stacks.ToArray() : null;
     }
 }
