@@ -2,7 +2,7 @@
 	{
 		"ingredientPattern": "LT,LL",
 		"ingredients": {
-			"L": { "type": "item", "code": "game:leather-normal-plain" },
+			"L": { "type": "item", "code": "game:leather-normal-*" },
 			"T": { "type": "item", "code": "game:flaxtwine" }
 		},
 		"width": 2,

@@ -5,6 +5,7 @@
 		{ "code": "type", "states": [ "normal", "sturdy" ] }
 	],
 	"maxstacksize": 1,
+	"storageFlags": 3,
 	"creativeinventory": {
 		"general": [ "*" ]
 	},

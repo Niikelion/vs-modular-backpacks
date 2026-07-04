@@ -1,0 +1,13 @@
+[
+	{
+		"ingredientPattern": "F,L",
+		"ingredients": {
+			"F": { "type": "item", "code": "game:flaxfibers" },
+			"L": { "type": "item", "code": "game:leather-normal-*" }
+		},
+		"width": 1,
+		"height": 2,
+		"name": "toolstrap",
+		"output": { "type": "item", "code": "toolstrap" }
+	}
+]

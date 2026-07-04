@@ -2,6 +2,7 @@
 	"code": "toolstrap",
 	"class": "Item",
 	"maxstacksize": 1,
+	"storageFlags": 3,
 	"shape": { "base": "immersivebackpacks:item/bag/toolstrap" },
 	"creativeinventory": { "general": ["*"] },
 	"behaviors": [ { "name": "HeldBag" } ],
