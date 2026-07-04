@@ -2,11 +2,11 @@
 	"code": "toolstrap",
 	"class": "Item",
 	"maxstacksize": 1,
-	"shape": { "base": "game:item/resource/leather-fine" },
+	"shape": { "base": "immersivebackpacks:item/bag/toolstrap" },
 	"creativeinventory": { "general": ["*"] },
 	"behaviors": [ { "name": "HeldBag" } ],
 	"attributes": {
-		"backpack": { "quantitySlots": 3 },
+		"backpack": { "quantitySlots": 1 },
 		"immersiveBackpackAttachment": {
 			"category": "toolstrap",
 			"slotType": "tools"

@@ -36,6 +36,26 @@ public static class BackpackSlotLayout
     public static int AddonSlotCount(ItemStack stack)
         => stack?.Collectible?.GetCollectibleInterface<IHeldBag>()?.GetQuantitySlots(stack) ?? 0;
 
+    /// <summary>
+    /// The unified-cargo slot range <c>[offset, offset+count)</c> each addon owns, aligned 1:1 with
+    /// <paramref name="addonStacks"/> (and thus with the attachment points). Base slots come first, then each
+    /// addon's run in order — the same ordering <see cref="Build"/> produces — so a toolstrap can find which
+    /// cargo slots hold the tools that render on it. A non-slot addon (lantern, or an empty point) gets count 0.
+    /// </summary>
+    public static (int offset, int count)[] AddonRanges(int baseSlots, IReadOnlyList<ItemStack> addonStacks)
+    {
+        int n = addonStacks?.Count ?? 0;
+        var ranges = new (int, int)[n];
+        int off = baseSlots;
+        for (int i = 0; i < n; i++)
+        {
+            int c = AddonSlotCount(addonStacks[i]);
+            ranges[i] = (off, c);
+            off += c;
+        }
+        return ranges;
+    }
+
     /// <summary>Builds the full slot layout: base general slots followed by each addon's slots.</summary>
     public static SlotSpec[] Build(int baseSlots, IReadOnlyList<ItemStack> addonStacks)
     {

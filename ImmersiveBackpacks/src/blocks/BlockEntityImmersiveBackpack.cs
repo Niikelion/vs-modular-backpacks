@@ -326,7 +326,29 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
         if (Api != null)
             inv.LateInitialize(InventoryClassName + "-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, Api);
+
+        // A toolstrap renders the tools in the cargo slots it owns, so a cargo edit can change the model.
+        // Coarse: any cargo change re-meshes (client-only; renderer is null server-side). Cargo edits are
+        // user-driven and infrequent, so the extra rebuilds don't matter.
+        inv.SlotModified += _ => renderer?.MarkDirty();
         return inv;
+    }
+
+    /// <summary>
+    /// The unified-cargo stacks the addon at the given attachment point owns, in slot order — a toolstrap's
+    /// rendered tools. Null when the point has no addon or the addon contributes no slots. The placed renderer
+    /// hands this to <c>AttachmentFactory.ForBagChild</c> so the toolstrap composes its tools.
+    /// </summary>
+    public IReadOnlyList<ItemStack> OwnedCargo(int pointIndex)
+    {
+        if (cargoInv == null || pointIndex < 0 || pointIndex >= AttachedItems.Length) return null;
+        var (off, count) = BackpackSlotLayout.AddonRanges(GetBaseSlots(), AttachedItems)[pointIndex];
+        if (count <= 0) return null;
+
+        var owned = new List<ItemStack>(count);
+        for (int k = 0; k < count && off + k < cargoInv.Count; k++)
+            owned.Add(cargoInv[off + k].Itemstack);
+        return owned;
     }
 
     // Owner key per cargo slot for a given attachment set, aligned 1:1 with BackpackSlotLayout.Build:

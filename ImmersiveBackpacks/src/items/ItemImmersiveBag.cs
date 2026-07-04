@@ -160,7 +160,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // Keyed by addon placement (point code + addon content hash, in point order) plus whether this is the
         // mirrored GUI variant, so per-frame cost is a single cheap hash + dictionary lookup; the actual
         // tesselation/upload happens once per configuration.
-        var key = (HeldMeshKey(points, addons), mirror: target == EnumItemRenderTarget.Gui);
+        var key = (HeldMeshKey(points, addons, itemstack), mirror: target == EnumItemRenderTarget.Gui);
         if (!heldMeshCache.TryGetValue(key, out var meshRef))
             heldMeshCache[key] = meshRef = BuildHeldMesh(capi, itemstack, key.mirror);
 
@@ -189,10 +189,14 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     }
 
     // Builds the composer's node view of this bag stack: points from the immersiveBackpack.attachmentPoints
-    // config (code, categories, fallback hitbox, placed transform), occupants read from placed_addons.
+    // config, occupants read from placed_addons. A slot-bearing addon (a toolstrap) also gets the run of
+    // unified cargo (backpack.slots) it owns, so its tools render — resolved here since only the bag knows the
+    // layout. Point order matches BackpackSlotLayout, so the cargo ranges line up.
     private IAttachment BagNodeFor(ItemStack stack)
     {
         var pts = new List<IAttachmentPoint>();
+        var orderedAddons = new List<ItemStack>();
+        var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
         var points = Attributes?["immersiveBackpack"]?["attachmentPoints"];
         if (points != null && points.Exists)
             foreach (var pt in points.AsArray())
@@ -205,15 +209,37 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
                 if (hb != null && hb.Length >= 6)
                     box = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
                 pts.Add(new AttachmentPointSpec(code, cats, box, AttachmentTransform.FromJson(pt["placed"])));
+                orderedAddons.Add(addonsTree?.GetItemstack(code));
             }
-        return new BagAttachment(stack, pts, api.World);
+
+        int baseSlots = Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
+        var ranges = BackpackSlotLayout.AddonRanges(baseSlots, orderedAddons);
+        var cargo = SlotsTree(stack, create: false);
+        var toolsByPoint = new Dictionary<string, IReadOnlyList<ItemStack>>();
+        for (int i = 0; i < pts.Count; i++)
+        {
+            var (off, count) = ranges[i];
+            if (count <= 0) continue;
+            var owned = new List<ItemStack>(count);
+            for (int k = 0; k < count; k++)
+            {
+                var s = (cargo?["slot-" + (off + k)] as ItemstackAttribute)?.value;
+                s?.ResolveBlockOrItem(api.World);
+                owned.Add(s);
+            }
+            toolsByPoint[pts[i].Code] = owned;
+        }
+
+        return new BagAttachment(stack, pts, toolsByPoint, api.World);
     }
 
     // Order- and position-sensitive cache key over the bag's attachment points: each point's code plus the
     // content hash of the addon stored there, mixed multiplicatively. TreeAttribute.GetHashCode() XORs its
     // entries, so it collides when two addons are swapped between points (same set, different placement) -
-    // walking the points in order avoids that.
-    private static int HeldMeshKey(JsonObject points, ITreeAttribute addons)
+    // walking the points in order avoids that. Also folds the unified cargo (backpack.slots) hash, because a
+    // slot-bearing addon (toolstrap) renders its cargo tools - so a tool change must rebuild the held mesh.
+    // (Coarse: any cargo edit rebuilds; cargo edits are user-driven and infrequent.)
+    private static int HeldMeshKey(JsonObject points, ITreeAttribute addons, ItemStack bagstack)
     {
         int key = 17;
         foreach (var pt in points.AsArray())
@@ -223,6 +249,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
             key = key * 31 + code.GetHashCode();
             key = key * 31 + (addons.GetItemstack(code)?.GetHashCode() ?? 0);
         }
+        key = key * 31 + (SlotsTree(bagstack, create: false)?.GetHashCode() ?? 0);
         return key;
     }
 

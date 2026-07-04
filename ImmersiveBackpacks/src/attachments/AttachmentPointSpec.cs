@@ -14,12 +14,15 @@ namespace ImmersiveBackpacks.attachments;
 public sealed class AttachmentPointSpec : IAttachmentPoint
 {
     private readonly string[] categories;
+    private readonly System.Func<ItemStack, bool> accepts;
 
     public AttachmentPointSpec(string code, string[] categories, Cuboidf box,
-        AttachmentTransform placed = null, AttachmentTransform worn = null, float[] rotation = null)
+        AttachmentTransform placed = null, AttachmentTransform worn = null, float[] rotation = null,
+        System.Func<ItemStack, bool> accepts = null)
     {
         Code = code;
         this.categories = categories ?? Array.Empty<string>();
+        this.accepts = accepts;
         Box = box;
         Placed = placed ?? AttachmentTransform.Identity;
         Worn = worn ?? AttachmentTransform.Identity;
@@ -35,6 +38,9 @@ public sealed class AttachmentPointSpec : IAttachmentPoint
 
     public bool Accepts(ItemStack stack)
     {
+        // A custom predicate (e.g. tool points accepting anything with a tool tier) overrides the default
+        // category match, since not every attachable declares an immersiveBackpackAttachment.category.
+        if (accepts != null) return accepts(stack);
         var cat = stack?.Collectible?.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
         return cat != null && Array.IndexOf(categories, cat) >= 0;
     }

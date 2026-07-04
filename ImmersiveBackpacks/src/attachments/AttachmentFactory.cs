@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Vintagestory.API.Common;
 
 namespace ImmersiveBackpacks.attachments;
@@ -10,12 +11,27 @@ namespace ImmersiveBackpacks.attachments;
 /// </summary>
 public static class AttachmentFactory
 {
+    /// <summary>A leaf node: a stack that just renders (a tool, a pouch's own body, the lantern). A container
+    /// whose children come from the host's cargo (a toolstrap) can't be built here — use <see cref="ForBagChild"/>.</summary>
     public static IAttachment For(ItemStack stack, IWorldAccessor world)
     {
         if (stack?.Collectible == null) return null;
-
-        // Future: dispatch to a container node (e.g. ToolstrapAttachment) by collectible attribute/type,
-        // passing `world` so it can resolve its own children. Leaves ignore `world`.
         return new ItemAttachment(stack);
+    }
+
+    /// <summary>
+    /// Builds the node for an addon attached to a backpack point, given the unified-cargo slots that addon
+    /// owns (empty/null for a non-slot addon). A toolstrap becomes a container over those cargo stacks as its
+    /// tools; everything else is a leaf. This is the only place that needs the cargo, so leaf resolution
+    /// (including a toolstrap's own tools) stays on the simple <see cref="For"/> path.
+    /// </summary>
+    public static IAttachment ForBagChild(ItemStack addonStack, IReadOnlyList<ItemStack> ownedCargo,
+        IWorldAccessor world)
+    {
+        if (addonStack?.Collectible == null) return null;
+
+        var cat = addonStack.Collectible.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
+        if (cat == "toolstrap") return new ToolstrapAttachment(addonStack, ownedCargo, world);
+        return For(addonStack, world);
     }
 }
