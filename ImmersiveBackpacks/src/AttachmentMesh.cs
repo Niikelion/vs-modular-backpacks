@@ -72,9 +72,13 @@ public static class AttachmentMesh
         public readonly Cuboidf Box;
         public readonly float[] Rotation;
         public readonly float[] LocalSize;
-        public SlotMarker(Cuboidf box, float[] rotation, float[] localSize)
+        // The slot's placement anchor: its pivot (rotationOrigin) resolved through the ancestor chain, in raw
+        // 16-unit space. This, not the box centre, is where an addon is anchored - so moving the pivot moves
+        // the anchor, and it doesn't depend on the box's extent.
+        public readonly Vec3f Origin;
+        public SlotMarker(Cuboidf box, float[] rotation, float[] localSize, Vec3f origin)
         {
-            Box = box; Rotation = rotation; LocalSize = localSize;
+            Box = box; Rotation = rotation; LocalSize = localSize; Origin = origin;
         }
     }
 
@@ -123,7 +127,17 @@ public static class AttachmentMesh
                 if (v[2] < minZ) minZ = v[2]; if (v[2] > maxZ) maxZ = v[2];
             }
             var box = new Cuboidf(minX, minY, minZ, maxX, maxY, maxZ);
-            result[el.Name.Substring("slot_".Length)] = new SlotMarker(box, ExtractEuler(world), new[] { sx, sy, sz });
+
+            // Anchor = the slot's pivot (rotationOrigin) through the ancestor chain, independent of the box
+            // extent. The element's own transform leaves its pivot fixed, so it's just parentMat * pivot.
+            // Defaults to the box centre when no rotationOrigin is authored.
+            float ox = el.RotationOrigin is { Length: >= 3 } ? (float)el.RotationOrigin[0] : (float)(el.From[0] + el.To[0]) / 2f;
+            float oy = el.RotationOrigin is { Length: >= 3 } ? (float)el.RotationOrigin[1] : (float)(el.From[1] + el.To[1]) / 2f;
+            float oz = el.RotationOrigin is { Length: >= 3 } ? (float)el.RotationOrigin[2] : (float)(el.From[2] + el.To[2]) / 2f;
+            var ow = Mat4f.MulWithVec4(parentMat, ox, oy, oz, 1f);
+
+            result[el.Name.Substring("slot_".Length)] =
+                new SlotMarker(box, ExtractEuler(world), new[] { sx, sy, sz }, new Vec3f(ow[0], ow[1], ow[2]));
         }
 
         if (el.Children != null)
@@ -188,5 +202,19 @@ public static class AttachmentMesh
         return (
             new Vec3f((minX + maxX) / 2f, (minY + maxY) / 2f, (minZ + maxZ) / 2f),
             new Vec3f(maxX - minX, maxY - minY, maxZ - minZ));
+    }
+
+    /// <summary>
+    /// The addon's model origin in block space — the fixed point on the addon that is placed AT the attachment
+    /// point's anchor, INSTEAD of the addon's geometry bounding-box centre. Being fixed (not derived from the
+    /// mesh) it is content-independent: adding tools to a toolstrap does not move the toolstrap, and asymmetric
+    /// models don't need the offset re-tuned per model. Defaults to the floor centre of the cube — (0.5,0,0.5)
+    /// = (8,0,8) in 16-unit space — so an addon sits horizontally centred with its base on the point. An addon
+    /// authored around a different origin overrides it via <c>immersiveBackpackAttachment.origin</c> (block-space).
+    /// </summary>
+    public static Vec3f ModelOrigin(CollectibleObject collectible)
+    {
+        var arr = collectible?.Attributes?["immersiveBackpackAttachment"]?["origin"]?.AsArray<float>(null);
+        return arr is { Length: >= 3 } ? new Vec3f(arr[0], arr[1], arr[2]) : new Vec3f(0.5f, 0f, 0.5f);
     }
 }

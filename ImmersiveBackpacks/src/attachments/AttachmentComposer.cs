@@ -83,12 +83,11 @@ public static class AttachmentComposer
             MergeInto(parentShape.TextureSizes ??= new(), childShape.TextureSizes);
 
             var slot = s.slot;
-            double[] slotCenter =
-            {
-                (slot.From[0] + slot.To[0]) / 2.0,
-                (slot.From[1] + slot.To[1]) / 2.0,
-                (slot.From[2] + slot.To[2]) / 2.0
-            };
+            // Anchor at the slot's pivot (rotationOrigin), not its box centre - matches the mesh path and
+            // is independent of the box extent. Defaults to box centre when no pivot is authored.
+            double[] slotOrigin = slot.RotationOrigin is { Length: >= 3 }
+                ? slot.RotationOrigin
+                : new[] { (slot.From[0] + slot.To[0]) / 2.0, (slot.From[1] + slot.To[1]) / 2.0, (slot.From[2] + slot.To[2]) / 2.0 };
             var slotRot = new[] { (float)slot.RotationX, (float)slot.RotationY, (float)slot.RotationZ };
             // Worn placement: the slot marker's own rotation, the point's own worn transform (identity for a
             // bag's addon points; a toolstrap's tool scale for its tool points), then the child's shared
@@ -96,7 +95,10 @@ public static class AttachmentComposer
             var tf = AttachmentTransform.FromRotation(slotRot)
                 .CombinedWith(pt.Worn)
                 .CombinedWith(AttachmentTransform.FromItem(child.Stack.Collectible, "attachedTransform"));
-            var wrapper = WrapAddon(childShape.Elements, slotCenter, tf);
+            // Anchor by the child's fixed model origin (16-unit), not its geometry bounds - content-stable.
+            var childOrigin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
+            var wrapper = WrapAddon(childShape.Elements, slotOrigin, tf,
+                new[] { childOrigin.X * 16.0, childOrigin.Y * 16.0, childOrigin.Z * 16.0 });
             AttachUnder(s.parent, new[] { wrapper });
         }
     }
@@ -147,14 +149,16 @@ public static class AttachmentComposer
             if (childMesh == null) continue;
             childMesh = childMesh.Clone();
 
-            var (center, _) = AttachmentMesh.Bounds(childMesh);
+            // Anchor the child by its fixed model origin (not its bounds centre) so a container child
+            // (a toolstrap) doesn't shift when its own children change, and asymmetric addons don't drift.
+            var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
             var tf = pt.Placed.CombinedWith(AttachmentTransform.ForItem(child.Stack.Collectible, "placed"));
 
             float cx, cy, cz;
             if (markers.TryGetValue(pt.Code, out var marker))
             {
-                var b = marker.Box;
-                cx = (b.X1 + b.X2) / 32f; cy = (b.Y1 + b.Y2) / 32f; cz = (b.Z1 + b.Z2) / 32f;
+                // Anchor at the marker's pivot (origin), 16-unit -> [0,1].
+                cx = marker.Origin.X / 16f; cy = marker.Origin.Y / 16f; cz = marker.Origin.Z / 16f;
                 tf = AttachmentTransform.FromRotation(marker.Rotation).CombinedWith(tf);
             }
             else if (pt.Box != null)
@@ -172,7 +176,7 @@ public static class AttachmentComposer
                 .RotateY(tf.Rotation[1] * D2R)
                 .RotateZ(tf.Rotation[2] * D2R)
                 .Scale(s, s, s)
-                .Translate(tf.Offset[0] - center.X, tf.Offset[1] - center.Y, tf.Offset[2] - center.Z);
+                .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z);
             childMesh.MatrixTransform(mat.Values);
 
             baseMesh.AddMeshData(childMesh);
@@ -273,15 +277,16 @@ public static class AttachmentComposer
         foreach (var kv in src) target[kv.Key] = kv.Value;
     }
 
-    private static ShapeElement WrapAddon(ShapeElement[] addonElements, double[] slotCenter,
-        AttachmentTransform tf)
+    private static ShapeElement WrapAddon(ShapeElement[] addonElements, double[] slotOrigin,
+        AttachmentTransform tf, double[] addonOrigin)
     {
-        var (center, _) = AbsoluteBounds(addonElements);
+        // Shift so the addon's fixed model origin lands on the wrapper, displaced by the authored offset -
+        // so the addon's origin (not its geometry centre) sits at the slot, matching the mesh path.
         double[] shift =
         {
-            center[0] - tf.Offset[0] * 16.0,
-            center[1] - tf.Offset[1] * 16.0,
-            center[2] - tf.Offset[2] * 16.0
+            addonOrigin[0] - tf.Offset[0] * 16.0,
+            addonOrigin[1] - tf.Offset[1] * 16.0,
+            addonOrigin[2] - tf.Offset[2] * 16.0
         };
         foreach (var el in addonElements)
         {
@@ -295,9 +300,9 @@ public static class AttachmentComposer
         var wrapper = new ShapeElement
         {
             Name = "addon",
-            From = (double[])slotCenter.Clone(),
-            To = (double[])slotCenter.Clone(),
-            RotationOrigin = (double[])slotCenter.Clone(),
+            From = (double[])slotOrigin.Clone(),
+            To = (double[])slotOrigin.Clone(),
+            RotationOrigin = (double[])slotOrigin.Clone(),
             RotationX = tf.Rotation[0],
             RotationY = tf.Rotation[1],
             RotationZ = tf.Rotation[2],
@@ -315,29 +320,6 @@ public static class AttachmentComposer
     {
         if (p == null) return;
         p[0] -= delta[0]; p[1] -= delta[1]; p[2] -= delta[2];
-    }
-
-    private static (double[] center, double[] size) AbsoluteBounds(ShapeElement[] elements)
-    {
-        double minX = double.MaxValue, minY = double.MaxValue, minZ = double.MaxValue;
-        double maxX = double.MinValue, maxY = double.MinValue, maxZ = double.MinValue;
-
-        void Walk(ShapeElement el, double bx, double by, double bz)
-        {
-            double fx = bx + (el.From?[0] ?? 0), fy = by + (el.From?[1] ?? 0), fz = bz + (el.From?[2] ?? 0);
-            double tx = bx + (el.To?[0] ?? 0), ty = by + (el.To?[1] ?? 0), tz = bz + (el.To?[2] ?? 0);
-            minX = Math.Min(minX, Math.Min(fx, tx)); minY = Math.Min(minY, Math.Min(fy, ty)); minZ = Math.Min(minZ, Math.Min(fz, tz));
-            maxX = Math.Max(maxX, Math.Max(fx, tx)); maxY = Math.Max(maxY, Math.Max(fy, ty)); maxZ = Math.Max(maxZ, Math.Max(fz, tz));
-            if (el.Children != null)
-                foreach (var c in el.Children) Walk(c, fx, fy, fz);
-        }
-
-        foreach (var el in elements) Walk(el, 0, 0, 0);
-
-        if (minX > maxX) return (new double[3], new double[3]);
-        return (
-            new[] { (minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2 },
-            new[] { maxX - minX, maxY - minY, maxZ - minZ });
     }
 
     private static Dictionary<string, (ShapeElement slot, ShapeElement parent)> FindSlotElements(ShapeElement[] roots)

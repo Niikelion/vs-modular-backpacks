@@ -15,7 +15,7 @@ namespace ImmersiveBackpacks.blocks;
 public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttachmentHost
 {
     public record AttachmentPoint(string Code, Cuboidf Hitbox, string[] Categories,
-        AttachmentTransform Placed, AttachmentTransform Worn);
+        AttachmentTransform Placed, AttachmentTransform Worn, Vec3f Origin);
 
     private InventoryGeneric cargoInv;
     private BlockEntityImmersiveBackpackRenderer renderer;
@@ -441,24 +441,29 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
             Cuboidf hitbox;
             AttachmentTransform placed;
+            Vec3f origin;
             if (code != null && shapeSlots.TryGetValue(code, out var marker))
             {
                 // Geometry comes entirely from the slot marker: box -> [0,1] hitbox, composed rotation ->
-                // the placed orientation. The addon's own attachedTransform (scale etc.) is folded in later.
+                // the placed orientation, pivot -> the placement anchor. The addon's own attachedTransform
+                // (scale etc.) is folded in later.
                 var b = marker.Box;
                 hitbox = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
                 placed = AttachmentTransform.FromRotation(marker.Rotation);
+                origin = new Vec3f(marker.Origin.X / 16f, marker.Origin.Y / 16f, marker.Origin.Z / 16f);
             }
             else
             {
-                // No marker: fall back to a patch-defined hitbox/placed (legacy/unported bags).
+                // No marker: fall back to a patch-defined hitbox/placed (legacy/unported bags); anchor at the
+                // hitbox centre.
                 var hb = entry["hitbox"].AsArray<float>();
                 if (hb == null || hb.Length < 6) continue;
                 hitbox = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
                 placed = AttachmentTransform.FromJson(entry["placed"]);
+                origin = new Vec3f((hb[0] + hb[3]) / 2f, (hb[1] + hb[4]) / 2f, (hb[2] + hb[5]) / 2f);
             }
 
-            points.Add(new AttachmentPoint(code, hitbox, cats, placed, AttachmentTransform.Identity));
+            points.Add(new AttachmentPoint(code, hitbox, cats, placed, AttachmentTransform.Identity, origin));
         }
         AttachmentPoints = [.. points];
     }

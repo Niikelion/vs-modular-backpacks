@@ -13,7 +13,6 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
     private MeshRef bodyMeshRef;
     private readonly Dictionary<string, MeshRef> attachmentMeshRefs = new();
     private readonly Dictionary<string, MeshRef> attachmentTransparentRefs = new();
-    private readonly Dictionary<string, (Vec3f center, Vec3f size)> attachmentBounds = new();
     private readonly Dictionary<string, int> attachmentTexId = new();
     private bool dirty = true;
 
@@ -77,36 +76,31 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             var stack = be.AttachedItems[i];
             if (stack == null) continue;
             var key = AttachmentMeshKey(i, stack);
-            if (!attachmentBounds.TryGetValue(key, out var bounds)) continue;
-
-            // Block addons (lantern) tesselate into the block atlas, items into the item atlas.
-            int texId = attachmentTexId.TryGetValue(key, out var tid)
-                ? tid
-                : capi.ItemTextureAtlas.AtlasTextures[0].TextureId;
+            // Block addons (lantern) tesselate into the block atlas, items into the item atlas; a missing key
+            // means the addon wasn't tesselated (null/empty mesh), so skip it.
+            if (!attachmentTexId.TryGetValue(key, out var texId)) continue;
 
             var point = be.AttachmentPoints[i];
-            var hb = point.Hitbox;
-            float cx = (hb.X1 + hb.X2) / 2f;
-            float cy = (hb.Y1 + hb.Y2) / 2f;
-            float cz = (hb.Z1 + hb.Z2) / 2f;
+            var anchor = point.Origin;                                   // marker pivot, [0,1]
+            var origin = AttachmentMesh.ModelOrigin(stack.Collectible);  // addon's fixed model origin
 
             // Apply the point's placed transform combined with the item override (no hitbox auto-fit).
             var tf = point.Placed.CombinedWith(AttachmentTransform.ForItem(stack.Collectible, "placed"));
             float scale = tf.Scale;
 
-            // Rotate about the block centre (placement orientation), then position at the hitbox centre
-            // (relative to that centre) plus the transform offset, then rotate/scale/centre the mesh. The
-            // addon rotation comes from the composed shape slot (X,Y,Z order, matching how it was authored).
+            // Rotate about the block centre (placement orientation), then position at the point's anchor
+            // (relative to that centre) plus the transform offset, then rotate/scale and align the addon's
+            // model origin. The addon rotation comes from the composed shape slot (X,Y,Z order, as authored).
             float[] matrix = modelMat.Identity()
                 .Translate(pos.X - camPos.X + 0.5, pos.Y - camPos.Y, pos.Z - camPos.Z + 0.5)
                 .RotateY(angle)
-                .Translate(cx - 0.5, cy, cz - 0.5)
+                .Translate(anchor.X - 0.5, anchor.Y, anchor.Z - 0.5)
                 .RotateX(tf.Rotation[0] * d2r)
                 .RotateY(tf.Rotation[1] * d2r)
                 .RotateZ(tf.Rotation[2] * d2r)
                 .Scale(scale, scale, scale)
                 // Offset applied here (after the addon rotation) so it follows the addon's local axes.
-                .Translate(tf.Offset[0] - bounds.center.X, tf.Offset[1] - bounds.center.Y, tf.Offset[2] - bounds.center.Z)
+                .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z)
                 .Values;
 
             if (attachmentMeshRefs.TryGetValue(key, out var opaqueRef))
@@ -164,7 +158,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             if (stack?.Collectible == null) continue;
 
             var key = AttachmentMeshKey(i, stack);
-            if (attachmentBounds.ContainsKey(key)) continue;
+            if (attachmentTexId.ContainsKey(key)) continue;
 
             // Addons can be items (pouches, toolstrap) or blocks (lantern); compose through the shared core so
             // a container addon (a toolstrap) folds its own children (tools) into the mesh, while a leaf addon
@@ -177,7 +171,6 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
                 ? capi.ItemTextureAtlas.AtlasTextures[0].TextureId
                 : capi.BlockTextureAtlas.AtlasTextures[0].TextureId;
 
-            attachmentBounds[key] = AttachmentMesh.Bounds(mesh);
             attachmentTexId[key] = texId;
 
             var (opaque, transparent) = SplitByTransparency(mesh);
@@ -227,7 +220,6 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
         foreach (var r in attachmentTransparentRefs.Values) r?.Dispose();
         attachmentMeshRefs.Clear();
         attachmentTransparentRefs.Clear();
-        attachmentBounds.Clear();
         attachmentTexId.Clear();
     }
 
