@@ -90,9 +90,11 @@ public static class AttachmentComposer
                 (slot.From[2] + slot.To[2]) / 2.0
             };
             var slotRot = new[] { (float)slot.RotationX, (float)slot.RotationY, (float)slot.RotationZ };
-            // Worn placement: the slot marker's own rotation combined with the child's shared attachedTransform
-            // (scale/offset/rotation that applies in every context). The parent chain supplies the rest.
+            // Worn placement: the slot marker's own rotation, the point's own worn transform (identity for a
+            // bag's addon points; a toolstrap's tool scale for its tool points), then the child's shared
+            // attachedTransform. The parent chain supplies the rest.
             var tf = AttachmentTransform.FromRotation(slotRot)
+                .CombinedWith(pt.Worn)
                 .CombinedWith(AttachmentTransform.FromItem(child.Stack.Collectible, "attachedTransform"));
             var wrapper = WrapAddon(childShape.Elements, slotCenter, tf);
             AttachUnder(s.parent, new[] { wrapper });

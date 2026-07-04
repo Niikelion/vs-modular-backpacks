@@ -3,7 +3,7 @@
     "allAngles": true,
     "backdrops": [
       {
-        "shapeFilepath": "item\\tool\\axe\\copper",
+        "shapeFilepath": "item/tool/axe/copper",
         "opacity": 1.0,
         "enabled": true
       }
@@ -11,7 +11,7 @@
     "attachments": []
   },
   "textures": {
-    "texture": "block\\leather\\plain"
+    "texture": "game:block/leather/plain"
   },
   "elements": [
     {
@@ -345,6 +345,18 @@
               "uv":[0.0,0.0]
             }
           ],
+          "uv":[0.0,0.0]
+        },
+        {
+          "name": "slot_tool_0",
+          "from":[2.5,-0.75,-0.5],
+          "to":[4.5,1.25,1.5],
+          "faces": {},
+          "rotationOrigin":[3.5,0.25,0.5],
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "scaleZ": 1.0,
+          "children": [],
           "uv":[0.0,0.0]
         }
       ],

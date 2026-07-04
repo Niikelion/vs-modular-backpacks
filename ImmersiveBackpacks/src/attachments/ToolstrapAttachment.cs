@@ -50,6 +50,11 @@ public sealed class ToolstrapAttachment : AttachmentBase
             ?? (coll as Item)?.Shape ?? (coll as Block)?.Shape;
         var markers = AttachmentMesh.ReadSlots(world.Api, cs?.Base?.ToString(), coll.Code.Domain);
 
+        // How every tool sits on the strap: scale/offset/rotation shared by all tool slots, authored on the
+        // toolstrap so a tool (a plain vanilla item with no attachedTransform of its own) can be sized to the
+        // strap. Applied to each tool point in both render contexts (placed via Placed, worn via Worn).
+        var toolTf = AttachmentTransform.FromJson(coll.Attributes?["immersiveBackpackAttachment"]?["toolTransform"]);
+
         var list = new List<IAttachmentPoint>(markers.Count);
         foreach (var kv in markers)
         {
@@ -57,8 +62,8 @@ public sealed class ToolstrapAttachment : AttachmentBase
             var box = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
             // Tools carry no attachment category; a tool point accepts anything with a tool tier (matches the
             // "Tools" cargo filter). Only consulted by interaction, which for tools is the cargo dialog anyway.
-            list.Add(new AttachmentPointSpec(kv.Key, null, box, rotation: kv.Value.Rotation,
-                accepts: s => s?.Collectible?.ToolTier > 0));
+            list.Add(new AttachmentPointSpec(kv.Key, null, box, placed: toolTf, worn: toolTf,
+                rotation: kv.Value.Rotation, accepts: s => s?.Collectible?.ToolTier > 0));
         }
         return list;
     }
