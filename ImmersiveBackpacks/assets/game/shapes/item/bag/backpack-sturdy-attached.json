@@ -996,6 +996,43 @@
 							"scaleY": 1,
 							"scaleZ": 1,
 							"uv": [ 0, 0 ]
+						},
+						{
+							"name": "slot_toolstrap_left",
+							"from": [ -2.5, 4, 3.5 ],
+							"to": [ 2.5, 5, 4.5 ],
+							"faces": {},
+							"rotationOrigin": [ 0, 4.5, 4 ],
+							"rotationY": 45,
+							"rotationZ": 90,
+							"scaleX": 1,
+							"scaleY": 1,
+							"scaleZ": 1,
+							"uv": [ 0, 0 ]
+						},
+						{
+							"name": "slot_toolstrap_right",
+							"from": [ 3.5, 4, 3.5 ],
+							"to": [ 8.5, 5, 4.5 ],
+							"faces": {},
+							"rotationOrigin": [ 6, 4.5, 4 ],
+							"rotationY": 135,
+							"rotationZ": 90,
+							"scaleX": 1,
+							"scaleY": 1,
+							"scaleZ": 1,
+							"uv": [ 0, 0 ]
+						},
+						{
+							"name": "slot_toolstrap_top",
+							"from": [ 0.5, 9.8, 1.5 ],
+							"to": [ 5.5, 10.8, 2.5 ],
+							"faces": {},
+							"rotationOrigin": [ 3, 10.3, 2 ],
+							"scaleX": 1,
+							"scaleY": 1,
+							"scaleZ": 1,
+							"uv": [ 0, 0 ]
 						}
 					]
 				},

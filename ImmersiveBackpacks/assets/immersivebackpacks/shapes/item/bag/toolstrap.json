@@ -349,10 +349,10 @@
         },
         {
           "name": "slot_tool_0",
-          "from":[2.5,-0.75,-0.5],
-          "to":[4.5,1.25,1.5],
+          "from":[2.5,-0.5,-0.5],
+          "to":[4.5,1.5,1.5],
           "faces": {},
-          "rotationOrigin":[3.5,0.25,0.5],
+          "rotationOrigin":[3.5,0.5,0.5],
           "scaleX": 1.0,
           "scaleY": 1.0,
           "scaleZ": 1.0,

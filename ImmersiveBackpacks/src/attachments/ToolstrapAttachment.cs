@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using ImmersiveBackpacks.inventory;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
@@ -60,10 +61,10 @@ public sealed class ToolstrapAttachment : AttachmentBase
         {
             var b = kv.Value.Box;
             var box = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-            // Tools carry no attachment category; a tool point accepts anything with a tool tier (matches the
-            // "Tools" cargo filter). Only consulted by interaction, which for tools is the cargo dialog anyway.
+            // Tools carry no attachment category; a tool point accepts the same digging tools as the "Tools"
+            // cargo filter. Only consulted by interaction, which for tools is the cargo dialog anyway.
             list.Add(new AttachmentPointSpec(kv.Key, null, box, placed: toolTf, worn: toolTf,
-                rotation: kv.Value.Rotation, accepts: s => s?.Collectible?.ToolTier > 0));
+                rotation: kv.Value.Rotation, accepts: s => BackpackSlotLayout.IsToolSlotItem(s?.Collectible)));
         }
         return list;
     }

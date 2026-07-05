@@ -209,7 +209,12 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
                 if (hb != null && hb.Length >= 6)
                     box = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
                 pts.Add(new AttachmentPointSpec(code, cats, box, AttachmentTransform.FromJson(pt["placed"])));
-                orderedAddons.Add(addonsTree?.GetItemstack(code));
+                // Resolve before it feeds AddonRanges: an unresolved stack has a null Collectible, so
+                // AddonSlotCount reports 0 slots and a slot-bearing addon (toolstrap) would own no cargo
+                // range - its tools would silently drop out of the held/GUI mesh.
+                var addonStack = addonsTree?.GetItemstack(code);
+                addonStack?.ResolveBlockOrItem(api.World);
+                orderedAddons.Add(addonStack);
             }
 
         int baseSlots = Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;

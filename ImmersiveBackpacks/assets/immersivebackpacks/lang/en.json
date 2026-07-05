@@ -3,6 +3,9 @@
 	"item-immersivebackpacks-pouch-sturdy": "Sturdy Pouch",
 	"item-immersivebackpacks-toolstrap": "Tool Strap",
 
+	"block-immersivebackpacks-backpack-placed-normal": "Backpack",
+	"block-immersivebackpacks-backpack-placed-sturdy": "Sturdy Backpack",
+
 	"immersivebackpacks:open-cargo": "Open cargo",
 	"immersivebackpacks:attach-item": "Attach item",
 	"immersivebackpacks:remove-attachment": "Remove attachment",

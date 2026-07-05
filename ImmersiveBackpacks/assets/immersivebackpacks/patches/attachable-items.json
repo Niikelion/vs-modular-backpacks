@@ -22,5 +22,17 @@
 		"path": "/attributes/immersiveBackpackAttachment",
 		"value": { "category": "light", "attachedTransform": { "scale": 0.38 } },
 		"file": "game:blocktypes/metal/lantern.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "shield", "origin": [ 0.09, 0.03, 0.19 ], "attachedTransform": { "rotation": [ 0, 0, 8 ] } },
+		"file": "game:itemtypes/tool/shield.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "shield", "origin": [ 0.06, 0.06, 0.2 ], "attachedTransform": { "rotation": [ 0, 0, 8 ] } },
+		"file": "game:itemtypes/tool/roundshield.json"
 	}
 ]

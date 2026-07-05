@@ -21,20 +21,23 @@
 					{ "code": "right_pouch",       "categories": ["pouch"] },
 					{ "code": "front_left_pouch",  "categories": ["pouch"] },
 					{ "code": "front_right_pouch", "categories": ["pouch"] },
-					{ "code": "lantern",           "categories": ["light"] },
+					{ "code": "lantern",           "categories": ["light", "shield"] },
 					{ "code": "left_strap",        "categories": ["toolstrap"] },
 					{ "code": "right_strap",       "categories": ["toolstrap"] }
 				]
 			},
 			"*-sturdy": {
 				"attachmentPoints": [
-					{ "code": "lantern",           "categories": ["light"] },
+					{ "code": "lantern",           "categories": ["light", "shield"] },
 					{ "code": "lower_left_pouch",  "categories": ["pouch"] },
 					{ "code": "lower_right_pouch", "categories": ["pouch"] },
 					{ "code": "lower_front_left",  "categories": ["pouch", "sack"] },
 					{ "code": "lower_front_right", "categories": ["pouch", "sack"] },
 					{ "code": "upper_left_pouch",  "categories": ["pouch"] },
-					{ "code": "upper_right_pouch", "categories": ["pouch"] }
+					{ "code": "upper_right_pouch", "categories": ["pouch"] },
+					{ "code": "toolstrap_left",    "categories": ["toolstrap"] },
+					{ "code": "toolstrap_right",   "categories": ["toolstrap"] },
+					{ "code": "toolstrap_top",     "categories": ["toolstrap"] }
 				]
 			}
 		},

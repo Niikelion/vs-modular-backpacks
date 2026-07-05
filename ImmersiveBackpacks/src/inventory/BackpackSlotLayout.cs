@@ -49,7 +49,7 @@ public static class BackpackSlotLayout
         int off = baseSlots;
         for (int i = 0; i < n; i++)
         {
-            int c = AddonSlotCount(addonStacks[i]);
+            int c = AddonSlotCount(addonStacks![i]);
             ranges[i] = (off, c);
             off += c;
         }
@@ -63,30 +63,35 @@ public static class BackpackSlotLayout
         for (int i = 0; i < baseSlots; i++)
             list.Add(Spec(BackpackSlotType.General));
 
-        if (addonStacks != null)
-            foreach (var stack in addonStacks)
+        if (addonStacks == null) return list.ToArray();
+        
+        foreach (var stack in addonStacks)
+        {
+            int qty = AddonSlotCount(stack);
+            if (qty <= 0) continue;
+            var type = stack.Collectible.Attributes?["immersiveBackpackAttachment"]["slotType"].AsString() switch
             {
-                int qty = AddonSlotCount(stack);
-                if (qty <= 0) continue;
-                var type = stack.Collectible.Attributes?["immersiveBackpackAttachment"]?["slotType"]?.AsString() switch
-                {
-                    "ore" => BackpackSlotType.Ore,
-                    "tools" => BackpackSlotType.Tools,
-                    _ => BackpackSlotType.General
-                };
-                for (int j = 0; j < qty; j++)
-                    list.Add(Spec(type));
-            }
+                "ore" => BackpackSlotType.Ore,
+                "tools" => BackpackSlotType.Tools,
+                _ => BackpackSlotType.General
+            };
+            for (int j = 0; j < qty; j++)
+                list.Add(Spec(type));
+        }
 
         return list.ToArray();
     }
 
-    /// <summary>Type-specific acceptance beyond storage flags (tools must be actual tools).</summary>
+    /// <summary>Type-specific acceptance beyond storage flags (the Tools slot only takes digging tools).</summary>
     public static bool CanHold(BackpackSlotType type, ItemSlot sourceSlot)
     {
         if (type != BackpackSlotType.Tools) return true;
-        return sourceSlot.Itemstack?.Collectible.ToolTier > 0;
+        return IsToolSlotItem(sourceSlot.Itemstack?.Collectible);
     }
+
+    /// <summary>The tools a Tools slot (and a toolstrap) accepts: pickaxes, axes, shovels, hoes and prospecting picks.</summary>
+    public static bool IsToolSlotItem(CollectibleObject collectible)
+        => collectible?.Tool is EnumTool.Pickaxe or EnumTool.Axe or EnumTool.Shovel or EnumTool.Hoe or EnumTool.Probe;
 }
 
 /// <summary>Worn-bag content slot carrying a layout spec for per-slot colour and tool filtering.</summary>
