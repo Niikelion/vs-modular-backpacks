@@ -1,10 +1,10 @@
 {
-	"item-immersivebackpacks-pouch-normal": "Pouch",
-	"item-immersivebackpacks-pouch-sturdy": "Sturdy Pouch",
-	"item-immersivebackpacks-toolstrap": "Tool Strap",
+	"immersivebackpacks:item-pouch-normal": "Pouch",
+	"immersivebackpacks:item-pouch-sturdy": "Sturdy Pouch",
+	"immersivebackpacks:item-toolstrap": "Tool Strap",
 
-	"block-immersivebackpacks-backpack-placed-normal": "Backpack",
-	"block-immersivebackpacks-backpack-placed-sturdy": "Sturdy Backpack",
+	"immersivebackpacks:block-backpack-placed-normal": "Backpack",
+	"immersivebackpacks:block-backpack-placed-sturdy": "Sturdy Backpack",
 
 	"immersivebackpacks:open-cargo": "Open cargo",
 	"immersivebackpacks:attach-item": "Attach item",
