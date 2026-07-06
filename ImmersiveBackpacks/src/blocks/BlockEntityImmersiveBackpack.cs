@@ -120,12 +120,11 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     {
         int pointIndex = blockSel.SelectionBoxIndex - 1;
 
-        // Shift + right-click on an attachment-point box attaches/detaches the addon there. Selection box 0 is
-        // the bag body; boxes 1+ are the attachment points.
+        // Shift + right-click is our attach/detach gesture (box 0 is the body, boxes 1+ are the points). Always
+        // consume it so a held placeable addon can't place itself against the bag; only a point box attaches.
         if (byPlayer.Entity.Controls.ShiftKey)
         {
-            if (pointIndex < 0 || pointIndex >= AttachmentPoints.Length) return false;
-            if (Api.Side == EnumAppSide.Server)
+            if (pointIndex >= 0 && pointIndex < AttachmentPoints.Length && Api.Side == EnumAppSide.Server)
                 OnPlayerInteractWithPoint(pointIndex, byPlayer);
             return true;
         }

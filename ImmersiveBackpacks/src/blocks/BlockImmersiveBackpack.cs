@@ -8,6 +8,14 @@ namespace ImmersiveBackpacks.blocks;
 
 public class BlockImmersiveBackpack : Block
 {
+    public override void OnLoaded(ICoreAPI api)
+    {
+        base.OnLoaded(api);
+        // Make sneak-interact beat held-block placement, so attaching an addon (e.g. a lantern) wins over
+        // placing it as a block. Without this the engine places first and only attaches on placement failure.
+        PlacedPriorityInteract = true;
+    }
+
     // The body box comes from the standard blocktype selectionBoxes/collisionBoxes (backpack-placed.json);
     // we add the per-slot attachment boxes on top of it for the selection (interaction) boxes.
     public override Cuboidf[] GetSelectionBoxes(IBlockAccessor blockAccessor, BlockPos pos)

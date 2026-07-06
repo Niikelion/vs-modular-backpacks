@@ -8,6 +8,7 @@
 	"drawtype": "Empty",
 	"sideopaque": { "all": false },
 	"sidesolid": { "all": false },
+	"lightAbsorption": 0,
 	"selectionboxByType": {
 		"*-normal": { "x1": 0.34, "y1": 0, "z1": 0.34, "x2": 0.66, "y2": 0.65, "z2": 0.66 },
 		"*-sturdy": { "x1": 0.35, "y1": 0, "z1": 0.35, "x2": 0.65, "y2": 0.66, "z2": 0.65 }
