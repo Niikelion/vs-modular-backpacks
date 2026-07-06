@@ -22,6 +22,8 @@ public static class AttachmentMesh
     public static MeshData Tesselate(ICoreClientAPI capi, ItemStack stack)
     {
         if (stack?.Collectible == null) return null;
+        int itemAtlas = capi.ItemTextureAtlas.AtlasTextures[0].TextureId;
+        int blockAtlas = capi.BlockTextureAtlas.AtlasTextures[0].TextureId;
         if (stack.Item != null)
         {
             // An item may declare a separate, usually smaller, shape for when it's attached to a bag.
@@ -29,15 +31,36 @@ public static class AttachmentMesh
             if (attached != null)
             {
                 capi.Tesselator.TesselateShape(stack.Item, attached, out var customMesh);
-                return customMesh;
+                return TagAtlas(customMesh, itemAtlas);
             }
             capi.Tesselator.TesselateItem(stack.Item, out var itemMesh);
-            return itemMesh;
+            return TagAtlas(itemMesh, itemAtlas);
         }
         if (stack.Block is IContainedMeshSource cms)
-            return cms.GenMesh(new DummySlot(stack), capi.BlockTextureAtlas, null);
+            return TagAtlas(cms.GenMesh(new DummySlot(stack), capi.BlockTextureAtlas, null), blockAtlas);
         capi.Tesselator.TesselateBlock(stack.Block, out var blockMesh);
-        return blockMesh;
+        return TagAtlas(blockMesh, blockAtlas);
+    }
+
+    /// <summary>
+    /// Marks every face of a single-atlas mesh with its atlas texture id, so meshes from different atlases
+    /// (item-atlas pouches/toolstrap, block-atlas lantern) can be merged with <see cref="MeshData.AddMeshData(MeshData)"/>
+    /// into one multi-texture mesh and uploaded via <c>UploadMultiTextureMesh</c>. Without this the composed
+    /// held/GUI bag mesh has no per-atlas mapping, so the block-atlas lantern renders untextured in the
+    /// inventory icon and hover tooltip (the placed-block path binds each atlas per-draw, so it was unaffected).
+    /// </summary>
+    private static MeshData TagAtlas(MeshData mesh, int atlasTextureId)
+    {
+        if (mesh == null) return null;
+        // Keep a per-face mapping the tesselator already produced (it handles multi-page atlases correctly);
+        // only synthesise one when it's absent, which is the case that leaves a merged mesh unable to bind
+        // this sub-mesh's atlas.
+        if (mesh.TextureIds is { Length: > 0 } && mesh.TextureIndices != null) return mesh;
+        int faces = mesh.VerticesCount / 4;                 // quad meshes: 4 verts per face
+        mesh.TextureIds = new[] { atlasTextureId };
+        mesh.TextureIndices = new byte[faces];              // all 0 -> index 0 -> atlasTextureId
+        mesh.TextureIndicesCount = faces;
+        return mesh;
     }
 
     /// <summary>
