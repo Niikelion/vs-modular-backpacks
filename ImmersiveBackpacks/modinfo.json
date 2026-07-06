@@ -5,8 +5,8 @@
     "authors": [
         "Unknown"
     ],
-    "description": "To be added",
-    "version": "0.0.1",
+    "description": "Makes vanilla backpacks more modular and immersive",
+    "version": "0.1.0",
     "dependencies": {
         "game": ""
     }
