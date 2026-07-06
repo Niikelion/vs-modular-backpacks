@@ -11,14 +11,16 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
     : IRenderer
 {
     private MeshRef bodyMeshRef;
-    private readonly Dictionary<string, MeshRef> attachmentMeshRefs = new();
-    private readonly Dictionary<string, MeshRef> attachmentTransparentRefs = new();
-    private readonly Dictionary<string, int> attachmentTexId = new();
+    // Multi-texture so a composed addon whose faces span both atlases (item-atlas strap + block-atlas tool)
+    // binds each atlas per sub-mesh, instead of one atlas for the whole addon.
+    private readonly Dictionary<string, MultiTextureMeshRef> attachmentMeshRefs = new();
+    private readonly Dictionary<string, MultiTextureMeshRef> attachmentTransparentRefs = new();
+    private readonly HashSet<string> builtKeys = new();
     private bool dirty = true;
 
     private readonly Matrixf modelMat = new();
     // Reused buffer for the transparent draws collected during the opaque pass.
-    private readonly List<(float[] matrix, MeshRef mesh, int texId)> transparentDraws = new();
+    private readonly List<(float[] matrix, MultiTextureMeshRef mesh)> transparentDraws = new();
 
     public double RenderOrder => 0.5;
     public int RenderRange => 24;
@@ -67,7 +69,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
 
         // Attachments: opaque now, transparent (e.g. lantern glass) collected for a blended second pass.
         // No culling: addon meshes like the linensack sack have open/flap geometry (some faces disabled)
-        // that needs both sides drawn. The lantern stays correct via per-addon atlas binding, not culling.
+        // that needs both sides drawn. RenderMultiTextureMesh binds each sub-mesh's atlas per draw.
         rpi.GlDisableCullFace();
         transparentDraws.Clear();
         const float d2r = (float)(Math.PI / 180.0);
@@ -76,9 +78,9 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             var stack = be.AttachedItems[i];
             if (stack == null) continue;
             var key = AttachmentMeshKey(i, stack);
-            // Block addons (lantern) tesselate into the block atlas, items into the item atlas; a missing key
-            // means the addon wasn't tesselated (null/empty mesh), so skip it.
-            if (!attachmentTexId.TryGetValue(key, out var texId)) continue;
+            bool hasOpaque = attachmentMeshRefs.TryGetValue(key, out var opaqueRef);
+            bool hasTransp = attachmentTransparentRefs.TryGetValue(key, out var transpRef);
+            if (!hasOpaque && !hasTransp) continue;                       // addon had no mesh; skip
 
             var point = be.AttachmentPoints[i];
             var anchor = point.Origin;                                   // marker pivot, [0,1]
@@ -103,15 +105,14 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
                 .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z)
                 .Values;
 
-            if (attachmentMeshRefs.TryGetValue(key, out var opaqueRef))
+            if (hasOpaque)
             {
-                prog.Tex2D = texId;
                 prog.ModelMatrix = matrix;
-                rpi.RenderMesh(opaqueRef);
+                rpi.RenderMultiTextureMesh(opaqueRef, "tex");
             }
 
-            if (attachmentTransparentRefs.TryGetValue(key, out var transpRef))
-                transparentDraws.Add(((float[])matrix.Clone(), transpRef, texId));
+            if (hasTransp)
+                transparentDraws.Add(((float[])matrix.Clone(), transpRef));
         }
 
         // Blended pass for transparent faces (glass). Approximate (single OIT-less pass) but fine for
@@ -121,11 +122,10 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             rpi.GlToggleBlend(true);
             rpi.GLDepthMask(false);
             rpi.GlDisableCullFace();
-            foreach (var (matrix, mesh, texId) in transparentDraws)
+            foreach (var (matrix, mesh) in transparentDraws)
             {
-                prog.Tex2D = texId;
                 prog.ModelMatrix = matrix;
-                rpi.RenderMesh(mesh);
+                rpi.RenderMultiTextureMesh(mesh, "tex");
             }
             rpi.GlEnableCullFace();
             rpi.GLDepthMask(true);
@@ -158,26 +158,26 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             if (stack?.Collectible == null) continue;
 
             var key = AttachmentMeshKey(i, stack);
-            if (attachmentTexId.ContainsKey(key)) continue;
+            if (!builtKeys.Add(key)) continue;                           // dedupe identical addons across points
 
             // Addons can be items (pouches, toolstrap) or blocks (lantern); compose through the shared core so
             // a container addon (a toolstrap) folds its own children (tools) into the mesh, while a leaf addon
-            // is just tesselated (honouring per-stack appearance like the lantern's metal). Remember which
-            // atlas the resulting UVs index (a container of items stays in the item atlas).
+            // is just tesselated (honouring per-stack appearance like the lantern's metal).
             MeshData mesh = AttachmentComposer.MeshFor(capi,
                 AttachmentFactory.ForBagChild(stack, be.OwnedCargo(i), capi.World));
             if (mesh == null) continue;
-            int texId = stack.Item != null
-                ? capi.ItemTextureAtlas.AtlasTextures[0].TextureId
-                : capi.BlockTextureAtlas.AtlasTextures[0].TextureId;
 
-            attachmentTexId[key] = texId;
+            // Composed meshes are already atlas-tagged; tag defensively so an IAttachmentMeshSource override
+            // that skips tagging still uploads with per-face atlas ids (single-atlas fallback).
+            mesh = AttachmentMesh.TagAtlas(mesh, stack.Item != null
+                ? capi.ItemTextureAtlas.AtlasTextures[0].TextureId
+                : capi.BlockTextureAtlas.AtlasTextures[0].TextureId);
 
             var (opaque, transparent) = SplitByTransparency(mesh);
             if (opaque != null && opaque.VerticesCount > 0)
-                attachmentMeshRefs[key] = capi.Render.UploadMesh(opaque);
+                attachmentMeshRefs[key] = capi.Render.UploadMultiTextureMesh(opaque);
             if (transparent != null && transparent.VerticesCount > 0)
-                attachmentTransparentRefs[key] = capi.Render.UploadMesh(transparent);
+                attachmentTransparentRefs[key] = capi.Render.UploadMultiTextureMesh(transparent);
         }
     }
 
@@ -220,7 +220,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
         foreach (var r in attachmentTransparentRefs.Values) r?.Dispose();
         attachmentMeshRefs.Clear();
         attachmentTransparentRefs.Clear();
-        attachmentTexId.Clear();
+        builtKeys.Clear();
     }
 
     public void Dispose()

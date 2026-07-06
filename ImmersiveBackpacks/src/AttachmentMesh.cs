@@ -49,7 +49,7 @@ public static class AttachmentMesh
     /// held/GUI bag mesh has no per-atlas mapping, so the block-atlas lantern renders untextured in the
     /// inventory icon and hover tooltip (the placed-block path binds each atlas per-draw, so it was unaffected).
     /// </summary>
-    private static MeshData TagAtlas(MeshData mesh, int atlasTextureId)
+    public static MeshData TagAtlas(MeshData mesh, int atlasTextureId)
     {
         if (mesh == null) return null;
         // Keep a per-face mapping the tesselator already produced (it handles multi-page atlases correctly);

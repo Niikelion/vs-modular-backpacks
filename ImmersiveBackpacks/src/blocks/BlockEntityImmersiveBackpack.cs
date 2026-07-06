@@ -18,6 +18,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         AttachmentTransform Placed, AttachmentTransform Worn, Vec3f Origin);
 
     private InventoryGeneric cargoInv;
+    private BackpackSlotLayout.SlotSpec[] cargoLayout;   // layout cargoInv was built for; rebuild when it changes
     private BlockEntityImmersiveBackpackRenderer renderer;
     private byte[] lastEmittedLight;
 
@@ -319,6 +320,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     private InventoryGeneric NewCargoInv(BackpackSlotLayout.SlotSpec[] layout)
     {
+        cargoLayout = layout;
         int size = Math.Max(1, layout.Length);
         var inv = new InventoryGeneric(size, null, null,
             (slotId, slotInv) => slotId < layout.Length
@@ -333,6 +335,14 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         // user-driven and infrequent, so the extra rebuilds don't matter.
         inv.SlotModified += _ => renderer?.MarkDirty();
         return inv;
+    }
+
+    private static bool LayoutEquals(BackpackSlotLayout.SlotSpec[] a, BackpackSlotLayout.SlotSpec[] b)
+    {
+        if (a == null || b == null || a.Length != b.Length) return false;
+        for (int i = 0; i < a.Length; i++)
+            if (a[i] != b[i]) return false;   // SlotSpec is a record: value equality
+        return true;
     }
 
     /// <summary>
@@ -504,8 +514,10 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         }
 
         int baseSlots = item?.Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
+        // Rebuild on any layout change, not just a slot-count change, so swapping an addon for another with the
+        // same count but a different slot type refreshes each slot's filter/colour on the client.
         var layout = BackpackSlotLayout.Build(baseSlots, AttachedItems);
-        if (cargoInv == null || cargoInv.Count != Math.Max(1, layout.Length))
+        if (!LayoutEquals(cargoLayout, layout))
             cargoInv = NewCargoInv(layout);
 
         base.FromTreeAttributes(tree, worldForResolving);
