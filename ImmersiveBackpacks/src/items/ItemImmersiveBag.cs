@@ -318,7 +318,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     public string GetCategoryCode(ItemStack stack)
         => Attributes?["attachableToEntity"]?["categoryCode"]?.AsString("backpack") ?? "backpack";
 
-    // Shape is supplied dynamically through IWearableShapeSupplier.GetShape, so no composite shape here.
+    // Worn shape is composed in code (base bag + addons at slot markers) via IWearableShapeSupplier.GetShape;
+    // a CompositeShape can only reference a single pre-authored asset, so it can't express that. Hence null.
     public CompositeShape GetAttachedShape(ItemStack stack, string slotCode) => null;
 
     public string[] GetDisableElements(ItemStack stack)
@@ -345,6 +346,14 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     Shape IWearableShapeSupplier.GetShape(ItemStack stack, Entity forEntity, string texturePrefixCode)
     {
+        // Cross-mod contract with Deven's "Immersive Backpacks": when the player selects a worn bag to hold it,
+        // that mod sets this attribute on the stack and expects the worn shape hidden (so it isn't drawn on the
+        // back AND in hand). It hides bags via the vanilla attribute/behaviour shape providers, which never see
+        // our interface-based backpack - so we honour the flag ourselves. Returning null makes vanilla add no
+        // worn shape. Absent that mod the flag is never set, so this is a no-op and we render like vanilla.
+        if (stack?.Attributes?.GetInt("immersiveBackpacksHideAttachmentWhileSelected", 0) == 1)
+            return null;
+
         ICoreAPI capi = forEntity.World.Api;
 
         // The worn root loads its OWN base shape (attachableToEntity.attachedShape, which the composer's
