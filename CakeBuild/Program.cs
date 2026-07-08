@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using Cake.Common;
 using Cake.Common.Diagnostics;
 using Cake.Common.IO;
@@ -174,6 +175,32 @@ public sealed class PackageTask : FrostingTask<BuildContext>
         }
 
         context.Zip($"../Releases/{context.Name}", $"../Releases/{context.Name}_{context.Version}.zip");
+    }
+}
+
+// Emits a paste-ready ModDB description from mod-description.html: strips every HTML comment (the ModDB
+// editor mangles them) and syncs the version pill to modinfo.json so it can't drift. Standalone task -
+// run with: ./build.ps1 --target=ModDescription
+[TaskName("ModDescription")]
+public sealed class ModDescriptionTask : FrostingTask<BuildContext>
+{
+    private const string Source = "../mod-description.html";
+    private const string Output = "../mod-description.moddb.html";
+
+    public override void Run(BuildContext context)
+    {
+        if (!File.Exists(Source))
+        {
+            throw new Exception($"Description source not found: {Path.GetFullPath(Source)}");
+        }
+
+        var html = File.ReadAllText(Source);
+        html = Regex.Replace(html, "<!--.*?-->", "", RegexOptions.Singleline);   // drop all HTML comments
+        html = Regex.Replace(html, @"<strong>v[0-9.]+</strong>", $"<strong>v{context.Version}</strong>"); // sync version pill
+        html = Regex.Replace(html, @"(\r?\n){3,}", "\n\n").Trim() + "\n";        // collapse the gaps comments left behind
+
+        File.WriteAllText(Output, html);
+        context.Information($"Wrote {Path.GetFullPath(Output)} (v{context.Version}) - paste into the ModDB HTML editor.");
     }
 }
 

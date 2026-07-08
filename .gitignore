@@ -8,3 +8,5 @@ riderModule.iml
 /Releases
 Claude.md
 .claude
+# Generated paste-ready ModDB description (build via: build.ps1 --target=ModDescription)
+mod-description.moddb.html
