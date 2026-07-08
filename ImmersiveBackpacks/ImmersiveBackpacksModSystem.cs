@@ -12,6 +12,7 @@ public class ImmersiveBackpacksModSystem : ModSystem
     public override void Start(ICoreAPI api)
     {
         api.RegisterItemClass("ImmersiveBag", typeof(ItemImmersiveBag));
+        api.RegisterItemClass("ImmersiveToolstrap", typeof(ItemToolstrap));
         api.RegisterBlockClass("ImmersiveBackpack", typeof(BlockImmersiveBackpack));
         api.RegisterBlockEntityClass("ImmersiveBackpackBE", typeof(BlockEntityImmersiveBackpack));
         api.RegisterCollectibleBehaviorClass("ImmersiveBackpackPlacement", typeof(BackpackPlacementBehavior));

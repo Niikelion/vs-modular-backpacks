@@ -456,10 +456,10 @@
           "children": [
             {
               "name": "slot_left_pouch",
-              "from":[-3.0,1.0,0.25],
-              "to":[0.0,4.0,3.25],
+              "from":[-3.0,0.5,0.25],
+              "to":[0.0,3.5,3.25],
               "faces": {},
-              "rotationOrigin":[-1.5,1.0,1.75],
+              "rotationOrigin":[-1.5,0.5,1.75],
               "rotationY": -90.0,
               "scaleX": 1.0,
               "scaleY": 1.0,
@@ -507,10 +507,10 @@
           "children": [
             {
               "name": "slot_right_pouch",
-              "from":[1.0,1.0,0.25],
-              "to":[4.0,4.0,3.25],
+              "from":[1.0,0.5,0.25],
+              "to":[4.0,3.5,3.25],
               "faces": {},
-              "rotationOrigin":[2.5,1.0,1.75],
+              "rotationOrigin":[2.5,0.5,1.75],
               "rotationY": 90.0,
               "scaleX": 1.0,
               "scaleY": 1.0,

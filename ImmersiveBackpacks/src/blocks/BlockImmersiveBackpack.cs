@@ -3,10 +3,11 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 namespace ImmersiveBackpacks.blocks;
 
-public class BlockImmersiveBackpack : Block
+public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
 {
     public override void OnLoaded(ICoreAPI api)
     {
@@ -66,6 +67,31 @@ public class BlockImmersiveBackpack : Block
         return result;
     }
 
+    // Vanilla's SystemSelectedBlockOutline draws EVERY selection box the block returns, so all attachment
+    // slot boxes light up at once. Take over the render: always outline the backpack body box(es), plus only
+    // the single attachment-slot box the player is currently pointing at. Selection/raycasting is unchanged
+    // (still driven by GetSelectionBoxes); this only governs what's drawn.
+    public void RenderSelectionBoxes(BlockSelection blockSel, RenderBoxDelegate renderBoxHandler)
+    {
+        var boxes = GetSelectionBoxes(api.World.BlockAccessor, blockSel.Position);
+        if (boxes == null || boxes.Length == 0) return;
+
+        var capi = api as ICoreClientAPI;
+        float thickness = capi != null && capi.Settings.Float.Exists("wireframethickness")
+            ? capi.Settings.Float["wireframethickness"] : 1.6f;
+        float width = 1.6f * thickness;
+        var color = GetSelectionColor(capi, blockSel.Position);
+
+        // Body boxes come first (SelectionBoxes), then one box per attachment point (see GetSelectionBoxes).
+        int bodyCount = SelectionBoxes?.Length ?? 0;
+        for (int i = 0; i < bodyCount && i < boxes.Length; i++)
+            renderBoxHandler(boxes[i], width, color);
+
+        int idx = blockSel.SelectionBoxIndex;
+        if (idx >= bodyCount && idx < boxes.Length)
+            renderBoxHandler(boxes[idx], width, color);
+    }
+
     public override byte[] GetLightHsv(IBlockAccessor blockAccessor, BlockPos pos = null, ItemStack stack = null)
     {
         if (pos != null && blockAccessor.GetBlockEntity(pos) is BlockEntityImmersiveBackpack be)
@@ -80,6 +106,13 @@ public class BlockImmersiveBackpack : Block
     {
         var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityImmersiveBackpack;
         return be?.OnPlayerRightClick(byPlayer, blockSel) ?? false;
+    }
+
+    // Middle-click pick must return the worn bag (with its addons + cargo), not a bare placed-block stack.
+    public override ItemStack OnPickBlock(IWorldAccessor world, BlockPos pos)
+    {
+        var be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityImmersiveBackpack;
+        return be?.CreateDropItemStack(world) ?? base.OnPickBlock(world, pos);
     }
 
     public override ItemStack[] GetDrops(IWorldAccessor world, BlockPos pos, IPlayer byPlayer, float dropQuantityMultiplier = 1f)
@@ -145,12 +178,7 @@ public class BlockImmersiveBackpack : Block
             {
                 var cat = obj.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
                 if (cat == null) continue;
-                ItemStack stack = obj switch
-                {
-                    Block bl => new ItemStack(bl),
-                    Item it => new ItemStack(it),
-                    _ => null
-                };
+                var stack = RepresentativeStack(obj);
                 if (stack == null) continue;
                 if (!map.TryGetValue(cat, out var list)) map[cat] = list = new List<ItemStack>();
                 list.Add(stack);
@@ -162,5 +190,20 @@ public class BlockImmersiveBackpack : Block
         foreach (var cat in categories)
             if (byCategory.TryGetValue(cat, out var list)) stacks.AddRange(list);
         return stacks.Count > 0 ? stacks.ToArray() : null;
+    }
+
+    // A displayable ghost stack for the interaction-help cycle: the collectible's first creative-inventory
+    // stack, which carries the attributes a rendered variant needs (e.g. the lantern's metal - without it the
+    // lantern shape asks for a "#deco-" texture that doesn't exist and tesselation errors). Returning null for
+    // collectibles with no creative form also drops placement-only block orientations (wall/ceiling lanterns)
+    // that a player never holds and whose shapes reference textures the item form lacks.
+    private static ItemStack RepresentativeStack(CollectibleObject obj)
+    {
+        var tabs = obj.CreativeInventoryStacks;
+        if (tabs == null) return null;
+        foreach (var tab in tabs)
+            foreach (var js in tab.Stacks)
+                if (js.ResolvedItemstack != null) return js.ResolvedItemstack.Clone();
+        return null;
     }
 }

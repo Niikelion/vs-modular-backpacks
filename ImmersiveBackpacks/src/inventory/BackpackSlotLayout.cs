@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 
 namespace ImmersiveBackpacks.inventory;
 
@@ -18,6 +19,18 @@ public static class BackpackSlotLayout
     public const int DefaultStorageFlags = 189;
 
     public record SlotSpec(BackpackSlotType Type, EnumItemStorageFlags Flags, string Color);
+
+    /// <summary>The slot spec (filter/flags/colour) for a slot type. Public so a standalone attachment-bag
+    /// (the toolstrap worn on its own) can filter its own slots identically to when it's attached.</summary>
+    public static SlotSpec SpecOf(BackpackSlotType type) => Spec(type);
+
+    /// <summary>Maps the JSON <c>immersiveBackpackAttachment.slotType</c> string to a slot type.</summary>
+    public static BackpackSlotType TypeFromString(string slotType) => slotType switch
+    {
+        "ore" => BackpackSlotType.Ore,
+        "tools" => BackpackSlotType.Tools,
+        _ => BackpackSlotType.General
+    };
 
     private static SlotSpec Spec(BackpackSlotType type) => type switch
     {
@@ -69,12 +82,7 @@ public static class BackpackSlotLayout
         {
             int qty = AddonSlotCount(stack);
             if (qty <= 0) continue;
-            var type = stack.Collectible.Attributes?["immersiveBackpackAttachment"]["slotType"].AsString() switch
-            {
-                "ore" => BackpackSlotType.Ore,
-                "tools" => BackpackSlotType.Tools,
-                _ => BackpackSlotType.General
-            };
+            var type = TypeFromString(stack.Collectible.Attributes?["immersiveBackpackAttachment"]["slotType"].AsString());
             for (int j = 0; j < qty; j++)
                 list.Add(Spec(type));
         }
@@ -92,6 +100,21 @@ public static class BackpackSlotLayout
     /// <summary>The tools a Tools slot (and a toolstrap) accepts: pickaxes, axes, shovels, hoes and prospecting picks.</summary>
     public static bool IsToolSlotItem(CollectibleObject collectible)
         => collectible?.Tool is EnumTool.Pickaxe or EnumTool.Axe or EnumTool.Shovel or EnumTool.Hoe or EnumTool.Probe;
+
+    /// <summary>
+    /// Position-sensitive hash of a bag's unified cargo (<c>backpack.slots</c>), used to invalidate the composed
+    /// worn/held/GUI meshes when the contents change. Folds each slot's stack by index, so moving a tool between
+    /// slots changes the hash - unlike <see cref="TreeAttribute.GetHashCode"/>, which XORs entries and so is
+    /// unchanged when two slots swap their stacks (an axe moving off a toolstrap tool slot would render stale).
+    /// </summary>
+    public static int CargoHash(ITreeAttribute slots)
+    {
+        if (slots == null) return 0;
+        int h = 17;
+        for (int i = 0; slots.HasAttribute("slot-" + i); i++)
+            h = h * 31 + ((slots["slot-" + i] as ItemstackAttribute)?.value?.GetHashCode() ?? 0);
+        return h;
+    }
 }
 
 /// <summary>Worn-bag content slot carrying a layout spec for per-slot colour and tool filtering.</summary>

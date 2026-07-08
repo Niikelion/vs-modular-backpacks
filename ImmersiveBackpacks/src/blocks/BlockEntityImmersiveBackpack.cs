@@ -287,6 +287,9 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     public ItemStack CreateDropItemStack(IWorldAccessor world)
     {
+        // Null before the BE is initialised/synced (e.g. the block-info HUD picking the block the same frame
+        // it appears, before FromTreeAttributes runs) - GetItem(null) would throw.
+        if (BackpackItemCode == null) return null;
         var item = world.GetItem(BackpackItemCode);
         if (item == null) return null;
         var stack = new ItemStack(item);
@@ -332,8 +335,14 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
         // A toolstrap renders the tools in the cargo slots it owns, so a cargo edit can change the model.
         // Coarse: any cargo change re-meshes (client-only; renderer is null server-side). Cargo edits are
-        // user-driven and infrequent, so the extra rebuilds don't matter.
-        inv.SlotModified += _ => renderer?.MarkDirty();
+        // user-driven and infrequent, so the extra rebuilds don't matter. On the server, also push the BE
+        // state so a cargo edit by ANY player (e.g. a remote client's dialog) reaches other clients - without
+        // this the rendered tools and other clients' view stay stale until they reopen the dialog.
+        inv.SlotModified += _ =>
+        {
+            renderer?.MarkDirty();
+            if (Api?.Side == EnumAppSide.Server) MarkDirty(true);
+        };
         return inv;
     }
 
@@ -517,7 +526,8 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         // Rebuild on any layout change, not just a slot-count change, so swapping an addon for another with the
         // same count but a different slot type refreshes each slot's filter/colour on the client.
         var layout = BackpackSlotLayout.Build(baseSlots, AttachedItems);
-        if (!LayoutEquals(cargoLayout, layout))
+        bool layoutChanged = !LayoutEquals(cargoLayout, layout);
+        if (layoutChanged)
             cargoInv = NewCargoInv(layout);
 
         base.FromTreeAttributes(tree, worldForResolving);
@@ -528,7 +538,22 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         // (or removed) torch glow without relogging. Server already relights in OnAttachmentChanged; guard
         // to client so load-time calls (Api still null) and server are unaffected.
         if (Api?.Side == EnumAppSide.Client)
+        {
             UpdateEmittedLight();
+            // The cargo inventory instance was just replaced; an open dialog still points at the old one and
+            // shows stale slots. Rebind it to the new inventory so attaching/detaching a slot-bearing addon
+            // updates the open UI live instead of requiring the player to close and reopen it.
+            if (layoutChanged) RebindOpenDialog();
+        }
+    }
+
+    // Reopen the cargo dialog against the current inventory when one is open and the slot layout just changed.
+    private void RebindOpenDialog()
+    {
+        if (invDialog == null || Api is not ICoreClientAPI capi) return;
+        var byPlayer = capi.World.Player;
+        invDialog.TryClose();          // OnClosed nulls invDialog and notifies the server we closed
+        OpenCargoDialog(byPlayer);     // reopen bound to the new cargoInv
     }
 
     public override void OnBlockUnloaded()

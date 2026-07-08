@@ -15,8 +15,8 @@
   "elements": [
     {
       "name": "Pouch",
-      "from":[6.6,0.0,5.2],
-      "to":[10.6,6.0,10.2],
+      "from":[5.9999991953372955,0.0,5.4999998807907104],
+      "to":[9.9999991953372955,8.0,10.49999988079071],
       "faces": {
         "north": {
           "texture": "#midtone",
@@ -26,13 +26,13 @@
         },
         "east": {
           "texture": "#midtone",
-          "uv":[0.0,0.0,3.0,3.0],
+          "uv":[1.0,1.0,4.0,4.0],
           "autoUv": false,
           "snapUV": false
         },
         "south": {
           "texture": "#midtone",
-          "uv":[0.0,5.5,2.0,8.5],
+          "uv":[0.5,5.5,2.5,8.5],
           "autoUv": false,
           "snapUV": false
         },
@@ -44,14 +44,14 @@
         },
         "down": {
           "texture": "#midtone",
-          "uv":[7.5,9.5,10.0,11.5],
+          "uv":[5.5,9.0,8.0,11.0],
           "rotation": 90.0,
           "autoUv": false,
           "snapUV": false,
           "rotationIndex": 1
         }
       },
-      "rotationOrigin":[8.0,0.0,8.0],
+      "rotationOrigin":[7.9999991953372955,0.0,7.9999998807907104],
       "rotationY": 90.0,
       "scaleX": 1.0,
       "scaleY": 1.0,
@@ -59,8 +59,8 @@
       "children": [
         {
           "name": "FlapWUpperTop",
-          "from":[-0.6,6.0,-0.2],
-          "to":[4.4,6.6,5.2],
+          "from":[-0.6,8.0,-0.2],
+          "to":[4.4,8.6,5.2],
           "faces": {
             "north": {
               "texture": "#flaps",
@@ -97,7 +97,7 @@
               "rotationIndex": 1
             }
           },
-          "rotationOrigin":[-0.6,6.0,-0.2],
+          "rotationOrigin":[-0.6,8.0,-0.2],
           "scaleX": 1.0,
           "scaleY": 1.0,
           "scaleZ": 1.0,

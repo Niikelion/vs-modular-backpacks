@@ -1,6 +1,6 @@
 {
 	"code": "toolstrap",
-	"class": "Item",
+	"class": "ImmersiveToolstrap",
 	"maxstacksize": 1,
 	"storageFlags": 3,
 	"shape": { "base": "immersivebackpacks:item/bag/toolstrap" },

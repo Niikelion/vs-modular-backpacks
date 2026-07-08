@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using Cake.Common;
+using Cake.Common.Diagnostics;
 using Cake.Common.IO;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.Clean;
@@ -43,7 +44,66 @@ public class BuildContext : FrostingContext
     }
 }
 
+// Regenerates each worn "-attached" bag shape from its held source shape: an exact copy of the geometry with
+// the root element repositioned/rotated onto the player's UpperTorso. Lets the held shape be the single source
+// of truth - edit it in Blockbench, build, and the worn variant follows. Runs before validation so the
+// generated file is checked too. The normal bag is intentionally excluded (its worn shape has a hand tweak).
+[TaskName("PortAttachedShapes")]
+public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
+{
+    private static readonly string[] Variants = { "sturdy" };
+
+    // Held-root -> worn-root offsets (from the original hand port). Size is preserved; children ride the root.
+    private static readonly double[] FromDelta = { 0.25, -4.7, -4.7 };
+    private static readonly double[] RotationOriginDelta = { 0.0, -4.7, -4.7 };
+    private static readonly double[] Rotation = { -90, 82, 90 };
+    private const string StepParent = "UpperTorso";
+
+    public override void Run(BuildContext context)
+    {
+        var dir = $"../{BuildContext.ProjectName}/assets/game/shapes/item/bag";
+        foreach (var v in Variants)
+        {
+            var heldPath = $"{dir}/backpack-{v}.json";
+            var attachedPath = $"{dir}/backpack-{v}-attached.json";
+            if (!File.Exists(heldPath))
+            {
+                continue;
+            }
+
+            var shape = JObject.Parse(File.ReadAllText(heldPath));
+            var root = (JObject)((JArray)shape["elements"])[0];
+
+            var from = ToVec(root["from"]);
+            var to = ToVec(root["to"]);
+            var rotO = root["rotationOrigin"] != null
+                ? ToVec(root["rotationOrigin"])
+                : new[] { (from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2 };
+
+            var newFrom = Add(from, FromDelta);
+            var newTo = new[] { newFrom[0] + (to[0] - from[0]), newFrom[1] + (to[1] - from[1]), newFrom[2] + (to[2] - from[2]) };
+
+            root["from"] = Vec(newFrom);
+            root["to"] = Vec(newTo);
+            root["rotationOrigin"] = Vec(Add(rotO, RotationOriginDelta));
+            root["rotationX"] = Rotation[0];
+            root["rotationY"] = Rotation[1];
+            root["rotationZ"] = Rotation[2];
+            root["stepParentName"] = StepParent;
+
+            File.WriteAllText(attachedPath, shape.ToString(Formatting.Indented));
+            context.Information($"Ported backpack-{v}.json -> backpack-{v}-attached.json");
+        }
+    }
+
+    private static double[] ToVec(JToken t) => new[] { (double)t[0], (double)t[1], (double)t[2] };
+    private static double[] Add(double[] a, double[] b) => new[] { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
+    // Round away binary-float noise (e.g. 4.5 + -4.7 = -0.20000000000000018) so the generated JSON stays clean.
+    private static JArray Vec(double[] v) => new(Math.Round(v[0], 4), Math.Round(v[1], 4), Math.Round(v[2], 4));
+}
+
 [TaskName("ValidateJson")]
+[IsDependentOn(typeof(PortAttachedShapesTask))]
 public sealed class ValidateJsonTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)

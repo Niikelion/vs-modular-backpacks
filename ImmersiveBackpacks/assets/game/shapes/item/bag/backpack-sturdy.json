@@ -192,7 +192,7 @@
                             }
                           },
                           "rotationOrigin":[0.0,0.0,0.2],
-                          "rotationX": 7.0,
+                          "rotationX": 98.0,
                           "scaleX": 1.0,
                           "scaleY": 1.0,
                           "scaleZ": 1.0,
@@ -275,7 +275,7 @@
                             }
                           },
                           "rotationOrigin":[0.0,0.0,0.2],
-                          "rotationX": 7.0,
+                          "rotationX": 98.0,
                           "scaleX": 1.0,
                           "scaleY": 1.0,
                           "scaleZ": 1.0,
@@ -289,10 +289,10 @@
                 },
                 {
                   "name": "slot_lantern",
-                  "from":[1.1000000238418579,-0.5,0.25],
-                  "to":[4.1000000238418579,3.5,3.25],
+                  "from":[1.5,0.0,0.30000001192092896],
+                  "to":[3.5,3.0,2.300000011920929],
                   "faces": {},
-                  "rotationOrigin":[2.6000000238418579,-0.5,1.75],
+                  "rotationOrigin":[2.5,0.0,1.300000011920929],
                   "scaleX": 1.0,
                   "scaleY": 1.0,
                   "scaleZ": 1.0,
@@ -338,20 +338,20 @@
         },
         {
           "name": "L pocket",
-          "from":[-0.52635182142257686,2.4848077297210693,1.1],
-          "to":[0.47364817857742308,5.4848077297210693,3.6],
+          "from":[-0.7,1.5,1.1],
+          "to":[0.3,5.5,3.6],
           "faces": {
             "north": {
               "texture": "#midtone",
-              "uv":[15.0,5.5,16.0,8.5]
+              "uv":[15.0,5.5,16.0,9.5]
             },
             "south": {
               "texture": "#midtone",
-              "uv":[0.0,5.5,1.0,8.5]
+              "uv":[0.0,5.5,1.0,9.5]
             },
             "west": {
               "texture": "#leather",
-              "uv":[1.5,12.5,4.0,15.5]
+              "uv":[1.5,12.0,4.0,16.0]
             },
             "down": {
               "texture": "#midtone",
@@ -360,16 +360,16 @@
               "rotationIndex": 1
             }
           },
-          "rotationOrigin":[-0.026351821422576915,5.4848077297210693,2.5],
-          "rotationZ": -10.0,
+          "rotationOrigin":[-0.2,4.5,2.5],
+          "rotationZ": -5.0,
           "scaleX": 1.0,
           "scaleY": 1.0,
           "scaleZ": 1.0,
           "children": [
             {
               "name": "FlapWUpperTop",
-              "from":[-0.3,3.0,-0.1],
-              "to":[0.7,3.3,2.6],
+              "from":[-0.3,4.0,-0.1],
+              "to":[0.7,4.3,2.6],
               "faces": {
                 "north": {
                   "texture": "#flaps",
@@ -392,7 +392,7 @@
                   "rotationIndex": 1
                 }
               },
-              "rotationOrigin":[-0.3,3.0,-0.1],
+              "rotationOrigin":[-0.3,4.0,-0.1],
               "scaleX": 1.0,
               "scaleY": 1.0,
               "scaleZ": 1.0,
@@ -400,7 +400,7 @@
                 {
                   "name": "FlapWUpperTop2",
                   "from":[0.0,-0.7,-0.001],
-                  "to":[0.3,0.3,2.699],
+                  "to":[0.3,0.30000000000000004,2.699],
                   "faces": {
                     "north": {
                       "texture": "#flaps",
@@ -427,70 +427,7 @@
                   "scaleX": 1.0,
                   "scaleY": 1.0,
                   "scaleZ": 1.0,
-                  "children": [
-                    {
-                      "name": "Cube2",
-                      "from":[0.1,-1.5,1.1],
-                      "to":[0.3,0.0,1.7],
-                      "faces": {
-                        "north": {
-                          "texture": "#midtone",
-                          "uv":[10.5,0.0,11.0,1.5]
-                        },
-                        "south": {
-                          "texture": "#midtone",
-                          "uv":[3.5,2.0,4.0,3.5]
-                        },
-                        "west": {
-                          "texture": "#midtone",
-                          "uv":[0.5,2.0,1.0,3.5]
-                        },
-                        "down": {
-                          "texture": "#midtone",
-                          "uv":[3.0,0.0,3.5,0.5]
-                        }
-                      },
-                      "rotationOrigin":[0.1,0.0,1.1],
-                      "scaleX": 1.0,
-                      "scaleY": 1.0,
-                      "scaleZ": 1.0,
-                      "children": [
-                        {
-                          "name": "Cube3",
-                          "from":[-0.1,0.1,0.1],
-                          "to":[0.0,0.5,0.5],
-                          "faces": {
-                            "north": {
-                              "texture": "#metal",
-                              "uv":[7.0,5.0,7.5,5.5]
-                            },
-                            "south": {
-                              "texture": "#metal",
-                              "uv":[1.0,15.0,1.5,15.5]
-                            },
-                            "west": {
-                              "texture": "#metal",
-                              "uv":[9.0,14.5,9.5,15.0]
-                            },
-                            "up": {
-                              "texture": "#metal",
-                              "uv":[7.5,8.0,8.0,8.5]
-                            },
-                            "down": {
-                              "texture": "#metal",
-                              "uv":[15.0,10.5,15.5,11.0]
-                            }
-                          },
-                          "rotationOrigin":[-0.1,0.1,0.1],
-                          "scaleX": 1.0,
-                          "scaleY": 1.0,
-                          "scaleZ": 1.0,
-                          "uv":[0.0,0.0]
-                        }
-                      ],
-                      "uv":[0.0,0.0]
-                    }
-                  ],
+                  "children": [],
                   "uv":[0.0,0.0]
                 }
               ],
@@ -501,22 +438,22 @@
         },
         {
           "name": "R pocket",
-          "from":[4.5263518214225771,2.4848077297210693,1.0],
-          "to":[5.5263518214225771,5.4848077297210693,3.5],
+          "from":[4.7,1.5,1.0],
+          "to":[5.7,5.5,3.5],
           "faces": {
             "north": {
               "texture": "#midtone",
-              "uv":[6.5,12.5,9.5,13.5],
+              "uv":[6.5,12.5,10.5,13.5],
               "rotation": 90.0,
               "rotationIndex": 1
             },
             "east": {
               "texture": "#leather",
-              "uv":[11.5,4.5,14.0,7.5]
+              "uv":[11.5,4.5,14.0,8.5]
             },
             "south": {
               "texture": "#midtone",
-              "uv":[10.0,8.0,13.0,9.0],
+              "uv":[10.0,8.0,14.0,9.0],
               "rotation": 90.0,
               "rotationIndex": 1
             },
@@ -527,16 +464,16 @@
               "rotationIndex": 1
             }
           },
-          "rotationOrigin":[5.0263518214225771,5.4848077297210693,2.0],
-          "rotationZ": 10.0,
+          "rotationOrigin":[5.2,4.5,2.0],
+          "rotationZ": 5.0,
           "scaleX": 1.0,
           "scaleY": 1.0,
           "scaleZ": 1.0,
           "children": [
             {
               "name": "FlapEUpperTop",
-              "from":[0.3,3.0,-0.1],
-              "to":[1.3,3.3,2.6],
+              "from":[0.3,4.0,-0.1],
+              "to":[1.3,4.3,2.6],
               "faces": {
                 "north": {
                   "texture": "#flaps",
@@ -555,7 +492,7 @@
                   "uv":[7.0,5.0,8.0,7.5]
                 }
               },
-              "rotationOrigin":[0.3,3.0,-0.1],
+              "rotationOrigin":[0.3,4.0,-0.1],
               "scaleX": 1.0,
               "scaleY": 1.0,
               "scaleZ": 1.0,
@@ -596,70 +533,7 @@
                   "scaleX": 1.0,
                   "scaleY": 1.0,
                   "scaleZ": 1.0,
-                  "children": [
-                    {
-                      "name": "StrapEUpper",
-                      "from":[0.0,-1.5,1.0],
-                      "to":[0.2,0.0,1.6],
-                      "faces": {
-                        "north": {
-                          "texture": "#midtone",
-                          "uv":[4.5,1.0,5.0,2.5]
-                        },
-                        "east": {
-                          "texture": "#midtone",
-                          "uv":[9.5,1.5,10.0,3.0]
-                        },
-                        "south": {
-                          "texture": "#midtone",
-                          "uv":[10.5,6.0,11.0,7.5]
-                        },
-                        "down": {
-                          "texture": "#midtone",
-                          "uv":[13.5,2.5,14.0,3.0]
-                        }
-                      },
-                      "rotationOrigin":[0.0,-1.5,1.0],
-                      "scaleX": 1.0,
-                      "scaleY": 1.0,
-                      "scaleZ": 1.0,
-                      "children": [
-                        {
-                          "name": "ButtonEUpper",
-                          "from":[0.2,0.2,0.1],
-                          "to":[0.3,0.6,0.5],
-                          "faces": {
-                            "north": {
-                              "texture": "#metal",
-                              "uv":[9.0,13.5,9.5,14.0]
-                            },
-                            "east": {
-                              "texture": "#metal",
-                              "uv":[8.0,5.0,8.5,5.5]
-                            },
-                            "south": {
-                              "texture": "#metal",
-                              "uv":[9.0,10.5,9.5,11.0]
-                            },
-                            "up": {
-                              "texture": "#metal",
-                              "uv":[14.5,1.5,15.0,2.0]
-                            },
-                            "down": {
-                              "texture": "#metal",
-                              "uv":[8.5,8.5,9.0,9.0]
-                            }
-                          },
-                          "rotationOrigin":[0.2,0.2,0.1],
-                          "scaleX": 1.0,
-                          "scaleY": 1.0,
-                          "scaleZ": 1.0,
-                          "uv":[0.0,0.0]
-                        }
-                      ],
-                      "uv":[0.0,0.0]
-                    }
-                  ],
+                  "children": [],
                   "uv":[0.0,0.0]
                 }
               ],
@@ -812,192 +686,6 @@
               "uv":[0.0,0.0]
             },
             {
-              "name": "FrontBottomPocket",
-              "from":[1.0,0.5,4.0],
-              "to":[5.0,4.5,5.0],
-              "faces": {
-                "east": {
-                  "texture": "#midtone",
-                  "uv":[10.0,12.0,11.0,16.0]
-                },
-                "south": {
-                  "texture": "#leather",
-                  "uv":[1.5,6.0,5.5,10.0]
-                },
-                "west": {
-                  "texture": "#midtone",
-                  "uv":[12.0,12.0,13.0,16.0]
-                },
-                "down": {
-                  "texture": "#midtone",
-                  "uv":[5.5,15.0,9.5,16.0]
-                }
-              },
-              "rotationOrigin":[1.0,0.5,4.0],
-              "scaleX": 1.0,
-              "scaleY": 1.0,
-              "scaleZ": 1.0,
-              "children": [
-                {
-                  "name": "FlapTop2",
-                  "from":[-0.1,4.0,0.0],
-                  "to":[4.1,4.3,1.3],
-                  "faces": {
-                    "east": {
-                      "texture": "#flaps",
-                      "uv":[4.0,7.0,5.0,7.5]
-                    },
-                    "west": {
-                      "texture": "#flaps",
-                      "uv":[10.5,9.5,11.5,10.0]
-                    },
-                    "up": {
-                      "texture": "#flaps",
-                      "uv":[7.5,13.5,11.5,14.5]
-                    },
-                    "down": {
-                      "texture": "#flaps",
-                      "uv":[0.0,5.0,4.0,6.0]
-                    }
-                  },
-                  "rotationOrigin":[-0.1,4.0,0.0],
-                  "scaleX": 1.0,
-                  "scaleY": 1.0,
-                  "scaleZ": 1.0,
-                  "children": [
-                    {
-                      "name": "FlapTop3",
-                      "from":[-0.01,-1.0,1.0],
-                      "to":[4.19,0.3,1.3],
-                      "faces": {
-                        "east": {
-                          "texture": "#flaps",
-                          "uv":[9.0,12.0,9.5,13.0]
-                        },
-                        "south": {
-                          "texture": "#flaps",
-                          "uv":[8.0,7.0,12.0,8.0]
-                        },
-                        "west": {
-                          "texture": "#flaps",
-                          "uv":[13.5,2.5,14.0,3.5]
-                        },
-                        "down": {
-                          "texture": "#flaps",
-                          "uv":[2.5,3.5,6.5,4.0]
-                        }
-                      },
-                      "rotationOrigin":[0.0,-1.0,1.0],
-                      "scaleX": 1.0,
-                      "scaleY": 1.0,
-                      "scaleZ": 1.0,
-                      "children": [
-                        {
-                          "name": "flaps1",
-                          "from":[1.8,-2.0,0.0],
-                          "to":[2.4,0.0,0.2],
-                          "faces": {
-                            "north": {
-                              "texture": "#flaps",
-                              "uv":[6.0,8.5,6.5,10.5]
-                            },
-                            "east": {
-                              "texture": "#flaps",
-                              "uv":[15.0,9.5,15.5,11.5]
-                            },
-                            "south": {
-                              "texture": "#flaps",
-                              "uv":[15.0,11.5,15.5,13.5]
-                            },
-                            "west": {
-                              "texture": "#flaps",
-                              "uv":[14.0,8.0,14.5,10.0]
-                            }
-                          },
-                          "rotationOrigin":[1.8,0.0,0.2],
-                          "rotationX": 3.0,
-                          "scaleX": 1.0,
-                          "scaleY": 1.0,
-                          "scaleZ": 1.0,
-                          "children": [
-                            {
-                              "name": "flaps2",
-                              "from":[0.001,-1.0,0.0],
-                              "to":[0.601,0.0,0.2],
-                              "faces": {
-                                "north": {
-                                  "texture": "#flaps",
-                                  "uv":[11.5,8.0,12.0,9.0]
-                                },
-                                "east": {
-                                  "texture": "#flaps",
-                                  "uv":[10.0,6.0,10.5,7.0]
-                                },
-                                "south": {
-                                  "texture": "#flaps",
-                                  "uv":[12.5,11.0,13.0,12.0]
-                                },
-                                "west": {
-                                  "texture": "#flaps",
-                                  "uv":[12.0,2.5,12.5,3.5]
-                                },
-                                "down": {
-                                  "texture": "#flaps",
-                                  "uv":[9.0,1.5,9.5,2.0]
-                                }
-                              },
-                              "rotationOrigin":[0.0,0.0,0.0],
-                              "rotationX": -12.0,
-                              "scaleX": 1.0,
-                              "scaleY": 1.0,
-                              "scaleZ": 1.0,
-                              "uv":[0.0,0.0]
-                            }
-                          ],
-                          "uv":[0.0,0.0]
-                        }
-                      ],
-                      "uv":[0.0,0.0]
-                    }
-                  ],
-                  "uv":[0.0,0.0]
-                },
-                {
-                  "name": "BuckleS1",
-                  "from":[1.5,1.0,0.8],
-                  "to":[2.5,1.3,1.3],
-                  "faces": {
-                    "east": {
-                      "texture": "#metal",
-                      "uv":[7.5,14.0,8.0,14.5]
-                    },
-                    "south": {
-                      "texture": "#metal",
-                      "uv":[8.0,3.0,9.0,3.5]
-                    },
-                    "west": {
-                      "texture": "#metal",
-                      "uv":[13.5,6.0,14.0,6.5]
-                    },
-                    "up": {
-                      "texture": "#metal",
-                      "uv":[0.5,6.0,1.5,6.5]
-                    },
-                    "down": {
-                      "texture": "#metal",
-                      "uv":[0.0,8.0,1.0,8.5]
-                    }
-                  },
-                  "rotationOrigin":[1.5,1.0,0.8],
-                  "scaleX": 1.0,
-                  "scaleY": 1.0,
-                  "scaleZ": 1.0,
-                  "uv":[0.0,0.0]
-                }
-              ],
-              "uv":[0.0,0.0]
-            },
-            {
               "name": "BuckleTopSW1",
               "from":[1.2,5.4,4.0],
               "to":[2.2,5.7,4.2],
@@ -1087,11 +775,10 @@
             },
             {
               "name": "slot_lower_front_left",
-              "from":[-0.6830126941204071,0.5,4.1830126941204071],
-              "to":[2.3169873058795929,3.5,7.1830126941204071],
+              "from":[0.0,0.5,4.0],
+              "to":[3.0,3.5,7.0],
               "faces": {},
-              "rotationOrigin":[0.8169873058795929,0.5,5.6830126941204071],
-              "rotationY": -30.0,
+              "rotationOrigin":[1.5000126659870148,0.5,5.5],
               "scaleX": 1.0,
               "scaleY": 1.0,
               "scaleZ": 1.0,
@@ -1099,11 +786,10 @@
             },
             {
               "name": "slot_lower_front_right",
-              "from":[3.6830126941204071,0.5,4.1830126941204071],
-              "to":[6.6830126941204071,3.5,7.1830126941204071],
+              "from":[3.0,0.5,4.0],
+              "to":[6.0,3.5,7.0],
               "faces": {},
-              "rotationOrigin":[5.1830126941204071,0.5,5.6830126941204071],
-              "rotationY": 30.0,
+              "rotationOrigin":[4.5,0.5,5.5],
               "scaleX": 1.0,
               "scaleY": 1.0,
               "scaleZ": 1.0,
@@ -1111,10 +797,10 @@
             },
             {
               "name": "slot_upper_left_pouch",
-              "from":[-2.5000000596046448,4.0,0.49999994039535522],
-              "to":[0.49999994039535522,7.0,3.4999999403953552],
+              "from":[-3.0000000298023224,5.0,0.49999997019767761],
+              "to":[-2.9802322387695313E-08,8.0,3.4999999701976776],
               "faces": {},
-              "rotationOrigin":[-1.0000000596046448,4.0,1.9999999403953552],
+              "rotationOrigin":[-1.5000000298023224,5.0,1.9999999701976776],
               "rotationY": -90.0,
               "scaleX": 1.0,
               "scaleY": 1.0,
@@ -1123,10 +809,10 @@
             },
             {
               "name": "slot_upper_right_pouch",
-              "from":[6.0000000298023224,4.0,0.49999997019767761],
-              "to":[9.0000000298023224,7.0,3.4999999701976776],
+              "from":[6.0000000298023224,5.0,0.49999997019767761],
+              "to":[9.0000000298023224,8.0,3.4999999701976776],
               "faces": {},
-              "rotationOrigin":[7.5000000298023224,4.0,1.9999999701976776],
+              "rotationOrigin":[7.5000000298023224,5.0,1.9999999701976776],
               "rotationY": 90.0,
               "scaleX": 1.0,
               "scaleY": 1.0,
@@ -1165,7 +851,8 @@
               "from":[0.4999999701977007,9.8000001907348633,1.4999994337559031],
               "to":[5.4999999701977007,10.800000190734863,2.4999994337559031],
               "faces": {},
-              "rotationOrigin":[2.9999999701977007,10.300000190734863,1.9999994337559031],
+              "rotationOrigin":[2.9999999701977007,9.8000001907348633,1.9999994337559031],
+              "rotationY": -10.0,
               "scaleX": 1.0,
               "scaleY": 1.0,
               "scaleZ": 1.0,
@@ -1177,25 +864,29 @@
         {
           "name": "SideBottomPockets",
           "from":[-1.0,-3.5,0.9],
-          "to":[6.0,0.5,3.9],
+          "to":[6.0,2.0,3.9],
           "faces": {
             "north": {
               "texture": "#midtone",
-              "uv":[0.5,10.0,7.5,14.0]
+              "uv":[0.5,10.0,7.5,15.5]
             },
             "east": {
               "texture": "#leather",
-              "uv":[4.5,6.0,7.5,10.0]
+              "uv":[4.5,6.0,7.5,11.5]
             },
             "south": {
               "texture": "#midtone",
-              "uv":[8.0,10.5,15.0,14.5],
+              "uv":[8.0,10.5,15.0,16.0],
               "rotation": 180.0,
               "rotationIndex": 2
             },
             "west": {
               "texture": "#leather",
-              "uv":[13.0,4.5,16.0,8.5]
+              "uv":[13.0,4.5,16.0,10.0]
+            },
+            "up": {
+              "texture": "#midtone",
+              "uv":[0.0,0.0,7.0,3.0]
             },
             "down": {
               "texture": "#midtone",
@@ -1206,290 +897,7 @@
           "scaleX": 1.0,
           "scaleY": 1.0,
           "scaleZ": 1.0,
-          "children": [
-            {
-              "name": "FlapTop",
-              "from":[-0.3,4.0,-0.1],
-              "to":[7.2999999046325685,4.3,3.1],
-              "faces": {
-                "north": {
-                  "texture": "#flaps",
-                  "uv":[3.5,8.0,11.0,8.5]
-                },
-                "south": {
-                  "texture": "#flaps",
-                  "uv":[4.5,13.5,12.0,14.0]
-                },
-                "up": {
-                  "texture": "#flaps",
-                  "uv":[1.5,8.5,9.0,11.5]
-                },
-                "down": {
-                  "texture": "#flaps",
-                  "uv":[6.0,0.5,13.5,3.5]
-                }
-              },
-              "rotationOrigin":[-0.3,4.0,-0.1],
-              "scaleX": 1.0,
-              "scaleY": 1.0,
-              "scaleZ": 1.0,
-              "children": [
-                {
-                  "name": "FlapTopW",
-                  "from":[0.0,-0.7,-0.01],
-                  "to":[0.3,0.3,3.19],
-                  "faces": {
-                    "north": {
-                      "texture": "#flaps",
-                      "uv":[10.5,0.5,11.0,1.5]
-                    },
-                    "east": {
-                      "texture": "#flaps",
-                      "uv":[5.5,7.0,8.5,8.0]
-                    },
-                    "south": {
-                      "texture": "#flaps",
-                      "uv":[13.0,4.0,13.5,5.0]
-                    },
-                    "west": {
-                      "texture": "#flaps",
-                      "uv":[3.0,9.5,6.0,10.5]
-                    },
-                    "down": {
-                      "texture": "#flaps",
-                      "uv":[12.0,7.0,12.5,10.0]
-                    }
-                  },
-                  "rotationOrigin":[0.0,-0.7,0.0],
-                  "scaleX": 1.0,
-                  "scaleY": 1.0,
-                  "scaleZ": 1.0,
-                  "children": [
-                    {
-                      "name": "StrapE3",
-                      "from":[0.1,-2.0,1.3],
-                      "to":[0.3,0.0,1.9],
-                      "faces": {
-                        "north": {
-                          "texture": "#midtone",
-                          "uv":[11.5,7.0,12.0,9.0]
-                        },
-                        "south": {
-                          "texture": "#midtone",
-                          "uv":[3.0,4.0,3.5,6.0]
-                        },
-                        "west": {
-                          "texture": "#midtone",
-                          "uv":[4.0,10.5,4.5,12.5],
-                          "windMode": [
-                            -1,
-                            -1,
-                            -1,
-                            -1
-                          ]
-                        },
-                        "up": {
-                          "texture": "#midtone",
-                          "uv":[8.5,13.0,9.0,13.5]
-                        },
-                        "down": {
-                          "texture": "#midtone",
-                          "uv":[7.0,13.5,7.5,14.0]
-                        }
-                      },
-                      "rotationOrigin":[0.1,0.0,1.3],
-                      "rotationZ": 3.0,
-                      "scaleX": 1.0,
-                      "scaleY": 1.0,
-                      "scaleZ": 1.0,
-                      "children": [
-                        {
-                          "name": "StrapE4",
-                          "from":[0.0,-1.0,0.01],
-                          "to":[0.2,0.0,0.61],
-                          "faces": {
-                            "north": {
-                              "texture": "#midtone",
-                              "uv":[9.0,10.0,9.5,11.0]
-                            },
-                            "south": {
-                              "texture": "#midtone",
-                              "uv":[14.0,10.0,14.5,11.0]
-                            },
-                            "west": {
-                              "texture": "#midtone",
-                              "uv":[10.0,3.5,10.5,4.5],
-                              "windMode": [
-                                -1,
-                                -1,
-                                -1,
-                                -1
-                              ]
-                            },
-                            "up": {
-                              "texture": "#midtone",
-                              "uv":[6.0,5.0,6.5,5.5]
-                            },
-                            "down": {
-                              "texture": "#midtone",
-                              "uv":[3.0,9.0,3.5,9.5]
-                            }
-                          },
-                          "rotationOrigin":[0.2,0.0,0.0],
-                          "rotationZ": -12.0,
-                          "scaleX": 1.0,
-                          "scaleY": 1.0,
-                          "scaleZ": 1.0,
-                          "uv":[0.0,0.0]
-                        }
-                      ],
-                      "uv":[0.0,0.0]
-                    }
-                  ],
-                  "uv":[0.0,0.0]
-                },
-                {
-                  "name": "FlapTopE",
-                  "from":[7.3000000000000007,-0.7,-0.01],
-                  "to":[7.6,0.3,3.19],
-                  "faces": {
-                    "north": {
-                      "texture": "#flaps",
-                      "uv":[11.0,8.0,11.5,9.0]
-                    },
-                    "east": {
-                      "texture": "#flaps",
-                      "uv":[1.5,14.0,4.5,15.0]
-                    },
-                    "south": {
-                      "texture": "#flaps",
-                      "uv":[7.5,9.0,8.0,10.0]
-                    },
-                    "west": {
-                      "texture": "#flaps",
-                      "uv":[3.0,11.0,6.0,12.0]
-                    },
-                    "down": {
-                      "texture": "#flaps",
-                      "uv":[2.0,5.0,2.5,8.0]
-                    }
-                  },
-                  "rotationOrigin":[7.3000000000000007,-0.7,0.0],
-                  "scaleX": 1.0,
-                  "scaleY": 1.0,
-                  "scaleZ": 1.0,
-                  "children": [
-                    {
-                      "name": "StrapE1",
-                      "from":[0.0,-2.0,1.3],
-                      "to":[0.2,0.0,1.9],
-                      "faces": {
-                        "north": {
-                          "texture": "#midtone",
-                          "uv":[7.0,3.5,7.5,5.5]
-                        },
-                        "east": {
-                          "texture": "#midtone",
-                          "uv":[13.0,5.5,13.5,7.5]
-                        },
-                        "south": {
-                          "texture": "#midtone",
-                          "uv":[3.5,1.0,4.0,3.0]
-                        },
-                        "up": {
-                          "texture": "#midtone",
-                          "uv":[10.0,9.5,10.5,10.0]
-                        },
-                        "down": {
-                          "texture": "#midtone",
-                          "uv":[4.5,14.0,5.0,14.5]
-                        }
-                      },
-                      "rotationOrigin":[0.2,0.0,1.3],
-                      "rotationZ": -3.0,
-                      "scaleX": 1.0,
-                      "scaleY": 1.0,
-                      "scaleZ": 1.0,
-                      "children": [
-                        {
-                          "name": "StrapE2",
-                          "from":[0.0,-1.0,0.01],
-                          "to":[0.2,0.0,0.61],
-                          "faces": {
-                            "north": {
-                              "texture": "#midtone",
-                              "uv":[5.5,5.0,6.0,6.0]
-                            },
-                            "east": {
-                              "texture": "#midtone",
-                              "uv":[0.5,3.0,1.0,4.0]
-                            },
-                            "south": {
-                              "texture": "#midtone",
-                              "uv":[6.5,10.0,7.0,11.0]
-                            },
-                            "up": {
-                              "texture": "#midtone",
-                              "uv":[1.0,2.0,1.5,2.5]
-                            },
-                            "down": {
-                              "texture": "#midtone",
-                              "uv":[9.0,8.5,9.5,9.0]
-                            }
-                          },
-                          "rotationOrigin":[0.0,0.0,0.0],
-                          "rotationZ": 12.0,
-                          "scaleX": 1.0,
-                          "scaleY": 1.0,
-                          "scaleZ": 1.0,
-                          "uv":[0.0,0.0]
-                        }
-                      ],
-                      "uv":[0.0,0.0]
-                    }
-                  ],
-                  "uv":[0.0,0.0]
-                }
-              ],
-              "uv":[0.0,0.0]
-            },
-            {
-              "name": "buckle sides",
-              "from":[-0.2,1.2,1.0],
-              "to":[7.2000000953674315,1.5,2.0],
-              "faces": {
-                "north": {
-                  "texture": "#metal",
-                  "uv":[1.5,6.0,8.5,6.5]
-                },
-                "east": {
-                  "texture": "#metal",
-                  "uv":[0.0,6.5,1.0,7.0]
-                },
-                "south": {
-                  "texture": "#metal",
-                  "uv":[2.0,7.0,9.0,7.5]
-                },
-                "west": {
-                  "texture": "#metal",
-                  "uv":[1.5,9.0,2.5,9.5]
-                },
-                "up": {
-                  "texture": "#metal",
-                  "uv":[3.5,11.5,10.5,12.5]
-                },
-                "down": {
-                  "texture": "#metal",
-                  "uv":[2.0,7.0,9.0,8.0]
-                }
-              },
-              "rotationOrigin":[-0.2,1.2,1.0],
-              "scaleX": 1.0,
-              "scaleY": 1.0,
-              "scaleZ": 1.0,
-              "uv":[0.0,0.0]
-            }
-          ],
+          "children": [],
           "uv":[0.0,0.0]
         }
       ],

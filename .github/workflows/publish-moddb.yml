@@ -1,0 +1,45 @@
+name: Package for ModDB
+
+# Manual, on-demand build of the ModDB-ready zip. The VS ModDB has no public upload API yet
+# (vsmoddb's releases/new endpoint is "not implemented"), so download the produced artifact and
+# upload it at https://mods.vintagestory.at by hand. Drop the POST step in here if an API lands.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref/branch/tag to build (blank = the ref this run targets)"
+        required: false
+        default: ""
+
+env:
+  # VS build to compile against (provides the API DLLs). Must be a .NET 10 build. Update on VS bumps.
+  VS_VERSION: "1.21.0"
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Fetch Vintage Story assemblies
+        run: |
+          mkdir -p "$HOME/vs"
+          curl -fsSL "https://cdn.vintagestory.at/gamefiles/stable/vs_server_linux-x64_${VS_VERSION}.tar.gz" -o vs.tar.gz
+          tar -xzf vs.tar.gz -C "$HOME/vs"
+          echo "VINTAGE_STORY=$HOME/vs" >> "$GITHUB_ENV"
+
+      - name: Package
+        run: bash build.sh
+
+      - name: Upload ModDB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moddb-release
+          path: Releases/*.zip
+          if-no-files-found: error

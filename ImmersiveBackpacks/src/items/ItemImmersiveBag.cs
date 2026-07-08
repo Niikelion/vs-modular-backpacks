@@ -254,7 +254,9 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
             key = key * 31 + code.GetHashCode();
             key = key * 31 + (addons.GetItemstack(code)?.GetHashCode() ?? 0);
         }
-        key = key * 31 + (SlotsTree(bagstack, create: false)?.GetHashCode() ?? 0);
+        // Position-sensitive cargo hash: a slot-bearing addon (toolstrap) renders its cargo tools, and a tool
+        // moving between slots must rebuild the mesh - the raw tree hash XORs entries and misses that.
+        key = key * 31 + BackpackSlotLayout.CargoHash(SlotsTree(bagstack, create: false));
         return key;
     }
 
