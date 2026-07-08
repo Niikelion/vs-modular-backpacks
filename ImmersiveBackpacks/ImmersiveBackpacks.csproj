@@ -39,7 +39,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="assets\immersivebackpacks\shapes\item\bag\" />
+      <Folder Include="assets\immersivemodularbackpacks\shapes\item\bag\" />
     </ItemGroup>
 
 </Project>

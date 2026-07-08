@@ -141,7 +141,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
         // Plain right-click anywhere opens the cargo dialog.
         var interactions = new List<WorldInteraction>
         {
-            new() { ActionLangCode = "immersivebackpacks:open-cargo", MouseButton = EnumMouseButton.Right }
+            new() { ActionLangCode = "immersivemodularbackpacks:open-cargo", MouseButton = EnumMouseButton.Right }
         };
 
         // On an attachment-point box (indices 1+; box 0 is the bag body), sneak+right-click attaches/detaches.
@@ -153,8 +153,8 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             interactions.Add(new()
             {
                 ActionLangCode = occupied
-                    ? "immersivebackpacks:remove-attachment"
-                    : "immersivebackpacks:attach-item",
+                    ? "immersivemodularbackpacks:remove-attachment"
+                    : "immersivemodularbackpacks:attach-item",
                 MouseButton = EnumMouseButton.Right,
                 HotKeyCode = "sneak",
                 // Empty point: cycle through every addon that can attach here so the options are discoverable.
@@ -171,7 +171,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     {
         if (categories == null || categories.Length == 0) return null;
 
-        var byCategory = ObjectCacheUtil.GetOrCreate(api, "immersivebackpacks:attachablesByCategory", () =>
+        var byCategory = ObjectCacheUtil.GetOrCreate(api, "immersivemodularbackpacks:attachablesByCategory", () =>
         {
             var map = new Dictionary<string, List<ItemStack>>();
             foreach (var obj in api.World.Collectibles)

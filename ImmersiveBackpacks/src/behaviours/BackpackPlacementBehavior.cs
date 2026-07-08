@@ -34,7 +34,7 @@ public class BackpackPlacementBehavior(CollectibleObject collObj) : CollectibleB
         // vanilla selection/collision box.
         var variant = itemslot.Itemstack.Collectible.Variant;
         string type = variant != null && variant.TryGetValue("type", out var t) ? t : "normal";
-        Block placedBlock = world.GetBlock(new AssetLocation("immersivebackpacks:backpack-placed-" + type));
+        Block placedBlock = world.GetBlock(new AssetLocation("immersivemodularbackpacks:backpack-placed-" + type));
         if (placedBlock == null) return;
         if (!onBlock.CanAttachBlockAt(world.BlockAccessor, placedBlock, blockSel.Position, BlockFacing.UP)) return;
 

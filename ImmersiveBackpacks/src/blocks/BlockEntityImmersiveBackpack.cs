@@ -280,7 +280,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     private void OpenCargoDialog(IPlayer byPlayer)
     {
         int cols = Math.Max(1, Math.Min(4, cargoInv.Count));
-        string title = Lang.Get("immersivebackpacks:cargo-dialog-title");
+        string title = Lang.Get("immersivemodularbackpacks:cargo-dialog-title");
         toggleInventoryDialogClient(byPlayer, () =>
             new GuiDialogBlockEntityInventory(title, Inventory, Pos, cols, Api as ICoreClientAPI));
     }

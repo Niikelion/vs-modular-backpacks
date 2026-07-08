@@ -9,11 +9,11 @@
 	"creativeinventory": {
 		"general": [ "*" ]
 	},
-	"shape": { "base": "immersivebackpacks:item/bag/pouch-{type}" },
+	"shape": { "base": "immersivemodularbackpacks:item/bag/pouch-{type}" },
 	"behaviors": [
 		{ "name": "GroundStorable", "properties": { "layout": "SingleCenter", "collisionBox": { "x1": 0.25, "y1": 0, "z1": 0.25, "x2": 0.75, "y2": 0.375, "z2": 0.75 } } },
 		{ "name": "HeldBag" },
-		{ "name": "GroundStoredHeldBag", "properties": { "dialogTitleLangCode": "immersivebackpacks:pouch-contents" } }
+		{ "name": "GroundStoredHeldBag", "properties": { "dialogTitleLangCode": "immersivemodularbackpacks:pouch-contents" } }
 	],
 	"guiTransform": {
 		"translation": { "x": 0, "y": 0.5, "z": 0 },

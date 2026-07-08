@@ -1,0 +1,14 @@
+{
+	"immersivemodularbackpacks:item-pouch-normal": "Pouch",
+	"immersivemodularbackpacks:item-pouch-sturdy": "Sturdy Pouch",
+	"immersivemodularbackpacks:item-toolstrap": "Tool Strap",
+
+	"immersivemodularbackpacks:block-backpack-placed-normal": "Backpack",
+	"immersivemodularbackpacks:block-backpack-placed-sturdy": "Sturdy Backpack",
+
+	"immersivemodularbackpacks:open-cargo": "Open cargo",
+	"immersivemodularbackpacks:attach-item": "Attach item",
+	"immersivemodularbackpacks:remove-attachment": "Remove attachment",
+	"immersivemodularbackpacks:cargo-dialog-title": "Backpack Cargo",
+	"immersivemodularbackpacks:pouch-contents": "Pouch Contents"
+}
