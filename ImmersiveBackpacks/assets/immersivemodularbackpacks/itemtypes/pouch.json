@@ -22,19 +22,24 @@
 		"scale": 2.7,
 		"rotate": true
 	},
-	"fpHandTransform": {
-		"translation": { "x": 0, "y": 0, "z": 0 },
-		"rotation": { "x": 0, "y": 0, "z": 0 },
-		"origin": { "x": 0.5, "y": 0.5, "z": 0.5 },
-		"scale": 1
-	},
-	"tpHandTransform": {
-		"translation": { "x": 0, "y": 0, "z": 0 },
-		"rotation": { "x": 0, "y": 0, "z": 0 },
-		"origin": { "x": 0.5, "y": 0.5, "z": 0.5 },
-		"scale": 1
+	"tpHandTransformByType": {
+		"*-normal": {
+			"translation": { "x": -0.7, "y": -0.5, "z": -0.6 },
+			"rotation": { "x": -4, "y": 47, "z": -17 },
+			"scale": 0.81
+		},
+		"*-sturdy": {
+			"translation": { "x": -0.7, "y": -0.7, "z": -0.6 },
+			"rotation": { "x": -4, "y": 47, "z": -17 },
+			"scale": 0.81
+		}
 	},
 	"attributes": {
+		"handbook": {
+			"extraSections": [
+				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-pouch-text" }
+			]
+		},
 		"backpackByType": {
 			"*-normal": { "quantitySlots": 3 },
 			"*-sturdy": { "quantitySlots": 5 }

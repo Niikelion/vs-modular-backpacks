@@ -10,9 +10,20 @@
 		"origin": { "x": 0.53, "y": 0.1, "z": 0.5 },
 		"scale": 1.8
 	},
+	"tpHandTransform": {
+		"translation": { "x": -0.5, "y": -0.2, "z": -0.7 },
+		"rotation": { "x": -180, "y": -24, "z": 0 },
+		"origin": { "x": 0.34, "y": 0.06, "z": 0.23 },
+		"scale": 0.6
+	},
 	"creativeinventory": { "general": ["*"] },
 	"behaviors": [ { "name": "HeldBag" } ],
 	"attributes": {
+		"handbook": {
+			"extraSections": [
+				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolstrap-text" }
+			]
+		},
 		"backpack": { "quantitySlots": 1 },
 		"immersiveBackpackAttachment": {
 			"category": "toolstrap",
