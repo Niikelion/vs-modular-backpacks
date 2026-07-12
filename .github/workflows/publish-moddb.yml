@@ -13,7 +13,7 @@ on:
 
 env:
   # VS build to compile against (provides the API DLLs). Must be a .NET 10 build. Update on VS bumps.
-  VS_VERSION: "1.21.0"
+  VS_VERSION: "1.22.0"
 
 jobs:
   package:
