@@ -130,10 +130,27 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             return true;
         }
 
-        // Plain right-click anywhere on the bag opens the cargo dialog.
-        if (Api.Side == EnumAppSide.Client)
-            OpenCargoDialog(byPlayer);
+        // Ctrl + right-click opens the cargo dialog (vanilla-style modifier); plain right-click picks the
+        // whole pack back up.
+        if (byPlayer.Entity.Controls.CtrlKey)
+        {
+            if (Api.Side == EnumAppSide.Client)
+                OpenCargoDialog(byPlayer);
+            return true;
+        }
+
+        if (Api.Side == EnumAppSide.Server)
+            PickUp(byPlayer);
         return true;
+    }
+
+    // Plain right-click returns the whole pack (addons + cargo) to the player and clears the block.
+    private void PickUp(IPlayer byPlayer)
+    {
+        var stack = CreateDropItemStack(Api.World);
+        if (stack == null) return;
+        Expel(stack, byPlayer);
+        Api.World.BlockAccessor.SetBlock(0, Pos);
     }
 
     private void OnPlayerInteractWithPoint(int pointIndex, IPlayer byPlayer)

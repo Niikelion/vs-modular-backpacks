@@ -6,8 +6,7 @@
         "Niikelion"
     ],
     "description": "Makes vanilla backpacks more modular and immersive",
-    "version": "1.0.1",
-    "license": "MIT",
+    "version": "1.0.2",
     "dependencies": {
         "game": ""
     }

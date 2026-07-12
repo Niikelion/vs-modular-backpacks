@@ -6,6 +6,7 @@
 	"immersivemodularbackpacks:block-backpack-placed-normal": "Backpack",
 	"immersivemodularbackpacks:block-backpack-placed-sturdy": "Sturdy Backpack",
 
+	"immersivemodularbackpacks:pick-up": "Pick up",
 	"immersivemodularbackpacks:open-cargo": "Open cargo",
 	"immersivemodularbackpacks:attach-item": "Attach item",
 	"immersivemodularbackpacks:remove-attachment": "Remove attachment",
@@ -13,9 +14,9 @@
 	"immersivemodularbackpacks:pouch-contents": "Pouch Contents",
 
 	"immersivemodularbackpacks:handbook-backpack-title": "Modular backpack",
-	"immersivemodularbackpacks:handbook-backpack-text": "This backpack can be fitted with addons - pouches, tool straps and other small gear - that expand what it carries and ride along on your back.<br><br>To fit an addon, set the backpack down on the ground, then hold the addon and <hk>sneak</hk> + <hk>rightmouse</hk>-click one of its attachment points. <hk>rightmouse</hk>-click the backpack to open its cargo, or <hk>sneak</hk> + <hk>rightmouse</hk>-click an occupied point to take an addon back off.<br><br>Break the backpack to pick it up again - its addons and their contents come with it - then wear it as usual.",
+	"immersivemodularbackpacks:handbook-backpack-text": "This backpack can be fitted with addons - pouches, tool straps and other small gear - that expand what it carries and ride along on your back.<br><br>To fit an addon, set the backpack down on the ground, then hold the addon and <hk>shift</hk> + <hk>rightmouse</hk>-click one of its attachment points. <hk>ctrl</hk> + <hk>rightmouse</hk>-click the backpack to open its cargo, or <hk>shift</hk> + <hk>rightmouse</hk>-click an occupied point to take an addon back off.<br><br><hk>rightmouse</hk>-click the backpack to pick it up again - its addons and their contents come with it - then wear it as usual.",
 	"immersivemodularbackpacks:handbook-backpack-addons-title": "Addons",
 	"immersivemodularbackpacks:handbook-addon-title": "Backpack addon",
-	"immersivemodularbackpacks:handbook-addon-pouch-text": "A pouch is a small bag in its own right - slot it into one of your character's bag slots and it holds items like any other bag. A sturdy pouch holds more than a plain one.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the pouch and <hk>sneak</hk> + <hk>rightmouse</hk>-click a free attachment point. Its slots then join the backpack's cargo.",
-	"immersivemodularbackpacks:handbook-addon-toolstrap-text": "A tool strap carries a single tool. Slot it into one of your character's bag slots to use it on its own.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the strap and <hk>sneak</hk> + <hk>rightmouse</hk>-click a free attachment point. Fitted this way, the tool it holds rides visibly on your back."
+	"immersivemodularbackpacks:handbook-addon-pouch-text": "A pouch is a small bag in its own right - slot it into one of your character's bag slots and it holds items like any other bag. A sturdy pouch holds more than a plain one.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the pouch and <hk>shift</hk> + <hk>rightmouse</hk>-click a free attachment point. Its slots then join the backpack's cargo.",
+	"immersivemodularbackpacks:handbook-addon-toolstrap-text": "A tool strap carries a single tool. Slot it into one of your character's bag slots to use it on its own.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the strap and <hk>shift</hk> + <hk>rightmouse</hk>-click a free attachment point. Fitted this way, the tool it holds rides visibly on your back."
 }

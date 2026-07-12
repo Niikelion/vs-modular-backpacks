@@ -138,13 +138,14 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     {
         var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityImmersiveBackpack;
 
-        // Plain right-click anywhere opens the cargo dialog.
+        // Plain right-click picks the pack up; ctrl+right-click opens the cargo dialog.
         var interactions = new List<WorldInteraction>
         {
-            new() { ActionLangCode = "immersivemodularbackpacks:open-cargo", MouseButton = EnumMouseButton.Right }
+            new() { ActionLangCode = "immersivemodularbackpacks:pick-up", MouseButton = EnumMouseButton.Right },
+            new() { ActionLangCode = "immersivemodularbackpacks:open-cargo", MouseButton = EnumMouseButton.Right, HotKeyCode = "ctrl" }
         };
 
-        // On an attachment-point box (indices 1+; box 0 is the bag body), sneak+right-click attaches/detaches.
+        // On an attachment-point box (indices 1+; box 0 is the bag body), shift+right-click attaches/detaches.
         int pointIndex = blockSel.SelectionBoxIndex - 1;
         if (be != null && pointIndex >= 0 && pointIndex < be.AttachmentPoints.Length)
         {
@@ -156,7 +157,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
                     ? "immersivemodularbackpacks:remove-attachment"
                     : "immersivemodularbackpacks:attach-item",
                 MouseButton = EnumMouseButton.Right,
-                HotKeyCode = "sneak",
+                HotKeyCode = "shift",
                 // Empty point: cycle through every addon that can attach here so the options are discoverable.
                 Itemstacks = occupied ? null : AttachableStacks(point.Categories)
             });
