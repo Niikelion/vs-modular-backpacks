@@ -1,12 +1,12 @@
 {
     "type": "code",
     "modid": "immersivemodularbackpacks",
-    "name": "Immersive Modular Backpacks",
+    "name": "Modular Backpacks",
     "authors": [
-        "Unknown"
+        "Niikelion"
     ],
     "description": "Makes vanilla backpacks more modular and immersive",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "dependencies": {
         "game": ""
     }

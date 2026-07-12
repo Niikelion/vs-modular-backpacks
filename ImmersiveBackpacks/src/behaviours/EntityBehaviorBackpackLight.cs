@@ -135,7 +135,7 @@ public class EntityBehaviorBackpackLight(Entity entity) : EntityBehavior(entity)
             sig = sig * 31 + BackpackSlotLayout.CargoHash(slots);
             // Fold Deven's "Immersive Backpacks" hide flag so selecting/deselecting a worn bag re-tesselates
             // and our GetShape guard hides/shows it, rather than relying only on that mod's own retessellation.
-            sig = sig * 31 + (stack?.Attributes?.GetInt("immersiveBackpacksHideAttachmentWhileSelected", 0) ?? 0);
+            sig = sig * 31 + (stack?.Attributes?.GetInt("immersiveBackpacksHideAttachmentWhileSelected") ?? 0);
         }
 
         if (sig == lastBagSig) return;

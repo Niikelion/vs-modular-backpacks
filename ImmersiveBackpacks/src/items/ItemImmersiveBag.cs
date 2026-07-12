@@ -357,8 +357,9 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
         // The worn root loads its OWN base shape (attachableToEntity.attachedShape, which the composer's
         // per-node display-shape path doesn't know about), then the shared composer attaches every addon
-        // under its slot marker - identical child-composition to the placed/held mesh path.
-        string baseShapePath = Attributes?["attachableToEntity"]["attachedShape"]["base"].AsString();
+        // under its slot marker - identical child-composition to the placed/held mesh path. The resolver
+        // handles mods that relocate the worn shape out of attachedShape (see WornBaseShapeResolver).
+        string baseShapePath = WornBaseShapeResolver.Resolve(Attributes?["attachableToEntity"]);
         Shape combined = AttachmentComposer.LoadShape(capi, baseShapePath, Code.Domain);
         if (combined?.Elements == null || combined.Elements.Length == 0) return combined;
 
