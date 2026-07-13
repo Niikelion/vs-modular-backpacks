@@ -43,6 +43,18 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     // being correct on the placed block / in hand. Tesselated and uploaded once per key; disposed in OnUnloaded.
     private readonly Dictionary<(int hash, bool mirror), MultiTextureMeshRef> heldMeshCache = new();
 
+    // Vanilla's attribute-driven IAttachableToEntity, built here purely to reuse its worn-shape lookup
+    // (see GetShape). FromCollectible prefers our interface implementation over this one, so vanilla never
+    // constructs it for our bag - we must, or we lose the attachedShape resolution it does for free.
+    private AttributeAttachableToEntity attributeAttachable;
+
+    public override void OnLoaded(ICoreAPI api)
+    {
+        base.OnLoaded(api);
+        attributeAttachable =
+            Attributes?["attachableToEntity"].AsObject<AttributeAttachableToEntity>(null, Code.Domain);
+    }
+
     // ---- IHeldBag -----------------------------------------------------------
 
     public int GetQuantitySlots(ItemStack bagstack)
@@ -355,12 +367,18 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
         ICoreAPI capi = forEntity.World.Api;
 
-        // The worn root loads its OWN base shape (attachableToEntity.attachedShape, which the composer's
-        // per-node display-shape path doesn't know about), then the shared composer attaches every addon
-        // under its slot marker - identical child-composition to the placed/held mesh path. The resolver
-        // handles mods that relocate the worn shape out of attachedShape (see WornBaseShapeResolver).
-        string baseShapePath = WornBaseShapeResolver.Resolve(Attributes?["attachableToEntity"]);
-        Shape combined = AttachmentComposer.LoadShape(capi, baseShapePath, Code.Domain);
+        // The worn root loads its OWN base shape (the composer's per-node display-shape path only knows the
+        // held shape), then the shared composer attaches every addon under its slot marker - identical
+        // child-composition to the placed/held mesh path.
+        //
+        // Resolve that base through vanilla's own AttributeAttachableToEntity.GetAttachedShape instead of
+        // reading attachedShape.base ourselves: mods relocate the worn shape into the per-slot map
+        // attachedShapeBySlotCode (Equus, to vary the bag on horseback), which that method wildcard-matches,
+        // falling back to the held shape when neither node is set. IWearableShapeSupplier hands us no slot
+        // code, so "*" asks for the generic (non-mount) entry - correct here, as IsAttachable limits us to
+        // players anyway.
+        CompositeShape wornShape = stack != null ? attributeAttachable?.GetAttachedShape(stack, "*") : null;
+        Shape combined = AttachmentComposer.LoadShape(capi, wornShape?.Base?.ToString(), Code.Domain);
         if (combined?.Elements == null || combined.Elements.Length == 0) return combined;
 
         AttachmentComposer.ComposeChildrenInto(capi, combined, BagNodeFor(stack));

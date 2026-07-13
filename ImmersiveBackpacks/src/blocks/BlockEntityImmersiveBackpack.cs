@@ -581,6 +581,14 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     public override void OnBlockRemoved()
     {
+        // Our light is emitted dynamically via GetLightHsv (the block's own static LightHsv is 0), so the
+        // engine's default block-removal relight - which keys off the static value - never un-spreads it,
+        // leaving an orphan glow with no source in the lightmap. Remove our contribution explicitly. Runs on
+        // both sides (each owns its lighting engine); RemoveBlockLight re-floods from remaining sources so a
+        // redundant call is harmless.
+        if (lastEmittedLight != null && lastEmittedLight[2] > 0)
+            Api?.World.BlockAccessor.RemoveBlockLight(lastEmittedLight, Pos);
+
         base.OnBlockRemoved();
         renderer?.Dispose();
     }

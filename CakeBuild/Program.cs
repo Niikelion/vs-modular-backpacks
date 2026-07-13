@@ -54,10 +54,10 @@ public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
 {
     private static readonly string[] Variants = { "sturdy" };
 
-    // Held-root -> worn-root offsets (from the original hand port). Size is preserved; children ride the root.
-    private static readonly double[] FromDelta = { 0.25, -4.7, -4.7 };
-    private static readonly double[] RotationOriginDelta = { 0.0, -4.7, -4.7 };
-    private static readonly double[] Rotation = { -90, 82, 90 };
+    // Held-root -> worn-root offset: a rigid translate, so from/to and rotationOrigin all shift by it.
+    // Size is preserved; children ride the root.
+    private static readonly double[] RootDelta = { 0.1776, -4.572, -4.8957 };
+    private static readonly double[] Rotation = { -90, 83, 90 };
     private const string StepParent = "UpperTorso";
 
     public override void Run(BuildContext context)
@@ -81,12 +81,12 @@ public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
                 ? ToVec(root["rotationOrigin"])
                 : new[] { (from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2 };
 
-            var newFrom = Add(from, FromDelta);
+            var newFrom = Add(from, RootDelta);
             var newTo = new[] { newFrom[0] + (to[0] - from[0]), newFrom[1] + (to[1] - from[1]), newFrom[2] + (to[2] - from[2]) };
 
             root["from"] = Vec(newFrom);
             root["to"] = Vec(newTo);
-            root["rotationOrigin"] = Vec(Add(rotO, RotationOriginDelta));
+            root["rotationOrigin"] = Vec(Add(rotO, RootDelta));
             root["rotationX"] = Rotation[0];
             root["rotationY"] = Rotation[1];
             root["rotationZ"] = Rotation[2];
