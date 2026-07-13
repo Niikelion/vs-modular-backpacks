@@ -1,0 +1,16 @@
+[
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": { "iboBagSize": "bagsmall" },
+		"file": "immersivemodularbackpacks:itemtypes/pouch.json",
+		"dependsOn": [ { "modid": "immersivebackpackoverhaul" } ]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": { "iboBagSize": "bagsmall" },
+		"file": "immersivemodularbackpacks:itemtypes/toolstrap.json",
+		"dependsOn": [ { "modid": "immersivebackpackoverhaul" } ]
+	}
+]
