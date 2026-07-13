@@ -15,12 +15,21 @@
 		{ "name": "HeldBag" },
 		{ "name": "GroundStoredHeldBag", "properties": { "dialogTitleLangCode": "immersivemodularbackpacks:pouch-contents" } }
 	],
-	"guiTransform": {
-		"translation": { "x": 0, "y": 0.5, "z": 0 },
-		"rotation": { "x": -25, "y": 23, "z": 180 },
-		"origin": { "x": 0.52999, "y": 0.23, "z": 0.5 },
-		"scale": 2.7,
-		"rotate": true
+	"guiTransformByType": {
+		"*-normal": {
+			"translation": { "x": 0, "y": 0.5, "z": 0 },
+			"rotation": { "x": -25, "y": 23, "z": 180 },
+			"origin": { "x": 0.52999, "y": 0.23, "z": 0.5 },
+			"scale": 2.7,
+			"rotate": true
+		},
+		"*-sturdy": {
+			"translation": { "x": 0, "y": 5.3, "z": 0 },
+			"rotation": { "x": -25, "y": 23, "z": 180 },
+			"origin": { "x": 0.52999, "y": 0.23, "z": 0.5 },
+			"scale": 2.7,
+			"rotate": true
+		}
 	},
 	"tpHandTransformByType": {
 		"*-normal": {
