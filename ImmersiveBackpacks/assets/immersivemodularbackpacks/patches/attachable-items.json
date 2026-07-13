@@ -25,6 +25,20 @@
 	},
 	{
 		"op": "add",
+		"path": "/attributesByType/bed-hay-*/immersiveBackpackAttachment",
+		"value": {
+			"category": "bedroll",
+			"attachedShape": { "base": "block/hay/strawbed-inventory" },
+			"attachedTransform": {
+				"scale": 0.6,
+				"offset": [0.35, 0, 0.2],
+				"rotation": [0, -80, 0]
+			}
+		},
+		"file": "game:blocktypes/wood/bed.json"
+	},
+	{
+		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
 		"value": { "category": "shield", "origin": [ 0.09, 0.03, 0.19 ], "attachedTransform": { "rotation": [ 0, 0, 8 ] } },
 		"file": "game:itemtypes/tool/shield.json"

@@ -21,5 +21,6 @@ public class ImmersiveBackpacksModSystem : ModSystem
 
     public override void StartServerSide(ICoreServerAPI api) { }
 
-    public override void StartClientSide(ICoreClientAPI api) { }
+    // Adds "/tfedit immersiveattachment" for tuning an addon's attachedTransform live in-game.
+    public override void StartClientSide(ICoreClientAPI api) => AttachmentTransformEditor.Register(api);
 }

@@ -24,15 +24,29 @@ public static class AttachmentMesh
         if (stack?.Collectible == null) return null;
         int itemAtlas = capi.ItemTextureAtlas.AtlasTextures[0].TextureId;
         int blockAtlas = capi.BlockTextureAtlas.AtlasTextures[0].TextureId;
+
+        // An addon may declare a separate, usually smaller, shape for while it's attached (the hay bed shows as
+        // a rolled bedroll, not a whole bed).
+        var attached = ResolveAttachedShape(capi, stack.Collectible);
+        if (attached != null && stack.Item != null)
+        {
+            capi.Tesselator.TesselateShape(stack.Item, attached, out var customMesh);
+            return TagAtlas(customMesh, itemAtlas);
+        }
+
+        if (attached != null)
+        {
+            // A block's texture codes may be declared by the shape file rather than by the block (vanilla's bed
+            // declares none of its own), so a texture source built from the collectible resolves nothing. Read
+            // them off the shape instead; ShapeTextureSource inserts what it finds into the block atlas.
+            var texSource = new ShapeTextureSource(capi, attached,
+                AttachedShapeComposite(stack.Collectible)?.Base?.ToString());
+            capi.Tesselator.TesselateShape(stack.Block.Code.ToString(), attached, out var customMesh, texSource);
+            return TagAtlas(customMesh, blockAtlas);
+        }
+
         if (stack.Item != null)
         {
-            // An item may declare a separate, usually smaller, shape for when it's attached to a bag.
-            var attached = ResolveAttachedShape(capi, stack.Item);
-            if (attached != null)
-            {
-                capi.Tesselator.TesselateShape(stack.Item, attached, out var customMesh);
-                return TagAtlas(customMesh, itemAtlas);
-            }
             capi.Tesselator.TesselateItem(stack.Item, out var itemMesh);
             return TagAtlas(itemMesh, itemAtlas);
         }

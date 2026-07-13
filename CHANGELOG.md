@@ -2,10 +2,17 @@
 
 ## 1.2.0
 
+- **Strap a hay bed to your pack.** It rides on the sturdy backpack's top point - the same one a toolstrap uses,
+  so it's one or the other - and shows as a rolled bedroll rather than a whole bed.
 - **Immersive Backpack Overhaul compatibility.** Pouches and toolstraps now declare themselves as small bags,
   so IBO accepts them in its small-bag slots. Before this, IBO's slot-size gate refused them everywhere except
   the backpack slot, which made them unwearable as standalone bags. Applied only when IBO is installed.
 - The sturdy pouch sits lower in its inventory slot, so its taller model no longer rides high.
+- Fixed: an attached *block* ignored the smaller shape it declares for being attached, and drew its full block
+  shape instead. Only the hay bed exercises this today, but it would have hit any block addon.
+- For modders: an addon's attached transform can now be tuned live in-game. Hold the addon, open the transform
+  editor (`.tfedit`) and pick the "Immersive attachment" tab; the values map straight onto the item's
+  `immersiveBackpackAttachment.attachedTransform`.
 
 ## 1.1.1
 

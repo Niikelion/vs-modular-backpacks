@@ -278,6 +278,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // Position-sensitive cargo hash: a slot-bearing addon (toolstrap) renders its cargo tools, and a tool
         // moving between slots must rebuild the mesh - the raw tree hash XORs entries and misses that.
         key = key * 31 + BackpackSlotLayout.CargoHash(SlotsTree(bagstack, create: false));
+        // Live /tfedit tuning changes a transform without touching placement or contents, so fold it in too.
+        key = key * 31 + AttachmentTransform.TuningGeneration;
         return key;
     }
 

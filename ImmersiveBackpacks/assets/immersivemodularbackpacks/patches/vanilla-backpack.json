@@ -37,7 +37,7 @@
 					{ "code": "upper_right_pouch", "categories": ["pouch"] },
 					{ "code": "toolstrap_left",    "categories": ["toolstrap"] },
 					{ "code": "toolstrap_right",   "categories": ["toolstrap"] },
-					{ "code": "toolstrap_top",     "categories": ["toolstrap"] }
+					{ "code": "toolstrap_top",     "categories": ["toolstrap", "bedroll"] }
 				]
 			}
 		},

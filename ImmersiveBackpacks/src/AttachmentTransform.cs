@@ -13,8 +13,9 @@ namespace ImmersiveBackpacks;
 /// <c>attachedTransform</c> that applies in every context (handy for an attached shape that needs the same
 /// scale/rotation whether the bag is placed or worn). See <see cref="ForItem"/>.
 ///
-/// Units: the placed offset is in block fractions [0,1]; the worn offset is in 16-unit shape-model space
-/// (so prefer attachedTransform for scale/rotation, which are unit-independent, over offset).
+/// Units: the offset is in block fractions [0,1] in every context - the composed worn/held path scales it to
+/// 16-unit shape space itself (see AttachmentComposer.WrapAddon), so one attachedTransform positions an addon
+/// identically whether the bag is placed, worn or held. Tune it live with /tfedit (AttachmentTransformEditor).
 /// </summary>
 public class AttachmentTransform
 {
@@ -23,6 +24,13 @@ public class AttachmentTransform
     public float[] Rotation = { 0f, 0f, 0f };
 
     public static readonly AttachmentTransform Identity = new();
+
+    /// <summary>
+    /// Bumped by the live transform editor (see <see cref="AttachmentTransformEditor"/>) whenever a transform is
+    /// nudged. Folded into the composed-mesh cache keys, which are otherwise keyed only by addon placement and
+    /// content - so without it a tuned transform would not show until the bag's contents changed.
+    /// </summary>
+    public static int TuningGeneration;
 
     /// <summary>A rotation-only transform (identity scale/offset), e.g. a slot rotation read from a shape.</summary>
     public static AttachmentTransform FromRotation(float[] rotation)
