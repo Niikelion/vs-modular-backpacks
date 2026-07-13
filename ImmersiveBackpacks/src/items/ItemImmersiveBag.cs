@@ -55,6 +55,16 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
             Attributes?["attachableToEntity"].AsObject<AttributeAttachableToEntity>(null, Code.Domain);
     }
 
+    /// <summary>
+    /// Cross-mod contract with Deven's "Immersive Backpacks": when the player selects a worn bag to hold it, that
+    /// mod sets this attribute on the stack and expects the worn shape hidden (so it isn't drawn on the back AND
+    /// in hand). It hides bags via the vanilla attribute/behaviour shape providers, which never see our
+    /// interface-based backpack - so we honour the flag ourselves, in both shape sources. Absent that mod the
+    /// flag is never set, so this is a no-op and we render like vanilla.
+    /// </summary>
+    private static bool HiddenWhileSelected(ItemStack stack)
+        => stack?.Attributes?.GetInt("immersiveBackpacksHideAttachmentWhileSelected") == 1;
+
     // ---- IHeldBag -----------------------------------------------------------
 
     public int GetQuantitySlots(ItemStack bagstack)
@@ -324,14 +334,19 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     // ---- IAttachableToEntity ------------------------------------------------
 
-    public bool IsAttachable(Entity toEntity, ItemStack itemStack) => toEntity is EntityPlayer;
+    // Unconditional, like vanilla's AttributeAttachableToEntity: a host with a bag slot (an Equus horse) may
+    // carry the bag too, and GetShape poses it for whichever slot it lands in.
+    public bool IsAttachable(Entity toEntity, ItemStack itemStack) => true;
 
     public string GetCategoryCode(ItemStack stack)
         => Attributes?["attachableToEntity"]["categoryCode"].AsString("backpack") ?? "backpack";
 
-    // Worn shape is composed in code (base bag + addons at slot markers) via IWearableShapeSupplier.GetShape;
-    // a CompositeShape can only reference a single pre-authored asset, so it can't express that. Hence, null.
-    public CompositeShape GetAttachedShape(ItemStack stack, string slotCode) => null;
+    // Vanilla's per-slot shape lookup (attachedShape, else a wildcard match in attachedShapeBySlotCode, else the
+    // held shape). GetShape calls it to pick the base it composes addons onto, so this stays the single place a
+    // slot code turns into a model. Vanilla itself only calls it when GetShape returns null - i.e. when we could
+    // not identify the host's slot - and then renders it uncomposed.
+    public CompositeShape GetAttachedShape(ItemStack stack, string slotCode)
+        => HiddenWhileSelected(stack) ? null : attributeAttachable?.GetAttachedShape(stack, slotCode);
 
     public string[] GetDisableElements(ItemStack stack)
         => Attributes?["attachableToEntity"]["disableElements"].AsArray<string>();
@@ -357,28 +372,33 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     Shape IWearableShapeSupplier.GetShape(ItemStack stack, Entity forEntity, string texturePrefixCode)
     {
-        // Cross-mod contract with Deven's "Immersive Backpacks": when the player selects a worn bag to hold it,
-        // that mod sets this attribute on the stack and expects the worn shape hidden (so it isn't drawn on the
-        // back AND in hand). It hides bags via the vanilla attribute/behaviour shape providers, which never see
-        // our interface-based backpack - so we honour the flag ourselves. Returning null makes vanilla add no
-        // worn shape. Absent that mod the flag is never set, so this is a no-op and we render like vanilla.
-        if (stack?.Attributes?.GetInt("immersiveBackpacksHideAttachmentWhileSelected") == 1)
-            return null;
+        if (stack == null || HiddenWhileSelected(stack)) return null;
+
+        // Which entry of attachedShapeBySlotCode this host wants. The player's worn bag has no slot code of its
+        // own - vanilla never passes one to IWearableShapeSupplier - and wants the map's generic "*". Any other
+        // host (an Equus horse) has one, and it selects a shape posed for that animal ("*-ferus", which our Equus
+        // compat mod points at our own geometry). If we can't identify the host's slot we bail out, letting
+        // vanilla fall back to GetAttachedShape: the same shape, only without addons composed into it.
+        string slotCode = "*";
+        if (forEntity is not EntityPlayer)
+        {
+            slotCode = HostSlotLookup.SlotCodeFor(forEntity, stack);
+            if (slotCode == null) return null;
+        }
 
         ICoreAPI capi = forEntity.World.Api;
 
-        // The worn root loads its OWN base shape (the composer's per-node display-shape path only knows the
+        // The attached root loads its OWN base shape (the composer's per-node display-shape path only knows the
         // held shape), then the shared composer attaches every addon under its slot marker - identical
-        // child-composition to the placed/held mesh path.
+        // child-composition to the placed/held mesh path, and the reason a mounted bag carries its pouches too.
         //
-        // Resolve that base through vanilla's own AttributeAttachableToEntity.GetAttachedShape instead of
-        // reading attachedShape.base ourselves: mods relocate the worn shape into the per-slot map
-        // attachedShapeBySlotCode (Equus, to vary the bag on horseback), which that method wildcard-matches,
-        // falling back to the held shape when neither node is set. IWearableShapeSupplier hands us no slot
-        // code, so "*" asks for the generic (non-mount) entry - correct here, as IsAttachable limits us to
-        // players anyway.
-        CompositeShape wornShape = stack != null ? attributeAttachable?.GetAttachedShape(stack, "*") : null;
-        Shape combined = AttachmentComposer.LoadShape(capi, wornShape?.Base?.ToString(), Code.Domain);
+        // Resolve that base through vanilla's own resolution rather than reading attachedShape.base ourselves:
+        // mods relocate the shape into the per-slot map attachedShapeBySlotCode (Equus, to vary the bag on
+        // horseback), which is wildcard-matched against the slot code, falling back to the held shape when
+        // neither node is set. So which model a host gets stays a JSON decision - a compat mod only has to add
+        // its slot to that map.
+        CompositeShape attached = GetAttachedShape(stack, slotCode);
+        Shape combined = AttachmentComposer.LoadShape(capi, attached?.Base?.ToString(), Code.Domain);
         if (combined?.Elements == null || combined.Elements.Length == 0) return combined;
 
         AttachmentComposer.ComposeChildrenInto(capi, combined, BagNodeFor(stack));

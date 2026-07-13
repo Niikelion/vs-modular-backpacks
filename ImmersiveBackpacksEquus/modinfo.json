@@ -1,0 +1,15 @@
+{
+    "type": "content",
+    "modid": "modularbackpacksequus",
+    "name": "Modular Backpacks: Equus Compatibility",
+    "authors": [
+        "Niikelion"
+    ],
+    "description": "Renders Modular Backpacks' bags on Equus horses. Requires Equus and Modular Backpacks.",
+    "version": "1.0.0",
+    "dependencies": {
+        "game": "",
+        "equus": "",
+        "immersivemodularbackpacks": ""
+    }
+}

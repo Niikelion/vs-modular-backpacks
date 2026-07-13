@@ -22,4 +22,12 @@ public class ItemSlotFiltered : ItemSlotSurvival
         if (!base.CanHold(sourceSlot)) return false;
         return BackpackSlotLayout.CanHold(type, sourceSlot);
     }
+
+    // See ItemSlotBagFiltered.CanTakeFrom: vanilla's auto-fill path bypasses CanHold, so the type filter has to
+    // be repeated here or a shift-click/quick-stack drops any item into a tool slot.
+    public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority = EnumMergePriority.AutoMerge)
+    {
+        if (!base.CanTakeFrom(sourceSlot, priority)) return false;
+        return BackpackSlotLayout.CanHold(type, sourceSlot);
+    }
 }

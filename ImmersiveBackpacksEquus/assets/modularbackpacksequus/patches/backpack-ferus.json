@@ -1,0 +1,10 @@
+[
+	{
+		"op": "addmerge",
+		"path": "/attributes/attachableToEntity/attachedShapeBySlotCode",
+		"value": {
+			"*-ferus": { "base": "modularbackpacksequus:item/bag/backpack-{type}-ferus" }
+		},
+		"file": "game:itemtypes/wearable/bag/backpack.json"
+	}
+]

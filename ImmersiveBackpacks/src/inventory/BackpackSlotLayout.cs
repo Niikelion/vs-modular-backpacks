@@ -135,4 +135,14 @@ public class ItemSlotBagFiltered : ItemSlotBagContent
         if (!base.CanHold(sourceSlot)) return false;
         return BackpackSlotLayout.CanHold(type, sourceSlot);
     }
+
+    // CanHold only gates the GUI drag path. Auto-fill - a pickup landing anywhere with room once the hotbar and
+    // inventory are full - goes through CanTakeFrom, which vanilla does NOT route through CanHold, so without
+    // this a firelog ends up displayed on a toolstrap. Ore slots need no such guard: their filter is a storage
+    // flag, which CanTakeFrom does check.
+    public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority = EnumMergePriority.AutoMerge)
+    {
+        if (!base.CanTakeFrom(sourceSlot, priority)) return false;
+        return BackpackSlotLayout.CanHold(type, sourceSlot);
+    }
 }
