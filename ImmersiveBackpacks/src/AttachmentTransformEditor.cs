@@ -83,7 +83,10 @@ public static class AttachmentTransformEditor
 
     private static void WriteAttachedTransform(CollectibleObject coll, AttachmentTransform t)
     {
-        if (coll.Attributes?.Token is not JObject root) return;
+        // A plain vanilla tool carries no attributes at all until something gives it some - and a tool on a
+        // toolstrap is exactly what one tunes here, so create the node rather than silently dropping the edit.
+        coll.Attributes ??= new JsonObject(new JObject());
+        if (coll.Attributes.Token is not JObject root) return;
 
         if (root["immersiveBackpackAttachment"] is not JObject attachment)
         {

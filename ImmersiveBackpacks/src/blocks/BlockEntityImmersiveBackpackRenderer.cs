@@ -17,6 +17,10 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
     private readonly Dictionary<string, MultiTextureMeshRef> attachmentTransparentRefs = new();
     private readonly HashSet<string> builtKeys = new();
     private bool dirty = true;
+    // The generation these meshes were composed at. A live /tfedit tweak changes neither the addon placement nor
+    // its contents, so nothing else would invalidate them - and a tool's transform is baked into its toolstrap's
+    // composed mesh, so it can only be seen by rebuilding.
+    private int builtGeneration = -1;
 
     private readonly Matrixf modelMat = new();
     // Reused buffer for the transparent draws collected during the opaque pass.
@@ -29,6 +33,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
 
     public void OnRenderFrame(float deltaTime, EnumRenderStage stage)
     {
+        if (builtGeneration != AttachmentTransform.TuningGeneration) dirty = true;
         if (dirty) RebuildMeshes();
 
         if (bodyMeshRef == null) return;
@@ -139,6 +144,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
     private void RebuildMeshes()
     {
         dirty = false;
+        builtGeneration = AttachmentTransform.TuningGeneration;
 
         DisposeMeshes();
 
