@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+- For modders: a tool's transform on a toolstrap can be tuned live too. Hold a second copy of the tool and use
+  the transform editor's "Immersive attachment" tab; a placed bag now rebuilds as you drag, and an item that
+  carries no attributes of its own (most vanilla tools) gets them created rather than dropping the edit.
+
 ## 1.2.0
 
 - **Strap a hay bed to your pack.** It rides on the sturdy backpack's top point - the same one a toolstrap uses,
