@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- **Roll-up bed compatibility.** Its mattresses attach to a sturdy backpack's top strap, just like the hay bed.
+  Their rolled-up shape takes its texture from the block rather than from the shape file, which an attached addon
+  could not resolve before - so a bag addon now looks up both.
+
 ## 1.2.3
 
 - **New standard backpack model**, by MeadowTealeaf.

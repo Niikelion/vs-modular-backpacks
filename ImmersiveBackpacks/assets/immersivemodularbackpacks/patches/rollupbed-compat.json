@@ -1,0 +1,20 @@
+[
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": {
+			"category": "bedroll",
+			"attachedShapeByType": {
+				"@.*-bear(black|brown|panda|polar|sun)-.*": { "base": "rollupbed:block/bear-inventory" },
+				"*": { "base": "rollupbed:block/inventory" }
+			},
+			"attachedTransform": {
+				"scale": 0.6,
+				"offset": [0.35, 0, 0.2],
+				"rotation": [0, -80, 0]
+			}
+		},
+		"file": "rollupbed:blocktypes/bed.json",
+		"dependsOn": [ { "modid": "rollupbed" } ]
+	}
+]

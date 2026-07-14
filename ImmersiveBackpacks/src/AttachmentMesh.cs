@@ -36,11 +36,14 @@ public static class AttachmentMesh
 
         if (attached != null)
         {
-            // A block's texture codes may be declared by the shape file rather than by the block (vanilla's bed
-            // declares none of its own), so a texture source built from the collectible resolves nothing. Read
-            // them off the shape instead; ShapeTextureSource inserts what it finds into the block atlas.
+            // A block's texture codes may be declared by either side: vanilla's bed declares none of its own and
+            // leaves them to the shape, while Roll-up bed's shapes declare none and leave them to the block's
+            // per-variant textures. ShapeTextureSource looks in its own dict first and falls back to the shape's,
+            // so seeding it with the block's textures covers both. It inserts whatever it finds into the block atlas.
             var texSource = new ShapeTextureSource(capi, attached,
                 AttachedShapeComposite(stack.Collectible)?.Base?.ToString());
+            if (stack.Block?.Textures != null)
+                foreach (var tex in stack.Block.Textures) texSource.textures[tex.Key] = tex.Value;
             capi.Tesselator.TesselateShape(stack.Block.Code.ToString(), attached, out var customMesh, texSource);
             return TagAtlas(customMesh, blockAtlas);
         }
