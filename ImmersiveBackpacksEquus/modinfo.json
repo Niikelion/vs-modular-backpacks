@@ -6,7 +6,7 @@
         "Niikelion"
     ],
     "description": "Renders Modular Backpacks' bags on Equus horses. Requires Equus and Modular Backpacks.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "dependencies": {
         "game": "",
         "equus": "",
