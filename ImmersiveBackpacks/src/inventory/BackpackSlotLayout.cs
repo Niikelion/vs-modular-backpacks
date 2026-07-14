@@ -90,6 +90,22 @@ public static class BackpackSlotLayout
         return list.ToArray();
     }
 
+    /// <summary>
+    /// A worn-bag cargo slot for a spec. Only a tool slot needs a class of ours - ore is enforced by its storage
+    /// flag and a general slot restricts nothing - and staying vanilla keeps those slots sortable by mods that
+    /// identify slots by type name (Storage Tweaks). See <see cref="slots.ItemSlotToolBagContent"/>.
+    /// </summary>
+    public static ItemSlotBagContent CreateBagSlot(InventoryBase inv, int bagIndex, int slotIndex, SlotSpec spec)
+        => spec.Type == BackpackSlotType.Tools
+            ? new slots.ItemSlotToolBagContent(inv, bagIndex, slotIndex, spec)
+            : new ItemSlotBagContent(inv, bagIndex, slotIndex, spec.Flags) { HexBackgroundColor = spec.Color };
+
+    /// <summary>The same, for the placed backpack's dialog inventory.</summary>
+    public static ItemSlotSurvival CreateDialogSlot(InventoryBase inv, SlotSpec spec)
+        => spec.Type == BackpackSlotType.Tools
+            ? new slots.ItemSlotToolSurvival(inv, spec)
+            : new ItemSlotSurvival(inv) { StorageType = spec.Flags, HexBackgroundColor = spec.Color };
+
     /// <summary>Type-specific acceptance beyond storage flags (the Tools slot only takes digging tools).</summary>
     public static bool CanHold(BackpackSlotType type, ItemSlot sourceSlot)
     {
@@ -114,35 +130,5 @@ public static class BackpackSlotLayout
         for (int i = 0; slots.HasAttribute("slot-" + i); i++)
             h = h * 31 + ((slots["slot-" + i] as ItemstackAttribute)?.value?.GetHashCode() ?? 0);
         return h;
-    }
-}
-
-/// <summary>Worn-bag content slot carrying a layout spec for per-slot colour and tool filtering.</summary>
-public class ItemSlotBagFiltered : ItemSlotBagContent
-{
-    private readonly BackpackSlotType type;
-
-    public ItemSlotBagFiltered(InventoryBase inventory, int bagIndex, int slotIndex,
-        BackpackSlotLayout.SlotSpec spec)
-        : base(inventory, bagIndex, slotIndex, spec.Flags)
-    {
-        type = spec.Type;
-        HexBackgroundColor = spec.Color;
-    }
-
-    public override bool CanHold(ItemSlot sourceSlot)
-    {
-        if (!base.CanHold(sourceSlot)) return false;
-        return BackpackSlotLayout.CanHold(type, sourceSlot);
-    }
-
-    // CanHold only gates the GUI drag path. Auto-fill - a pickup landing anywhere with room once the hotbar and
-    // inventory are full - goes through CanTakeFrom, which vanilla does NOT route through CanHold, so without
-    // this a firelog ends up displayed on a toolstrap. Ore slots need no such guard: their filter is a storage
-    // flag, which CanTakeFrom does check.
-    public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority = EnumMergePriority.AutoMerge)
-    {
-        if (!base.CanTakeFrom(sourceSlot, priority)) return false;
-        return BackpackSlotLayout.CanHold(type, sourceSlot);
     }
 }

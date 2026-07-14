@@ -344,7 +344,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         int size = Math.Max(1, layout.Length);
         var inv = new InventoryGeneric(size, null, null,
             (slotId, slotInv) => slotId < layout.Length
-                ? new ItemSlotFiltered(slotInv, layout[slotId])
+                ? BackpackSlotLayout.CreateDialogSlot(slotInv, layout[slotId])
                 : new ItemSlotSurvival(slotInv));
 
         if (Api != null)

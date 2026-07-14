@@ -36,7 +36,7 @@ public class ItemToolstrap : Item, IHeldBag
         var list = new List<ItemSlotBagContent>(n);
         for (int i = 0; i < n; i++)
         {
-            var slot = new ItemSlotBagFiltered(parentinv, bagIndex, i, spec);
+            var slot = BackpackSlotLayout.CreateBagSlot(parentinv, bagIndex, i, spec);
             string key = "slot-" + i;
             if (slots[key] is ItemstackAttribute { value: { } stored })
             {

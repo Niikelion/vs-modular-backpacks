@@ -82,7 +82,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         var list = new List<ItemSlotBagContent>(specs.Length);
         for (int i = 0; i < specs.Length; i++)
         {
-            var slot = new ItemSlotBagFiltered(parentinv, bagIndex, i, specs[i]);
+            var slot = BackpackSlotLayout.CreateBagSlot(parentinv, bagIndex, i, specs[i]);
             string key = "slot-" + i;
             if (slots[key] is ItemstackAttribute { value: { } stored })
             {
