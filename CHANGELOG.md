@@ -7,8 +7,6 @@
   which are our own classes - was skipped, leaving it nothing to sort. Ordinary and ore slots are now plain
   vanilla slots, which they never needed to stop being. Tool slots stay ours, so a sort leaves the tools on your
   toolstrap where you put them.
-  (Quick-store-nearby still ignores backpacks: its container list is hardcoded in Storage Tweaks, so that one
-  needs a change on their side.)
 
 ## 1.2.1
 
