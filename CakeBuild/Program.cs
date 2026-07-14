@@ -59,8 +59,7 @@ public class BuildContext : FrostingContext
 // validation so the generated files are checked too.
 //
 // Two hosts today: the player ("-attached", step-parented to UpperTorso) and an Equus horse ("-ferus", to Hind,
-// matching the placement of Equus's own backpack-{type} shape). The normal bag has no generated worn shape - its
-// "-attached" was hand-tweaked - but it does get a ferus one. The ferus shapes belong to the Equus compat mod,
+// matching the placement of Equus's own backpack-{type} shape). The ferus shapes belong to the Equus compat mod,
 // so they only ship to players who have Equus.
 [TaskName("PortAttachedShapes")]
 public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
@@ -80,8 +79,9 @@ public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
 
     private static readonly Port[] Ports =
     [
+        new("normal", [0.2754, -3.6928, -4.894], [-90, 83, 90], "UpperTorso", GameBags, "-attached", false),
         new("sturdy", [0.1776, -4.572, -4.8957], [-90, 83, 90], "UpperTorso", GameBags, "-attached", false),
-        new("normal", [2.0, 11.2, -3.0], [-90, 0, 90], "Hind", EquusBags, "-ferus", true),
+        new("normal", [2.0, 11.7045, -3.0], [-90, 0, 90], "Hind", EquusBags, "-ferus", true),
         new("sturdy", [2.1, 11.0, -3.0], [-90, 0, 90], "Hind", EquusBags, "-ferus", true),
     ];
 

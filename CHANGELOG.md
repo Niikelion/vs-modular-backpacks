@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3
+
+- **New standard backpack model**, by MeadowTealeaf.
+
 ## 1.2.2
 
 - **Storage Tweaks compatibility.** Its sort and stack buttons appeared on a backpack but did nothing, whether
