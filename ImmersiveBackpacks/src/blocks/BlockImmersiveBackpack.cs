@@ -17,12 +17,11 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
         PlacedPriorityInteract = true;
     }
 
-    // The body box comes from the standard blocktype selectionBoxes/collisionBoxes (backpack-placed.json);
+    // The body box comes from the standard block type selectionBoxes/collisionBoxes (backpack-placed.json);
     // we add the per-slot attachment boxes on top of it for the selection (interaction) boxes.
     public override Cuboidf[] GetSelectionBoxes(IBlockAccessor blockAccessor, BlockPos pos)
     {
-        var be = blockAccessor.GetBlockEntity(pos) as BlockEntityImmersiveBackpack;
-        if (be == null) return base.GetSelectionBoxes(blockAccessor, pos);
+        if (blockAccessor.GetBlockEntity(pos) is not BlockEntityImmersiveBackpack be) return base.GetSelectionBoxes(blockAccessor, pos);
 
         float angle = be.MeshAngleRad;
         var body = SelectionBoxes ?? [];
@@ -34,7 +33,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
         return boxes;
     }
 
-    // Rotates a hitbox about the block's vertical centre axis to follow the placed orientation, then
+    // Rotates a hitbox about the block's vertical center axis to follow the placed orientation, then
     // re-axis-aligns it. Placement snaps to 90deg, so the result is always a proper axis-aligned box.
     // Uses the same pivot (0.5, 0.5) and handedness as the renderer's RotateY so the boxes track the
     // drawn addons.
@@ -42,8 +41,8 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     {
         float cos = GameMath.Cos(angleRad);
         float sin = GameMath.Sin(angleRad);
-        float[] cornerX = { box.X1, box.X2, box.X2, box.X1 };
-        float[] cornerZ = { box.Z1, box.Z1, box.Z2, box.Z2 };
+        float[] cornerX = [box.X1, box.X2, box.X2, box.X1];
+        float[] cornerZ = [box.Z1, box.Z1, box.Z2, box.Z2];
         float minX = float.MaxValue, minZ = float.MaxValue, maxX = float.MinValue, maxZ = float.MinValue;
         for (int i = 0; i < 4; i++)
         {
@@ -92,14 +91,12 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             renderBoxHandler(boxes[idx], width, color);
     }
 
-    public override byte[] GetLightHsv(IBlockAccessor blockAccessor, BlockPos pos = null, ItemStack stack = null)
+    public override byte[] GetLightHsv(IBlockAccessor blockAccessor, BlockPos pos, ItemStack stack = null)
     {
-        if (pos != null && blockAccessor.GetBlockEntity(pos) is BlockEntityImmersiveBackpack be)
-        {
-            var light = be.ComputeLightHsv();
-            if (light != null) return light;
-        }
-        return base.GetLightHsv(blockAccessor, pos, stack);
+        if (pos == null || blockAccessor.GetBlockEntity(pos) is not BlockEntityImmersiveBackpack be)
+            return base.GetLightHsv(blockAccessor, pos, stack);
+        byte[] light = be.ComputeLightHsv();
+        return light ?? base.GetLightHsv(blockAccessor, pos, stack);
     }
 
     public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
@@ -179,10 +176,10 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             {
                 var cat = obj.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
                 if (cat == null) continue;
-                var stack = RepresentativeStack(obj);
-                if (stack == null) continue;
-                if (!map.TryGetValue(cat, out var list)) map[cat] = list = new List<ItemStack>();
-                list.Add(stack);
+                var stacks = RepresentativeStacks(obj);
+                if (stacks == null) continue;
+                if (!map.TryGetValue(cat, out var list)) map[cat] = list = new();
+                list.AddRange(stacks);
             }
             return map;
         });
@@ -193,18 +190,29 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
         return stacks.Count > 0 ? stacks.ToArray() : null;
     }
 
-    // A displayable ghost stack for the interaction-help cycle: the collectible's first creative-inventory
-    // stack, which carries the attributes a rendered variant needs (e.g. the lantern's metal - without it the
-    // lantern shape asks for a "#deco-" texture that doesn't exist and tesselation errors). Returning null for
-    // collectibles with no creative form also drops placement-only block orientations (wall/ceiling lanterns)
-    // that a player never holds and whose shapes reference textures the item form lacks.
-    private static ItemStack RepresentativeStack(CollectibleObject obj)
+    // Displayable ghost stacks for the interaction-help cycle. Both creative declaration forms have to be
+    // handled: "creativeinventoryStacks" spells out the stacks (the lantern, whose stacks carry the metal
+    // attribute its shape needs - without it the shape asks for a "#deco-" texture that doesn't exist and
+    // tesselation errors), while the plain "creativeinventory" tab list (everything else) declares no stacks
+    // at all and just means "the collectible itself". Null for collectibles in neither form drops
+    // placement-only block orientations (wall/ceiling lanterns) a player never holds.
+    private static List<ItemStack> RepresentativeStacks(CollectibleObject obj)
     {
-        var tabs = obj.CreativeInventoryStacks;
-        if (tabs == null) return null;
-        foreach (var tab in tabs)
-            foreach (var js in tab.Stacks)
-                if (js.ResolvedItemstack != null) return js.ResolvedItemstack.Clone();
-        return null;
+        if (obj.CreativeInventoryStacks != null)
+        {
+            var stacks = new List<ItemStack>();
+            foreach (var entry in obj.CreativeInventoryStacks)
+                foreach (var js in entry.Stacks)
+                    if (js.ResolvedItemstack != null)
+                    {
+                        var stack = js.ResolvedItemstack.Clone();
+                        // A declared stack may carry a quantity; the help icon would draw a badge for it.
+                        stack.StackSize = 1;
+                        stacks.Add(stack);
+                    }
+            return stacks.Count > 0 ? stacks : null;
+        }
+
+        return obj.CreativeInventoryTabs?.Length > 0 ? [new ItemStack(obj)] : null;
     }
 }

@@ -156,8 +156,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     }
 
     /// <summary>Brightest addon light, for the worn-light behavior (no block position).</summary>
-    public byte[] GetWornLight(ItemStack bagstack, IBlockAccessor blockAccessor)
-        => GetLightHsv(blockAccessor, null, bagstack);
+    public byte[] GetWornLight(ItemStack bagStack, IBlockAccessor blockAccessor)
+        => GetLightHsv(blockAccessor, null, bagStack);
 
     // ---- held / GUI rendering ----------------------------------------------
 
@@ -219,16 +219,16 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         var orderedAddons = new List<ItemStack>();
         var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
-        if (points != null && points.Exists)
+        if (points is { Exists: true })
             foreach (var pt in points.AsArray() ?? [])
             {
                 string code = pt["code"].AsString();
                 if (code == null) continue;
-                var cats = pt["categories"].AsArray<string>();
+                string[] cats = pt["categories"].AsArray<string>();
                 Cuboidf box = null;
-                var hb = pt["hitbox"].AsArray<float>();
-                if (hb != null && hb.Length >= 6)
-                    box = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
+                float[] hb = pt["hitbox"].AsArray<float>();
+                if (hb is { Length: >= 6 })
+                    box = new(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
                 pts.Add(new AttachmentPointSpec(code, cats, box, AttachmentTransform.FromJson(pt["placed"])));
                 // Resolve before it feeds AddonRanges: an unresolved stack has a null Collectible, so
                 // AddonSlotCount reports 0 slots and a slot-bearing addon (toolstrap) would own no cargo
@@ -265,7 +265,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     // walking the points in order avoids that. Also folds the unified cargo (backpack.slots) hash, because a
     // slot-bearing addon (toolstrap) renders its cargo tools - so a tool change must rebuild the held mesh.
     // (Coarse: any cargo edit rebuilds; cargo edits are user-driven and infrequent.)
-    private static int HeldMeshKey(JsonObject points, ITreeAttribute addons, ItemStack bagstack)
+    private static int HeldMeshKey(JsonObject points, ITreeAttribute addons, ItemStack bagStack)
     {
         int key = 17;
         foreach (var pt in points.AsArray() ?? [])
@@ -277,7 +277,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         }
         // Position-sensitive cargo hash: a slot-bearing addon (toolstrap) renders its cargo tools, and a tool
         // moving between slots must rebuild the mesh - the raw tree hash XORs entries and misses that.
-        key = key * 31 + BackpackSlotLayout.CargoHash(SlotsTree(bagstack, create: false));
+        key = key * 31 + BackpackSlotLayout.CargoHash(SlotsTree(bagStack, create: false));
         // Live /tfedit tuning changes a transform without touching placement or contents, so fold it in too.
         key = key * 31 + AttachmentTransform.TuningGeneration;
         return key;
@@ -290,18 +290,18 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         base.OnUnloaded(api);
     }
 
-    private BackpackSlotLayout.SlotSpec[] BuildLayout(ItemStack bagstack)
+    private BackpackSlotLayout.SlotSpec[] BuildLayout(ItemStack bagStack)
     {
         int baseSlots = Attributes?["backpack"]["quantitySlots"].AsInt() ?? 0;
-        return BackpackSlotLayout.Build(baseSlots, ReadAddons(bagstack));
+        return BackpackSlotLayout.Build(baseSlots, ReadAddons(bagStack));
     }
 
-    private List<ItemStack> ReadAddons(ItemStack bagstack)
+    private List<ItemStack> ReadAddons(ItemStack bagStack)
     {
         var result = new List<ItemStack>();
-        var tree = bagstack.Attributes?.GetTreeAttribute("placed_addons");
+        var tree = bagStack.Attributes?.GetTreeAttribute("placed_addons");
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
-        if (tree == null || points == null || !points.Exists) return result;
+        if (tree == null || points is not { Exists: true }) return result;
 
         foreach (var pt in points.AsArray() ?? [])
         {
@@ -315,14 +315,14 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         return result;
     }
 
-    private static ITreeAttribute SlotsTree(ItemStack bagstack, bool create)
+    private static ITreeAttribute SlotsTree(ItemStack bagStack, bool create)
     {
-        var backpack = bagstack.Attributes.GetTreeAttribute("backpack");
+        var backpack = bagStack.Attributes.GetTreeAttribute("backpack");
         if (backpack == null)
         {
             if (!create) return null;
             backpack = new TreeAttribute();
-            bagstack.Attributes["backpack"] = backpack;
+            bagStack.Attributes["backpack"] = backpack;
         }
         var slots = backpack.GetTreeAttribute("slots");
         if (slots == null)
@@ -367,7 +367,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // SubclassForStepParenting, while face codes get texturePrefixCode prepended - mirror that here.
         if (shape.Textures == null) return;
         foreach (var kv in shape.Textures)
-            intoDict[texturePrefixCode + kv.Key] = new CompositeTexture(kv.Value);
+            intoDict[texturePrefixCode + kv.Key] = new(kv.Value);
     }
 
     // ---- IWearableShapeSupplier --------------------------------------------
@@ -379,7 +379,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // Which entry of attachedShapeBySlotCode this host wants. The player's worn bag has no slot code of its
         // own - vanilla never passes one to IWearableShapeSupplier - and wants the map's generic "*". Any other
         // host (an Equus horse) has one, and it selects a shape posed for that animal ("*-ferus", which our Equus
-        // compat mod points at our own geometry). If we can't identify the host's slot we bail out, letting
+        // compat mod points at our own geometry). If we can't identify the host's slot, we bail out, letting
         // vanilla fall back to GetAttachedShape: the same shape, only without addons composed into it.
         string slotCode = "*";
         if (forEntity is not EntityPlayer)
@@ -391,7 +391,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         ICoreAPI capi = forEntity.World.Api;
 
         // The attached root loads its OWN base shape (the composer's per-node display-shape path only knows the
-        // held shape), then the shared composer attaches every addon under its slot marker - identical
+        // held shape), then the shared composer attaches every addon under its slot-marker - identical
         // child-composition to the placed/held mesh path, and the reason a mounted bag carries its pouches too.
         //
         // Resolve that base through vanilla's own resolution rather than reading attachedShape.base ourselves:
@@ -399,13 +399,13 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // horseback), which is wildcard-matched against the slot code, falling back to the held shape when
         // neither node is set. So which model a host gets stays a JSON decision - a compat mod only has to add
         // its slot to that map.
-        CompositeShape attached = GetAttachedShape(stack, slotCode);
-        Shape combined = AttachmentComposer.LoadShape(capi, attached?.Base?.ToString(), Code.Domain);
+        var attached = GetAttachedShape(stack, slotCode);
+        var combined = AttachmentComposer.LoadShape(capi, attached?.Base?.ToString(), Code.Domain);
         if (combined?.Elements == null || combined.Elements.Length == 0) return combined;
 
         AttachmentComposer.ComposeChildrenInto(capi, combined, BagNodeFor(stack));
 
-        // IWearableShapeSupplier results are NOT step-parent-prepared by the caller, so do it here.
+        // The caller does NOT step-parent-prepare IWearableShapeSupplier results, so do it here.
         combined.SubclassForStepParenting(texturePrefixCode);
         return combined;
     }
