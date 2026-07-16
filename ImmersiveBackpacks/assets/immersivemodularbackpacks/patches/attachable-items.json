@@ -2,19 +2,19 @@
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack" },
+		"value": { "category": "sack", "attachedTransform": { "scale": 0.45 } },
 		"file": "game:itemtypes/wearable/bag/linensack.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "slotType": "ore" },
+		"value": { "category": "sack", "slotType": "ore", "attachedTransform": { "scale": 0.45 } },
 		"file": "game:itemtypes/wearable/bag/miningbag.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "slotType": "ore" },
+		"value": { "category": "sack", "slotType": "ore", "attachedTransform": { "scale": 0.42 } },
 		"file": "game:itemtypes/wearable/bag/miningbagsturdy.json"
 	},
 	{
