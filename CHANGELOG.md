@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.2
+
+- **Sacks no longer swallow your backpack.** A linen or mining sack attached at its own size, a good deal larger
+  than a pouch in the very same slot, so a pair of them hid the pack and everything else on it. They now sit at
+  pouch size.
+- **Fixed: the attach help only listed what fits the lantern point.** Look at an empty slot and it cycles through
+  every addon that can go there; every point except the lantern's showed nothing, because it took the list from a
+  form of creative-inventory entry that only the lantern happens to use.
+
 ## 1.3.1
 
 - **Player Model Library compatibility.** On a custom player model - Rust Girls, for instance - a worn backpack
