@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0
+
+- **Slot outlines now tell you what fits.** Hold an addon and point at a slot on a placed backpack: the outline
+  turns green where it would attach and red where it would not, so you can find the right point without trying
+  every one of them. With an empty hand the outline stays as it always was.
+
 ## 1.3.2
 
 - **Sacks no longer swallow your backpack.** A linen or mining sack attached at its own size, a good deal larger
