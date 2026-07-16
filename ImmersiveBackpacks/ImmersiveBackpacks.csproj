@@ -30,6 +30,17 @@
             <HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
             <Private>false</Private>
         </Reference>
+        <!-- Soft dependency: compile against PlayerModelLib to integrate its worn-gear pipeline on custom
+             player models. NOT shipped (Private=false); provided at runtime by the playermodellib mod when
+             installed. All use is gated behind a ShouldLoad(IsModEnabled) ModSystem so absence is safe. -->
+        <Reference Include="PlayerModelLib">
+            <HintPath>lib/PlayerModelLib.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="OverhaulLib">
+            <HintPath>lib/OverhaulLib.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
     </ItemGroup>
 
     <ItemGroup>
