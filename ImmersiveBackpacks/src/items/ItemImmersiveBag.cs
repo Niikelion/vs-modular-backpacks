@@ -213,7 +213,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     // config, occupants read from placed_addons. A slot-bearing addon (a toolstrap) also gets the run of
     // unified cargo (backpack.slots) it owns, so its tools render — resolved here since only the bag knows the
     // layout. Point order matches BackpackSlotLayout, so the cargo ranges line up.
-    private IAttachment BagNodeFor(ItemStack stack)
+    internal IAttachment BagNodeFor(ItemStack stack)
     {
         var pts = new List<IAttachmentPoint>();
         var orderedAddons = new List<ItemStack>();
