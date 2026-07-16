@@ -88,7 +88,22 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
 
         int idx = blockSel.SelectionBoxIndex;
         if (idx >= bodyCount && idx < boxes.Length)
-            renderBoxHandler(boxes[idx], width, color);
+            renderBoxHandler(boxes[idx], width, SlotColor(capi, blockSel.Position, idx - bodyCount) ?? color);
+    }
+
+    // Muted, and close to the default outline's alpha: a tint on the wireframe, not a highlight.
+    private static readonly Vec4f acceptsColor = new(0.3f, 0.55f, 0.3f, 0.55f);
+    private static readonly Vec4f rejectsColor = new(0.6f, 0.28f, 0.28f, 0.55f);
+
+    // Answers "would shift+right-click attach what I'm holding here?" for the slot box under the crosshair:
+    // green yes, red no (wrong category, or the point is taken - that click detaches instead). Null with an
+    // empty hand, where there is nothing to judge, leaving the box its default outline.
+    private static Vec4f SlotColor(ICoreClientAPI capi, BlockPos pos, int pointIndex)
+    {
+        var held = capi?.World?.Player?.InventoryManager?.ActiveHotbarSlot?.Itemstack;
+        if (held == null) return null;
+        if (capi.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityImmersiveBackpack be) return null;
+        return be.CanAccept(pointIndex, held) ? acceptsColor : rejectsColor;
     }
 
     public override byte[] GetLightHsv(IBlockAccessor blockAccessor, BlockPos pos, ItemStack stack = null)
