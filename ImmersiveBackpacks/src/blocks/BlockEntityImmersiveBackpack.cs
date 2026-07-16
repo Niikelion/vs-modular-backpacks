@@ -287,6 +287,19 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         return slots;
     }
 
+    /// <summary>
+    /// Whether a shift+right-click holding <paramref name="stack"/> would attach it at this point: the point
+    /// must be free (an occupied one detaches instead) and the stack's category accepted. The block's
+    /// selection-box tint asks this to colour the slot the player is pointing at.
+    /// </summary>
+    public bool CanAccept(int pointIndex, ItemStack stack)
+    {
+        if (stack == null) return false;
+        if (pointIndex < 0 || pointIndex >= AttachmentPoints.Length) return false;
+        if (AttachedItems[pointIndex] != null) return false;
+        return CanAcceptInPoint(AttachmentPoints[pointIndex], stack);
+    }
+
     private bool CanAcceptInPoint(AttachmentPoint point, ItemStack stack)
     {
         var category = stack.Collectible.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
