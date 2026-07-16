@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1
+
+- **Player Model Library compatibility.** On a custom player model - Rust Girls, for instance - a worn backpack
+  showed up but everything attached to it did not. PlayerModelLib rebuilds worn gear from the bag's own shape for
+  any model other than the seraph, which threw away the pouches, lanterns and straps we had composed onto it. The
+  addons are now composed again onto the shape it produces.
+
 ## 1.3.0
 
 - **Roll-up bed compatibility.** Its mattresses attach to a sturdy backpack's top strap, just like the hay bed.
