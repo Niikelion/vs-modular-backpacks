@@ -139,7 +139,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     // CollectibleObject.GetStorageFlags (where this item itself may be stored - must stay Backpack so
     // it can be worn). Explicit implementation keeps the inherited virtual intact.
     EnumItemStorageFlags IHeldBag.GetStorageFlags(ItemStack bagstack)
-        => (EnumItemStorageFlags)BackpackSlotLayout.DefaultStorageFlags;
+        => BackpackSlotLayout.BaseSpec(Attributes).Flags;
 
     public TagSet GetStorageTags(ItemStack bagStack) => TagSet.Empty;
 
@@ -293,7 +293,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     private BackpackSlotLayout.SlotSpec[] BuildLayout(ItemStack bagStack)
     {
         int baseSlots = Attributes?["backpack"]["quantitySlots"].AsInt() ?? 0;
-        return BackpackSlotLayout.Build(baseSlots, ReadAddons(bagStack));
+        return BackpackSlotLayout.Build(Attributes, baseSlots, ReadAddons(bagStack));
     }
 
     private List<ItemStack> ReadAddons(ItemStack bagStack)

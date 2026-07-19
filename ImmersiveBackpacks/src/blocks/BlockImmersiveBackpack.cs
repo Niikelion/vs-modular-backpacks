@@ -189,18 +189,18 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             var map = new Dictionary<string, List<ItemStack>>();
             foreach (var obj in api.World.Collectibles)
             {
-                var cat = obj.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
+                string cat = obj.Attributes?["immersiveBackpackAttachment"]["category"].AsString();
                 if (cat == null) continue;
                 var stacks = RepresentativeStacks(obj);
                 if (stacks == null) continue;
-                if (!map.TryGetValue(cat, out var list)) map[cat] = list = new();
+                if (!map.TryGetValue(cat, out var list)) map[cat] = list = [];
                 list.AddRange(stacks);
             }
             return map;
         });
 
         var stacks = new List<ItemStack>();
-        foreach (var cat in categories)
+        foreach (string cat in categories)
             if (byCategory.TryGetValue(cat, out var list)) stacks.AddRange(list);
         return stacks.Count > 0 ? stacks.ToArray() : null;
     }
@@ -213,21 +213,17 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     // placement-only block orientations (wall/ceiling lanterns) a player never holds.
     private static List<ItemStack> RepresentativeStacks(CollectibleObject obj)
     {
-        if (obj.CreativeInventoryStacks != null)
-        {
-            var stacks = new List<ItemStack>();
-            foreach (var entry in obj.CreativeInventoryStacks)
-                foreach (var js in entry.Stacks)
-                    if (js.ResolvedItemstack != null)
-                    {
-                        var stack = js.ResolvedItemstack.Clone();
-                        // A declared stack may carry a quantity; the help icon would draw a badge for it.
-                        stack.StackSize = 1;
-                        stacks.Add(stack);
-                    }
-            return stacks.Count > 0 ? stacks : null;
-        }
-
-        return obj.CreativeInventoryTabs?.Length > 0 ? [new ItemStack(obj)] : null;
+        if (obj.CreativeInventoryStacks == null) return obj.CreativeInventoryTabs?.Length > 0 ? [new(obj)] : null;
+        var stacks = new List<ItemStack>();
+        foreach (var entry in obj.CreativeInventoryStacks)
+        foreach (var js in entry.Stacks)
+            if (js.ResolvedItemstack != null)
+            {
+                var stack = js.ResolvedItemstack.Clone();
+                // A declared stack may carry a quantity; the help icon would draw a badge for it.
+                stack.StackSize = 1;
+                stacks.Add(stack);
+            }
+        return stacks.Count > 0 ? stacks : null;
     }
 }

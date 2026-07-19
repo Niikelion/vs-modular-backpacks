@@ -349,7 +349,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     // Slot layout (base slots + addon slots, each with its type/colour) shared with the worn-bag
     // IHeldBag implementation so the placed dialog and the worn bag look and store identically.
     private BackpackSlotLayout.SlotSpec[] Layout()
-        => BackpackSlotLayout.Build(GetBaseSlots(), AttachedItems);
+        => BackpackSlotLayout.Build(BagAttributes(), GetBaseSlots(), AttachedItems);
 
     private InventoryGeneric NewCargoInv(BackpackSlotLayout.SlotSpec[] layout)
     {
@@ -454,12 +454,13 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         cargoInv = newInv;
     }
 
+    // Attributes of the bag item this block was placed from - the source of both its base slot count and,
+    // for a compat patch that sets them, its base slots' storage flags/colour.
+    private JsonObject BagAttributes()
+        => BackpackItemCode == null ? null : Api?.World.GetItem(BackpackItemCode)?.Attributes;
+
     private int GetBaseSlots()
-    {
-        if (BackpackItemCode == null) return 0;
-        var item = Api?.World.GetItem(BackpackItemCode);
-        return item?.Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
-    }
+        => BagAttributes()?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
 
     private void LoadAttachmentConfig(ICoreAPI api, CollectibleObject coll)
     {
@@ -555,7 +556,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         int baseSlots = item?.Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
         // Rebuild on any layout change, not just a slot-count change, so swapping an addon for another with the
         // same count but a different slot type refreshes each slot's filter/colour on the client.
-        var layout = BackpackSlotLayout.Build(baseSlots, AttachedItems);
+        var layout = BackpackSlotLayout.Build(item?.Attributes, baseSlots, AttachedItems);
         bool layoutChanged = !LayoutEquals(cargoLayout, layout);
         if (layoutChanged)
             cargoInv = NewCargoInv(layout);

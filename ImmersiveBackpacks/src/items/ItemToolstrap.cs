@@ -17,11 +17,8 @@ namespace ImmersiveBackpacks.items;
 /// </summary>
 public class ItemToolstrap : Item, IHeldBag
 {
-    private BackpackSlotType SlotTypeOf()
-        => BackpackSlotLayout.TypeFromString(Attributes?["immersiveBackpackAttachment"]?["slotType"]?.AsString());
-
-    private BackpackSlotLayout.SlotSpec SpecFor()
-        => BackpackSlotLayout.SpecOf(SlotTypeOf());
+    // Same spec the bag would build for this addon when attached, so the filter matches either way.
+    private BackpackSlotLayout.SlotSpec SpecFor() => BackpackSlotLayout.AddonSpec(this);
 
     public int GetQuantitySlots(ItemStack bagstack)
         => Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
