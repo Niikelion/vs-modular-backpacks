@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.5.0
+
+- **Custom storage flags for mod authors.** A bag's own slots and an addon's slots were locked to our presets, so
+  a compat patch could not make a bag hold only what it should. Both now take an optional `storageFlags` (a raw
+  bitmask, or flag names such as `"Metallurgy"` or `["General", "Agriculture"]`) and `slotBgColor` - on the bag's
+  `backpack` attributes, and on an addon's `immersiveBackpackAttachment`. Unset means the old behaviour.
+
 ## 1.4.0
 
 - **Slot outlines now tell you what fits.** Hold an addon and point at a slot on a placed backpack: the outline

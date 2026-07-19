@@ -24,6 +24,41 @@ public static class BackpackSlotLayout
     /// (the toolstrap worn on its own) can filter its own slots identically to when it's attached.</summary>
     public static SlotSpec SpecOf(BackpackSlotType type) => Spec(type);
 
+    /// <summary>
+    /// The slot spec for a config block that may override the preset picked by its <c>slotType</c>:
+    /// <c>storageFlags</c> (int bitmask, or one/many <see cref="EnumItemStorageFlags"/> names) and
+    /// <c>slotBgColor</c> (hex tint). Lets a compat patch give a bag or addon an arbitrary filter instead
+    /// of choosing between our three presets. <paramref name="config"/> is the bag's <c>backpack</c> or the
+    /// addon's <c>immersiveBackpackAttachment</c> attribute block.
+    /// </summary>
+    public static SlotSpec SpecFrom(BackpackSlotType type, JsonObject config)
+    {
+        var spec = Spec(type);
+        if (config is not { Exists: true }) return spec;
+
+        var flags = ParseStorageFlags(config["storageFlags"]);
+        string color = config["slotBgColor"].AsString(spec.Color);
+        return spec with { Flags = flags ?? spec.Flags, Color = color };
+    }
+
+    /// <summary>
+    /// Storage flags from JSON, or null when unset/unparseable. Accepts a raw bitmask (<c>189</c>) or flag
+    /// names, single or as a list (<c>"Metallurgy"</c>, <c>["General", "Agriculture"]</c>).
+    /// </summary>
+    public static EnumItemStorageFlags? ParseStorageFlags(JsonObject json)
+    {
+        if (json is not { Exists: true }) return null;
+
+        // Enum.TryParse already handles a comma-separated list of names, so an array just joins into one.
+        string text = json.IsArray()
+            ? string.Join(",", json.AsArray<string>() ?? [])
+            : json.AsString();
+        if (string.IsNullOrWhiteSpace(text)) return null;
+
+        if (int.TryParse(text, out int bits)) return (EnumItemStorageFlags)bits;
+        return System.Enum.TryParse(text, ignoreCase: true, out EnumItemStorageFlags parsed) ? parsed : null;
+    }
+
     /// <summary>Maps the JSON <c>immersiveBackpackAttachment.slotType</c> string to a slot type.</summary>
     public static BackpackSlotType TypeFromString(string slotType) => slotType switch
     {
@@ -69,22 +104,37 @@ public static class BackpackSlotLayout
         return ranges;
     }
 
-    /// <summary>Builds the full slot layout: base general slots followed by each addon's slots.</summary>
-    public static SlotSpec[] Build(int baseSlots, IReadOnlyList<ItemStack> addonStacks)
+    /// <summary>
+    /// The spec of the bag's own (base) slots: general unless its <c>backpack</c> attribute block overrides
+    /// the flags/colour. <paramref name="bagAttributes"/> is the bag collectible's <c>Attributes</c>.
+    /// </summary>
+    public static SlotSpec BaseSpec(JsonObject bagAttributes)
+        => SpecFrom(BackpackSlotType.General, bagAttributes?["backpack"]);
+
+    /// <summary>The spec an addon contributes: its <c>slotType</c> preset, with any per-addon overrides.</summary>
+    public static SlotSpec AddonSpec(CollectibleObject addon)
     {
+        var config = addon?.Attributes?["immersiveBackpackAttachment"];
+        return SpecFrom(TypeFromString(config?["slotType"].AsString()), config);
+    }
+
+    /// <summary>Builds the full slot layout: the bag's base slots followed by each addon's slots.</summary>
+    public static SlotSpec[] Build(JsonObject bagAttributes, int baseSlots, IReadOnlyList<ItemStack> addonStacks)
+    {
+        var baseSpec = BaseSpec(bagAttributes);
         var list = new List<SlotSpec>(baseSlots);
         for (int i = 0; i < baseSlots; i++)
-            list.Add(Spec(BackpackSlotType.General));
+            list.Add(baseSpec);
 
         if (addonStacks == null) return list.ToArray();
-        
+
         foreach (var stack in addonStacks)
         {
             int qty = AddonSlotCount(stack);
             if (qty <= 0) continue;
-            var type = TypeFromString(stack.Collectible.Attributes?["immersiveBackpackAttachment"]["slotType"].AsString());
+            var spec = AddonSpec(stack.Collectible);
             for (int j = 0; j < qty; j++)
-                list.Add(Spec(type));
+                list.Add(spec);
         }
 
         return list.ToArray();
