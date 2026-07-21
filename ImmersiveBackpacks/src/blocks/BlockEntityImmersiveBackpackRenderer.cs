@@ -16,6 +16,9 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
     private readonly Dictionary<string, MultiTextureMeshRef> attachmentMeshRefs = new();
     private readonly Dictionary<string, MultiTextureMeshRef> attachmentTransparentRefs = new();
     private readonly HashSet<string> builtKeys = new();
+    // Current cache key per attachment point, set on rebuild and read by the draw loop, so a frame needn't
+    // rebuild a node just to look its mesh up.
+    private string[] pointKeys = Array.Empty<string>();
     private bool dirty = true;
     // The generation these meshes were composed at. A live /tfedit tweak changes neither the addon placement nor
     // its contents, so nothing else would invalidate them - and a tool's transform is baked into its toolstrap's
@@ -82,7 +85,8 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
         {
             var stack = be.AttachedItems[i];
             if (stack == null) continue;
-            var key = AttachmentMeshKey(i, stack);
+            var key = i < pointKeys.Length ? pointKeys[i] : null;
+            if (key == null) continue;
             bool hasOpaque = attachmentMeshRefs.TryGetValue(key, out var opaqueRef);
             bool hasTransp = attachmentTransparentRefs.TryGetValue(key, out var transpRef);
             if (!hasOpaque && !hasTransp) continue;                       // addon had no mesh; skip
@@ -144,33 +148,54 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
     private void RebuildMeshes()
     {
         dirty = false;
-        builtGeneration = AttachmentTransform.TuningGeneration;
 
-        DisposeMeshes();
-
-        if (be.BackpackItemCode == null) return;
-
-        var bodyItem = capi.World.GetItem(be.BackpackItemCode);
-        if (bodyItem != null)
+        // A /tfedit tuning tweak bakes into every composed mesh, so on a generation change everything is stale.
+        if (builtGeneration != AttachmentTransform.TuningGeneration)
         {
-            capi.Tesselator.TesselateItem(bodyItem, out MeshData bodyMesh);
-            if (bodyMesh != null)
-                bodyMeshRef = capi.Render.UploadMesh(bodyMesh);
+            DisposeMeshes();
+            builtGeneration = AttachmentTransform.TuningGeneration;
         }
 
-        for (int i = 0; i < be.AttachmentPoints.Length; i++)
+        if (be.BackpackItemCode == null)
+        {
+            pointKeys = Array.Empty<string>();
+            return;
+        }
+
+        if (bodyMeshRef == null)
+        {
+            var bodyItem = capi.World.GetItem(be.BackpackItemCode);
+            if (bodyItem != null)
+            {
+                capi.Tesselator.TesselateItem(bodyItem, out MeshData bodyMesh);
+                if (bodyMesh != null)
+                    bodyMeshRef = capi.Render.UploadMesh(bodyMesh);
+            }
+        }
+
+        int n = be.AttachmentPoints.Length;
+        pointKeys = new string[n];
+        var desired = new HashSet<string>();
+
+        for (int i = 0; i < n; i++)
         {
             var stack = be.AttachedItems[i];
             if (stack?.Collectible == null) continue;
 
-            var key = AttachmentMeshKey(i, stack);
-            if (!builtKeys.Add(key)) continue;                           // dedupe identical addons across points
+            // Key on the node's ContentHash: it folds the addon's cargo children (a toolstrap's tools, which
+            // live in the bag's cargo rather than the addon stack), so a tool swap changes only this key and the
+            // reconcile below re-meshes just this addon instead of every one.
+            var node = AttachmentFactory.For(stack, capi.World, be.OwnedCargo(i));
+            string key = $"{i}:{node.ContentHash}";
+            pointKeys[i] = key;
+            desired.Add(key);
+
+            if (!builtKeys.Add(key)) continue;                           // already built (or known mesh-less)
 
             // Addons can be items (pouches, toolstrap) or blocks (lantern); compose through the shared core so
             // a container addon (a toolstrap) folds its own children (tools) into the mesh, while a leaf addon
             // is just tesselated (honouring per-stack appearance like the lantern's metal).
-            MeshData mesh = AttachmentComposer.MeshFor(capi,
-                AttachmentFactory.For(stack, capi.World, be.OwnedCargo(i)));
+            MeshData mesh = AttachmentComposer.MeshFor(capi, node);
             if (mesh == null) continue;
 
             // Composed meshes are already atlas-tagged; tag defensively so an IAttachmentMeshSource override
@@ -184,6 +209,26 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
                 attachmentMeshRefs[key] = capi.Render.UploadMultiTextureMesh(opaque);
             if (transparent != null && transparent.VerticesCount > 0)
                 attachmentTransparentRefs[key] = capi.Render.UploadMultiTextureMesh(transparent);
+        }
+
+        PruneStaleMeshes(desired);
+    }
+
+    // Dispose and forget cached addon meshes whose key is no longer wanted (an addon detached, or its content
+    // changed so a new key replaced it), keeping the rest so one addon's change doesn't re-mesh the others.
+    private void PruneStaleMeshes(HashSet<string> desired)
+    {
+        List<string> stale = null;
+        foreach (var k in builtKeys)
+            if (!desired.Contains(k))
+                (stale ??= new List<string>()).Add(k);
+        if (stale == null) return;
+
+        foreach (var k in stale)
+        {
+            if (attachmentMeshRefs.TryGetValue(k, out var o)) { o?.Dispose(); attachmentMeshRefs.Remove(k); }
+            if (attachmentTransparentRefs.TryGetValue(k, out var t)) { t?.Dispose(); attachmentTransparentRefs.Remove(k); }
+            builtKeys.Remove(k);
         }
     }
 
@@ -210,12 +255,6 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
         EnumChunkRenderPass.Liquid => true,
         _ => false
     };
-
-    // Keyed by the stack's full content hash (not just its collectible code) so two toolstraps holding
-    // different tools - or any addon whose composed mesh depends on nested content - get distinct meshes.
-    // ItemStack.GetHashCode() folds the attribute tree, so nested child stacks are already reflected.
-    private static string AttachmentMeshKey(int pointIndex, ItemStack stack)
-        => $"{pointIndex}:{stack?.GetHashCode()}";
 
     private void DisposeMeshes()
     {

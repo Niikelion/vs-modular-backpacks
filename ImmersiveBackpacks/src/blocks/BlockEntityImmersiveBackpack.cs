@@ -364,11 +364,11 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         if (Api != null)
             inv.LateInitialize(InventoryClassName + "-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, Api);
 
-        // A toolstrap renders the tools in the cargo slots it owns, so a cargo edit can change the model.
-        // Coarse: any cargo change re-meshes (client-only; renderer is null server-side). Cargo edits are
-        // user-driven and infrequent, so the extra rebuilds don't matter. On the server, also push the BE
-        // state so a cargo edit by ANY player (e.g. a remote client's dialog) reaches other clients - without
-        // this the rendered tools and other clients' view stay stale until they reopen the dialog.
+        // A toolstrap renders the tools in the cargo slots it owns, so a cargo edit can change the model. Mark
+        // the renderer dirty (client-only; renderer is null server-side) — its reconcile keys on each addon's
+        // ContentHash, so only the addon whose cargo changed re-meshes, not all of them. On the server, also
+        // push the BE state so a cargo edit by ANY player (e.g. a remote client's dialog) reaches other clients
+        // - without this the rendered tools and other clients' view stay stale until they reopen the dialog.
         inv.SlotModified += _ =>
         {
             renderer?.MarkDirty();
