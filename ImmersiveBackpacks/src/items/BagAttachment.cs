@@ -36,6 +36,6 @@ public sealed class BagAttachment : ContainerAttachment
 
         IReadOnlyList<ItemStack> owned = null;
         toolsByPoint?.TryGetValue(pointCode, out owned);
-        return AttachmentFactory.ForBagChild(s, owned, World);
+        return AttachmentFactory.For(s, World, owned);
     }
 }

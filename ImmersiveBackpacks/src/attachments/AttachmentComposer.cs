@@ -72,7 +72,9 @@ public static class AttachmentComposer
             if (child == null) continue;
             if (!slotElems.TryGetValue(pt.Code, out var s) || s.parent == null) continue;
 
-            Shape childShape = ComposeShape(api, child);      // recursion: child brings its own children
+            // Through the node's own GetShape (not ComposeShape directly) so a child can override how it renders;
+            // the default delegates back here, bringing its own children.
+            Shape childShape = child.GetShape(api);
             if (childShape?.Elements == null || childShape.Elements.Length == 0) continue;
 
             // Prefix the whole child subtree so its (already-composed) element/texture codes never collide with

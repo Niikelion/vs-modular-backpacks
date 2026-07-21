@@ -1,6 +1,6 @@
 {
 	"code": "toolstrap",
-	"class": "ImmersiveToolstrap",
+	"class": "Item",
 	"maxstacksize": 1,
 	"storageFlags": 3,
 	"shape": { "base": "immersivemodularbackpacks:item/bag/toolstrap" },
@@ -17,7 +17,7 @@
 		"scale": 0.6
 	},
 	"creativeinventory": { "general": ["*"] },
-	"behaviors": [ { "name": "HeldBag" } ],
+	"behaviors": [ { "name": "ImmersiveFilteredBag" }, { "name": "ImmersiveToolstrapAttachment" } ],
 	"attributes": {
 		"handbook": {
 			"extraSections": [

@@ -170,7 +170,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             // a container addon (a toolstrap) folds its own children (tools) into the mesh, while a leaf addon
             // is just tesselated (honouring per-stack appearance like the lantern's metal).
             MeshData mesh = AttachmentComposer.MeshFor(capi,
-                AttachmentFactory.ForBagChild(stack, be.OwnedCargo(i), capi.World));
+                AttachmentFactory.For(stack, capi.World, be.OwnedCargo(i)));
             if (mesh == null) continue;
 
             // Composed meshes are already atlas-tagged; tag defensively so an IAttachmentMeshSource override

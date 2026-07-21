@@ -17,7 +17,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     public record AttachmentPoint(string Code, Cuboidf Hitbox, string[] Categories,
         AttachmentTransform Placed, AttachmentTransform Worn, Vec3f Origin);
 
-    private InventoryGeneric cargoInv;
+    private InventoryGeneric cargoInv = new(1, null, null);
     private BackpackSlotLayout.SlotSpec[] cargoLayout;   // layout cargoInv was built for; rebuild when it changes
     private BlockEntityImmersiveBackpackRenderer renderer;
     private byte[] lastEmittedLight;
@@ -32,18 +32,13 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     public override InventoryBase Inventory => cargoInv;
     public override string InventoryClassName => "immersivebackpack";
 
-    public BlockEntityImmersiveBackpack()
-    {
-        cargoInv = new InventoryGeneric(1, null, null);
-    }
-
     public override void Initialize(ICoreAPI api)
     {
         base.Initialize(api);
 
         if (api is ICoreClientAPI capi)
         {
-            renderer = new BlockEntityImmersiveBackpackRenderer(Pos, capi, this);
+            renderer = new(Pos, capi, this);
             capi.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "immersivebackpack");
         }
 
@@ -174,10 +169,17 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             // the slots it just added.
             RebuildCargo(oldAttached, byPlayer);
             LoadAddonIntoCargo(addon, point.Code);
+
+            // Live-host lifecycle: fire once at the real attach, after cargo is in place so the node sees its
+            // owned tools. Nodes are otherwise rebuilt per render, so this is their only attach signal.
+            NodeAt(pointIndex)?.OnAttached(this);
         }
         else
         {
             var addon = AttachedItems[pointIndex];
+
+            // Notify the node it is leaving the host before its cargo/layout is torn down below.
+            NodeAt(pointIndex)?.OnDetached();
 
             // A bag addon carries its cargo back inside itself. Non-bag addons (the lantern) contribute no
             // slots, so this is a no-op for them; the guard just avoids writing an empty bag tree onto them.
@@ -302,9 +304,9 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     private bool CanAcceptInPoint(AttachmentPoint point, ItemStack stack)
     {
-        var category = stack.Collectible.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
-        if (category == null) return false;
-        return Array.IndexOf(point.Categories, category) >= 0;
+        foreach (var category in AttachmentCategories.Of(stack.Collectible))
+            if (Array.IndexOf(point.Categories, category) >= 0) return true;
+        return false;
     }
 
     private void OpenCargoDialog(IPlayer byPlayer)
@@ -387,8 +389,16 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     /// <summary>
     /// The unified-cargo stacks the addon at the given attachment point owns, in slot order — a toolstrap's
     /// rendered tools. Null when the point has no addon or the addon contributes no slots. The placed renderer
-    /// hands this to <c>AttachmentFactory.ForBagChild</c> so the toolstrap composes its tools.
+    /// hands this to <c>AttachmentFactory.For</c> so the toolstrap composes its tools.
     /// </summary>
+    // The live-host attachment node for the addon at a point (its owned cargo composed in), or null if empty.
+    private IAttachment NodeAt(int pointIndex)
+    {
+        if (pointIndex < 0 || pointIndex >= AttachedItems.Length) return null;
+        var addon = AttachedItems[pointIndex];
+        return addon == null ? null : AttachmentFactory.For(addon, Api.World, OwnedCargo(pointIndex));
+    }
+
     public IReadOnlyList<ItemStack> OwnedCargo(int pointIndex)
     {
         if (cargoInv == null || pointIndex < 0 || pointIndex >= AttachedItems.Length) return null;
