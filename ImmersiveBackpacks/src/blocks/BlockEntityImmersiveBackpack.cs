@@ -15,7 +15,7 @@ namespace ImmersiveBackpacks.blocks;
 public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttachmentHost
 {
     public record AttachmentPoint(string Code, Cuboidf Hitbox, string[] Categories,
-        AttachmentTransform Placed, AttachmentTransform Worn, Vec3f Origin);
+        AttachmentTransform Transform, Vec3f Origin);
 
     private InventoryGeneric cargoInv = new(1, null, null);
     private BackpackSlotLayout.SlotSpec[] cargoLayout;   // layout cargoInv was built for; rebuild when it changes
@@ -341,14 +341,13 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         var slotsTree = new TreeAttribute();
         for (int i = 0; i < cargoInv.Count; i++)
             slotsTree["slot-" + i] = new ItemstackAttribute(cargoInv[i].Itemstack);
-        var backpackTree = new TreeAttribute();
-        backpackTree["slots"] = slotsTree;
+        var backpackTree = new TreeAttribute { ["slots"] = slotsTree };
         stack.Attributes["backpack"] = backpackTree;
 
         return stack;
     }
 
-    // Slot layout (base slots + addon slots, each with its type/colour) shared with the worn-bag
+    // Slot layout (base slots + addon slots, each with its type/color) shared with the worn-bag
     // IHeldBag implementation so the placed dialog and the worn bag look and store identically.
     private BackpackSlotLayout.SlotSpec[] Layout()
         => BackpackSlotLayout.Build(BagAttributes(), GetBaseSlots(), AttachedItems);
@@ -360,7 +359,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         var inv = new InventoryGeneric(size, null, null,
             (slotId, slotInv) => slotId < layout.Length
                 ? BackpackSlotLayout.CreateDialogSlot(slotInv, layout[slotId])
-                : new ItemSlotSurvival(slotInv));
+                : new(slotInv));
 
         if (Api != null)
             inv.LateInitialize(InventoryClassName + "-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, Api);
@@ -428,7 +427,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     // Resize cargo for the current AttachedItems while moving each item to the slot run owned by the same
     // base/addon it was in. Items whose owning addon was just detached are expelled (to the player, else
-    // dropped) instead of silently sliding into a neighbouring addon's differently-filtered slots.
+    // dropped) instead of silently sliding into a neighboring addon's differently filtered slots.
     private void RebuildCargo(ItemStack[] oldAttached, IPlayer byPlayer)
     {
         var newInv = NewCargoInv(Layout());
@@ -440,7 +439,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         for (int i = 0; i < newOwners.Count; i++)
         {
             if (!newSlotsByOwner.TryGetValue(newOwners[i], out var slots))
-                newSlotsByOwner[newOwners[i]] = slots = new List<int>();
+                newSlotsByOwner[newOwners[i]] = slots = [];
             slots.Add(i);
         }
 
@@ -448,11 +447,11 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         int oldCount = cargoInv?.Count ?? 0;
         for (int oldIdx = 0; oldIdx < oldCount; oldIdx++)
         {
-            var stack = cargoInv[oldIdx].Itemstack;
+            var stack = cargoInv?[oldIdx]?.Itemstack;
             if (stack == null) continue;
 
             string owner = oldIdx < oldOwners.Count ? oldOwners[oldIdx] : "";
-            int pos = filled.TryGetValue(owner, out var c) ? c : 0;
+            int pos = filled.GetValueOrDefault(owner, 0);
             filled[owner] = pos + 1;
 
             if (newSlotsByOwner.TryGetValue(owner, out var slots) && pos < slots.Count)
@@ -465,7 +464,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     }
 
     // Attributes of the bag item this block was placed from - the source of both its base slot count and,
-    // for a compat patch that sets them, its base slots' storage flags/colour.
+    // for a compat patch that sets them, its base slots' storage flags/color.
     private JsonObject BagAttributes()
         => BackpackItemCode == null ? null : Api?.World.GetItem(BackpackItemCode)?.Attributes;
 
@@ -476,7 +475,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     {
         var ibAttr = coll.Attributes?["immersiveBackpack"];
         var pointsJson = ibAttr?["attachmentPoints"];
-        if (pointsJson == null || !pointsJson.Exists)
+        if (pointsJson is not { Exists: true })
         {
             AttachmentPoints = [];
             return;
@@ -486,10 +485,10 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         // becomes the [0,1] hitbox and the marker's composed rotation is the placed orientation. The patch
         // "hitbox"/"placed" are the fallback for unported bags. Use the passed api (during FromTreeAttributes
         // the BE's own Api is not set yet, so callers pass worldForResolving.Api).
-        var shapeBase = (coll as Item)?.Shape?.Base?.ToString() ?? (coll as Block)?.Shape?.Base?.ToString();
+        string shapeBase = (coll as Item)?.Shape?.Base?.ToString() ?? (coll as Block)?.Shape?.Base?.ToString();
         var shapeSlots = api != null
             ? AttachmentMesh.ReadSlots(api, shapeBase, coll.Code.Domain)
-            : new Dictionary<string, AttachmentMesh.SlotMarker>();
+            : new();
 
         var raw = pointsJson.AsArray();
         var points = new List<AttachmentPoint>();
@@ -499,7 +498,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             var cats = entry["categories"].AsArray<string>() ?? [];
 
             Cuboidf hitbox;
-            AttachmentTransform placed;
+            AttachmentTransform transform;
             Vec3f origin;
             if (code != null && shapeSlots.TryGetValue(code, out var marker))
             {
@@ -507,22 +506,22 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
                 // the placed orientation, pivot -> the placement anchor. The addon's own attachedTransform
                 // (scale etc.) is folded in later.
                 var b = marker.Box;
-                hitbox = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-                placed = AttachmentTransform.FromRotation(marker.Rotation);
-                origin = new Vec3f(marker.Origin.X / 16f, marker.Origin.Y / 16f, marker.Origin.Z / 16f);
+                hitbox = new(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
+                transform = AttachmentTransform.FromRotation(marker.Rotation);
+                origin = new(marker.Origin.X / 16f, marker.Origin.Y / 16f, marker.Origin.Z / 16f);
             }
             else
             {
                 // No marker: fall back to a patch-defined hitbox/placed (legacy/unported bags); anchor at the
-                // hitbox centre.
-                var hb = entry["hitbox"].AsArray<float>();
+                // hitbox center.
+                float[] hb = entry["hitbox"].AsArray<float>();
                 if (hb == null || hb.Length < 6) continue;
-                hitbox = new Cuboidf(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
-                placed = AttachmentTransform.FromJson(entry["placed"]);
-                origin = new Vec3f((hb[0] + hb[3]) / 2f, (hb[1] + hb[4]) / 2f, (hb[2] + hb[5]) / 2f);
+                hitbox = new(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
+                transform = AttachmentTransform.FromJson(entry["placed"]);
+                origin = new((hb[0] + hb[3]) / 2f, (hb[1] + hb[4]) / 2f, (hb[2] + hb[5]) / 2f);
             }
 
-            points.Add(new AttachmentPoint(code, hitbox, cats, placed, AttachmentTransform.Identity, origin));
+            points.Add(new(code, hitbox, cats, transform, origin));
         }
         AttachmentPoints = [.. points];
     }
@@ -565,7 +564,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
         int baseSlots = item?.Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
         // Rebuild on any layout change, not just a slot-count change, so swapping an addon for another with the
-        // same count but a different slot type refreshes each slot's filter/colour on the client.
+        // same count but a different slot type refreshes each slot's filter/color on the client.
         var layout = BackpackSlotLayout.Build(item?.Attributes, baseSlots, AttachedItems);
         bool layoutChanged = !LayoutEquals(cargoLayout, layout);
         if (layoutChanged)
