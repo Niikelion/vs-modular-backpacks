@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ImmersiveBackpacks.attachments;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -12,7 +13,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     public override void OnLoaded(ICoreAPI api)
     {
         base.OnLoaded(api);
-        // Make sneak-interact beat held-block placement, so attaching an addon (e.g. a lantern) wins over
+        // Make sneak-interact beat held-block placement, so attaching an addon (e.g., a lantern) wins over
         // placing it as a block. Without this the engine places first and only attaches on placement failure.
         PlacedPriorityInteract = true;
     }
@@ -52,7 +53,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             minX = GameMath.Min(minX, rx); maxX = GameMath.Max(maxX, rx);
             minZ = GameMath.Min(minZ, rz); maxZ = GameMath.Max(maxZ, rz);
         }
-        return new Cuboidf(minX, box.Y1, minZ, maxX, box.Y2, maxZ);
+        return new(minX, box.Y1, minZ, maxX, box.Y2, maxZ);
     }
 
     public override Cuboidf[] GetCollisionBoxes(IBlockAccessor blockAccessor, BlockPos pos)
@@ -159,27 +160,26 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
 
         // On an attachment-point box (indices 1+; box 0 is the bag body), shift+right-click attaches/detaches.
         int pointIndex = blockSel.SelectionBoxIndex - 1;
-        if (be != null && pointIndex >= 0 && pointIndex < be.AttachmentPoints.Length)
+        if (be == null || pointIndex < 0 || pointIndex >= be.AttachmentPoints.Length)
+            return interactions.ToArray().Append(base.GetPlacedBlockInteractionHelp(world, blockSel, forPlayer));
+        var point = be.AttachmentPoints[pointIndex];
+        bool occupied = be.AttachedItems[pointIndex] != null;
+        interactions.Add(new()
         {
-            var point = be.AttachmentPoints[pointIndex];
-            bool occupied = be.AttachedItems[pointIndex] != null;
-            interactions.Add(new()
-            {
-                ActionLangCode = occupied
-                    ? "immersivemodularbackpacks:remove-attachment"
-                    : "immersivemodularbackpacks:attach-item",
-                MouseButton = EnumMouseButton.Right,
-                HotKeyCode = "shift",
-                // Empty point: cycle through every addon that can attach here so the options are discoverable.
-                Itemstacks = occupied ? null : AttachableStacks(point.Categories)
-            });
-        }
+            ActionLangCode = occupied
+                ? "immersivemodularbackpacks:remove-attachment"
+                : "immersivemodularbackpacks:attach-item",
+            MouseButton = EnumMouseButton.Right,
+            HotKeyCode = "shift",
+            // Empty point: cycle through every addon that can attach here so the options are discoverable.
+            Itemstacks = occupied ? null : AttachableStacks(point.Categories)
+        });
 
         return interactions.ToArray().Append(base.GetPlacedBlockInteractionHelp(world, blockSel, forPlayer));
     }
 
     // Every addon stack whose declared category is accepted by the point, for the interaction-help cycle.
-    // Built once from the collectible registry and cached (the attachable set is fixed after load).
+    // Built once from the collectible registry and cached (the attachable set is fixed after the load).
     private ItemStack[] AttachableStacks(string[] categories)
     {
         if (categories == null || categories.Length == 0) return null;
@@ -189,12 +189,15 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             var map = new Dictionary<string, List<ItemStack>>();
             foreach (var obj in api.World.Collectibles)
             {
-                string cat = obj.Attributes?["immersiveBackpackAttachment"]["category"].AsString();
-                if (cat == null) continue;
+                var cats = AttachmentCategories.Of(obj);
+                if (cats.Length == 0) continue;
                 var stacks = RepresentativeStacks(obj);
                 if (stacks == null) continue;
-                if (!map.TryGetValue(cat, out var list)) map[cat] = list = [];
-                list.AddRange(stacks);
+                foreach (string cat in cats)
+                {
+                    if (!map.TryGetValue(cat, out var list)) map[cat] = list = [];
+                    list.AddRange(stacks);
+                }
             }
             return map;
         });

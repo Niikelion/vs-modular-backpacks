@@ -14,7 +14,7 @@ public sealed class ItemAttachment : AttachmentBase
 {
     public ItemAttachment(ItemStack stack) : base(stack) { }
 
-    public override IReadOnlyList<IAttachmentPoint> Points => Array.Empty<IAttachmentPoint>();
+    public override IReadOnlyList<IAttachmentPoint> Points => [];
 
     public override IAttachment GetAttached(string pointCode) => null;
 }

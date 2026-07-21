@@ -62,23 +62,27 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
 
         foreach (var coll in capi.World.Collectibles)
         {
-            string category = coll.Attributes?["immersiveBackpackAttachment"]["category"].AsString();
+            var categories = attachments.AttachmentCategories.Of(coll);
             string baseCode = coll.Code?.FirstCodePart();
-            if (category == null || baseCode == null) continue;
+            if (categories.Length == 0 || baseCode == null) continue;
 
             var stacks = coll.GetHandBookStacks(capi);
             if (stacks == null || stacks.Count == 0)
                 stacks = new List<ItemStack> { coll is Block b ? new ItemStack(b) : new ItemStack((Item)coll) };
 
-            string key = category + "/" + baseCode;
-            if (!groups.TryGetValue(key, out var group))
+            // A multi-category addon shows up under each of its categories.
+            foreach (string category in categories)
             {
-                string name = coll.GetHeldItemName(stacks[0]);
-                if (string.IsNullOrEmpty(name)) name = coll.Code.ToShortString();
-                group = (category, name, new List<ItemStack>());
-                groups[key] = group;
+                string key = category + "/" + baseCode;
+                if (!groups.TryGetValue(key, out var group))
+                {
+                    string name = coll.GetHeldItemName(stacks[0]);
+                    if (string.IsNullOrEmpty(name)) name = coll.Code.ToShortString();
+                    group = (category, name, new List<ItemStack>());
+                    groups[key] = group;
+                }
+                group.stacks.AddRange(stacks);
             }
-            group.stacks.AddRange(stacks);
         }
 
         return groups.Values

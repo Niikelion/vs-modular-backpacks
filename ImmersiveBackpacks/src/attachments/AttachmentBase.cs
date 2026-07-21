@@ -15,11 +15,9 @@ namespace ImmersiveBackpacks.attachments;
 /// contract on <see cref="IAttachment"/>): live hosts additionally get lifecycle + <see cref="Invalidate"/>,
 /// but correctness never depends on them. See [[attachment-system-design]].
 /// </summary>
-public abstract class AttachmentBase : IAttachment
+public abstract class AttachmentBase(ItemStack stack) : IAttachment
 {
-    protected AttachmentBase(ItemStack stack) => Stack = stack;
-
-    public ItemStack Stack { get; }
+    public ItemStack Stack { get; } = stack;
 
     /// <summary>Live host, set while attached under a BlockEntity/entity. Null on value (ItemStack) hosts.</summary>
     protected IAttachmentHost Host { get; private set; }
@@ -30,9 +28,6 @@ public abstract class AttachmentBase : IAttachment
 
     /// <summary>The child at a point, reconstructed from tree state, or null. Leaves always return null.</summary>
     public abstract IAttachment GetAttached(string pointCode);
-
-    /// <summary>No storage by default; a storage-bearing node (pouch) overrides.</summary>
-    public virtual IInventory Inventory => null;
 
     /// <summary>Folds this node's stack with its children recursively, so any nested change bubbles to the
     /// root's hash and every content-keyed render cache misses. Point codes are mixed in position-sensitively

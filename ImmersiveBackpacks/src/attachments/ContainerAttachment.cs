@@ -9,11 +9,9 @@ namespace ImmersiveBackpacks.attachments;
 /// a change to them moves the stack's hash, which is what the render caches key on. Subclasses differ only in
 /// how they enumerate <see cref="IAttachment.Points"/> (a bag from config, a toolstrap from shape markers).
 /// </summary>
-public abstract class ContainerAttachment : AttachmentBase
+public abstract class ContainerAttachment(ItemStack stack, IWorldAccessor world) : AttachmentBase(stack)
 {
-    protected readonly IWorldAccessor World;
-
-    protected ContainerAttachment(ItemStack stack, IWorldAccessor world) : base(stack) => World = world;
+    protected readonly IWorldAccessor World = world;
 
     /// <summary>Stack sub-tree holding this container's children, keyed by point code. Shared with the bag's
     /// existing addon storage so a bag and its nested containers use one uniform scheme.</summary>

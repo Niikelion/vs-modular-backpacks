@@ -41,7 +41,8 @@ public sealed class AttachmentPointSpec : IAttachmentPoint
         // A custom predicate (e.g. tool points accepting anything with a tool tier) overrides the default
         // category match, since not every attachable declares an immersiveBackpackAttachment.category.
         if (accepts != null) return accepts(stack);
-        var cat = stack?.Collectible?.Attributes?["immersiveBackpackAttachment"]?["category"]?.AsString();
-        return cat != null && Array.IndexOf(categories, cat) >= 0;
+        foreach (var cat in AttachmentCategories.Of(stack?.Collectible))
+            if (Array.IndexOf(categories, cat) >= 0) return true;
+        return false;
     }
 }
