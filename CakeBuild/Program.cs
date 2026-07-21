@@ -26,6 +26,7 @@ public static class Program
     }
 }
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class BuildContext : FrostingContext
 {
     public const string ProjectName = "ImmersiveBackpacks";
@@ -35,10 +36,16 @@ public class BuildContext : FrostingContext
     public const string EquusProjectName = "ImmersiveBackpacksEquus";
     public const string EquusModId = "modularbackpacksequus";
 
+    // Same arrangement for KCs DragonFolk, which swaps the vanilla bag's worn shape for its own dragon-tailored
+    // one. Hard-depending on it puts our patch after theirs, which is the only way to reach their shape.
+    public const string DragonsProjectName = "ImmersiveBackpacksDragons";
+    public const string DragonsModId = "modularbackpacksdragons";
+
     public string BuildConfiguration { get; }
     public string Version { get; }
     public string Name { get; }
     public string EquusVersion { get; }
+    public string DragonsVersion { get; }
     public bool SkipJsonValidation { get; }
 
     public BuildContext(ICakeContext context)
@@ -50,6 +57,7 @@ public class BuildContext : FrostingContext
         Version = modInfo.Version;
         Name = modInfo.ModID;
         EquusVersion = context.DeserializeJsonFromFile<ModInfo>($"../{EquusProjectName}/modinfo.json").Version;
+        DragonsVersion = context.DeserializeJsonFromFile<ModInfo>($"../{DragonsProjectName}/modinfo.json").Version;
     }
 }
 
@@ -71,13 +79,11 @@ public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
         string Variant, double[] RootDelta, double[] Rotation, string StepParent,
         string OutDir, string OutSuffix, bool QualifyTextures);
 
-    private static readonly string GameBags =
-        $"../{BuildContext.ProjectName}/assets/game/shapes/item/bag";
+    private const string GameBags = $"../{BuildContext.ProjectName}/assets/game/shapes/item/bag";
 
-    private static readonly string EquusBags =
-        $"../{BuildContext.EquusProjectName}/assets/{BuildContext.EquusModId}/shapes/item/bag";
+    private const string EquusBags = $"../{BuildContext.EquusProjectName}/assets/{BuildContext.EquusModId}/shapes/item/bag";
 
-    private static readonly Port[] Ports =
+    private static readonly Port[] ports =
     [
         new("normal", [0.2754, -3.6928, -4.894], [-90, 83, 90], "UpperTorso", GameBags, "-attached", false),
         new("sturdy", [0.1776, -4.572, -4.8957], [-90, 83, 90], "UpperTorso", GameBags, "-attached", false),
@@ -87,28 +93,27 @@ public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
 
     public override void Run(BuildContext context)
     {
-        foreach (var port in Ports)
+        foreach (var port in ports)
         {
-            var heldPath = $"{GameBags}/backpack-{port.Variant}.json";
-            var outPath = $"{port.OutDir}/backpack-{port.Variant}{port.OutSuffix}.json";
-            if (!File.Exists(heldPath))
-            {
-                continue;
-            }
+            string heldPath = $"{GameBags}/backpack-{port.Variant}.json";
+            string outPath = $"{port.OutDir}/backpack-{port.Variant}{port.OutSuffix}.json";
+            if (!File.Exists(heldPath)) continue;
 
             Directory.CreateDirectory(port.OutDir);
 
             var shape = JObject.Parse(File.ReadAllText(heldPath));
-            var root = (JObject)((JArray)shape["elements"])[0];
+            var root = (JObject)((JArray)shape["elements"])?[0];
+            
+            if (root == null) throw new($"No root found in {heldPath}");
 
-            var from = ToVec(root["from"]);
-            var to = ToVec(root["to"]);
-            var rotO = root["rotationOrigin"] != null
+            double[] from = ToVec(root["from"]);
+            double[] to = ToVec(root["to"]);
+            double[] rotO = root["rotationOrigin"] != null
                 ? ToVec(root["rotationOrigin"])
-                : new[] { (from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2 };
+                : [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2];
 
-            var newFrom = Add(from, port.RootDelta);
-            var newTo = new[] { newFrom[0] + (to[0] - from[0]), newFrom[1] + (to[1] - from[1]), newFrom[2] + (to[2] - from[2]) };
+            double[] newFrom = Add(from, port.RootDelta);
+            double[] newTo = [newFrom[0] + (to[0] - from[0]), newFrom[1] + (to[1] - from[1]), newFrom[2] + (to[2] - from[2])];
 
             root["from"] = Vec(newFrom);
             root["to"] = Vec(newTo);
@@ -145,9 +150,9 @@ public sealed class PortAttachedShapesTask : FrostingTask<BuildContext>
         }
     }
 
-    private static double[] ToVec(JToken t) => new[] { (double)t[0], (double)t[1], (double)t[2] };
-    private static double[] Add(double[] a, double[] b) => new[] { a[0] + b[0], a[1] + b[1], a[2] + b[2] };
-    // Round away binary-float noise (e.g. 4.5 + -4.7 = -0.20000000000000018) so the generated JSON stays clean.
+    private static double[] ToVec(JToken t) => [(double)t[0], (double)t[1], (double)t[2]];
+    private static double[] Add(double[] a, double[] b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+    // Round away binary-float noise (e.g., 4.5 + -4.7 = -0.20000000000000018) so the generated JSON stays clean.
     private static JArray Vec(double[] v) => new(Math.Round(v[0], 4), Math.Round(v[1], 4), Math.Round(v[2], 4));
 }
 
@@ -163,7 +168,8 @@ public sealed class ValidateJsonTask : FrostingTask<BuildContext>
         }
 
         var jsonFiles = context.GetFiles($"../{BuildContext.ProjectName}/assets/**/*.json")
-            + context.GetFiles($"../{BuildContext.EquusProjectName}/assets/**/*.json");
+            + context.GetFiles($"../{BuildContext.EquusProjectName}/assets/**/*.json")
+            + context.GetFiles($"../{BuildContext.DragonsProjectName}/assets/**/*.json");
         foreach (var file in jsonFiles)
         {
             try
@@ -225,6 +231,7 @@ public sealed class PackageTask : FrostingTask<BuildContext>
 
         context.Zip($"../Releases/{context.Name}", $"../Releases/{context.Name}_{context.Version}.zip");
         PackageEquusCompat(context);
+        PackageDragonsCompat(context);
     }
 
     // The Equus compat mod is content-only: no build, just its assets + modinfo zipped into its own release.
@@ -235,6 +242,16 @@ public sealed class PackageTask : FrostingTask<BuildContext>
         context.CopyDirectory($"../{BuildContext.EquusProjectName}/assets", $"{staging}/assets");
         context.CopyFile($"../{BuildContext.EquusProjectName}/modinfo.json", $"{staging}/modinfo.json");
         context.Zip(staging, $"../Releases/{BuildContext.EquusModId}_{context.EquusVersion}.zip");
+    }
+
+    // Likewise for the KCs DragonFolk compat: content-only, its two override shapes are static assets.
+    private static void PackageDragonsCompat(BuildContext context)
+    {
+        var staging = $"../Releases/{BuildContext.DragonsModId}";
+        context.EnsureDirectoryExists(staging);
+        context.CopyDirectory($"../{BuildContext.DragonsProjectName}/assets", $"{staging}/assets");
+        context.CopyFile($"../{BuildContext.DragonsProjectName}/modinfo.json", $"{staging}/modinfo.json");
+        context.Zip(staging, $"../Releases/{BuildContext.DragonsModId}_{context.DragonsVersion}.zip");
     }
 }
 
@@ -257,7 +274,7 @@ public sealed class ModDescriptionTask : FrostingTask<BuildContext>
         var html = File.ReadAllText(Source);
         html = Regex.Replace(html, "<!--.*?-->", "", RegexOptions.Singleline);   // drop all HTML comments
         html = Regex.Replace(html, @"<strong>v[0-9.]+</strong>", $"<strong>v{context.Version}</strong>"); // sync version pill
-        html = Regex.Replace(html, @"(\r?\n){3,}", "\n\n").Trim() + "\n";        // collapse the gaps comments left behind
+        html = Regex.Replace(html, @"(\r?\n){3,}", "\n\n").Trim() + "\n";        // collapse the gaps that comments left behind
 
         File.WriteAllText(Output, html);
         context.Information($"Wrote {Path.GetFullPath(Output)} (v{context.Version}) - paste into the ModDB HTML editor.");
