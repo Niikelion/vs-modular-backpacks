@@ -9,7 +9,7 @@
         "MeadowTealeaf"
     ],
     "description": "Makes vanilla backpacks more modular and immersive",
-    "version": "1.5.1",
+    "version": "1.6.0",
     "dependencies": {
         "game": ""
     }
