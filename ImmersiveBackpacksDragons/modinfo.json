@@ -1,0 +1,15 @@
+{
+    "type": "content",
+    "modid": "modularbackpacksdragons",
+    "name": "Modular Backpacks: KCs DragonFolk Compatibility",
+    "authors": [
+        "Niikelion"
+    ],
+    "description": "Lets Modular Backpacks' addons attach to KCs DragonFolk's backpacks. Requires KCs DragonFolk and Modular Backpacks.",
+    "version": "1.0.0",
+    "dependencies": {
+        "game": "",
+        "kcsdragons": "",
+        "immersivemodularbackpacks": ""
+    }
+}

@@ -59,7 +59,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "v${{ steps.mod.outputs.version }}" \
-            "Releases/${{ steps.mod.outputs.modid }}_${{ steps.mod.outputs.version }}.zip" \
+            Releases/*.zip \
             "mod-description.moddb.html" \
             --title "v${{ steps.mod.outputs.version }}" \
             --generate-notes
