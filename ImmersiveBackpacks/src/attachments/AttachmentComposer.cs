@@ -91,11 +91,11 @@ public static class AttachmentComposer
                 ? slot.RotationOrigin
                 : new[] { (slot.From[0] + slot.To[0]) / 2.0, (slot.From[1] + slot.To[1]) / 2.0, (slot.From[2] + slot.To[2]) / 2.0 };
             var slotRot = new[] { (float)slot.RotationX, (float)slot.RotationY, (float)slot.RotationZ };
-            // Worn placement: the slot marker's own rotation, the point's own worn transform (identity for a
-            // bag's addon points; a toolstrap's tool scale for its tool points), then the child's shared
+            // Worn placement: the slot marker's own rotation, the point's own transform (identity for a bag's
+            // addon points; a toolstrap's tool scale for its tool points), then the child's shared
             // attachedTransform. The parent chain supplies the rest.
             var tf = AttachmentTransform.FromRotation(slotRot)
-                .CombinedWith(pt.Worn)
+                .CombinedWith(pt.Transform)
                 .CombinedWith(AttachmentTransform.FromItem(child.Stack.Collectible, "attachedTransform"));
             // Anchor by the child's fixed model origin (16-unit), not its geometry bounds - content-stable.
             var childOrigin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
@@ -154,7 +154,7 @@ public static class AttachmentComposer
             // Anchor the child by its fixed model origin (not its bounds centre) so a container child
             // (a toolstrap) doesn't shift when its own children change, and asymmetric addons don't drift.
             var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
-            var tf = pt.Placed.CombinedWith(AttachmentTransform.ForItem(child.Stack.Collectible, "placed"));
+            var tf = pt.Transform.CombinedWith(AttachmentTransform.ForItem(child.Stack.Collectible, "placed"));
 
             float cx, cy, cz;
             if (markers.TryGetValue(pt.Code, out var marker))
@@ -165,11 +165,10 @@ public static class AttachmentComposer
             }
             else if (pt.Box != null)
             {
-                // No shape marker: fall back to the point's own box (already [0,1] on an item host).
-                var b = pt.Box;
-                cx = (b.X1 + b.X2) / 2f; cy = (b.Y1 + b.Y2) / 2f; cz = (b.Z1 + b.Z2) / 2f;
+                // No shape marker: fall back to the point's own anchor (box centre unless it set one).
+                cx = pt.Origin.X; cy = pt.Origin.Y; cz = pt.Origin.Z;
             }
-            else continue;
+            else continue;   // no marker and no box: nowhere to place
 
             float s = tf.Scale;
             mat.Identity()

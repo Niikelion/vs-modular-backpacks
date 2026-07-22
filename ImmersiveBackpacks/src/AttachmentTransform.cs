@@ -20,8 +20,8 @@ namespace ImmersiveBackpacks;
 public class AttachmentTransform
 {
     public float Scale = 1f;
-    public float[] Offset = { 0f, 0f, 0f };
-    public float[] Rotation = { 0f, 0f, 0f };
+    public float[] Offset = [0f, 0f, 0f];
+    public float[] Rotation = [0f, 0f, 0f];
 
     public static readonly AttachmentTransform Identity = new();
 
@@ -32,7 +32,7 @@ public class AttachmentTransform
     /// </summary>
     public static int TuningGeneration;
 
-    /// <summary>A rotation-only transform (identity scale/offset), e.g. a slot rotation read from a shape.</summary>
+    /// <summary>A rotation-only transform (identity scale/offset), e.g., a slot rotation read from a shape.</summary>
     public static AttachmentTransform FromRotation(float[] rotation)
         => new() { Rotation = rotation is { Length: >= 3 } ? rotation : new[] { 0f, 0f, 0f } };
 

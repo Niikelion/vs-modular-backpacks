@@ -49,8 +49,7 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             {
                 var b = kv.Value.Box;
                 var box = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-                list.Add(new AttachmentPointSpec(kv.Key, null, box, placed: toolTf, worn: toolTf,
-                    rotation: kv.Value.Rotation, accepts: s => BackpackSlotLayout.IsToolSlotItem(s?.Collectible)));
+                list.Add(new ToolstrapAttachmentPoint(kv.Key, box, toolTf));
             }
             return list;
         }
@@ -61,5 +60,13 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             int u = code.LastIndexOf('_');
             return u >= 0 && int.TryParse(code[(u + 1)..], out var n) ? n : -1;
         }
+    }
+
+    /// <summary>A tool point: accepts any collectible the tool slots accept, regardless of category.</summary>
+    private sealed class ToolstrapAttachmentPoint(string code, Cuboidf box, AttachmentTransform transform)
+        : AttachmentPointBase(code, box, transform)
+    {
+        public override bool Accepts(IAttachment attachment)
+            => BackpackSlotLayout.IsToolSlotItem(attachment?.Stack?.Collectible);
     }
 }
