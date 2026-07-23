@@ -19,8 +19,8 @@ namespace ImmersiveBackpacks.attachments;
 ///     authoritative mesh; everything else bakes/composes from its shape.
 ///
 /// A faithful generalisation of the bag's original inline composition, lifted to run over any
-/// <see cref="IAttachment"/> node instead of a fixed point list. <c>ItemImmersiveBag</c> (worn + held/GUI) now
-/// routes through here; the placed block renderer still has its own inline copy (migrated next). Geometry
+/// <see cref="IAttachment"/> node instead of a fixed point list. Every host routes through here —
+/// <c>ItemImmersiveBag</c> (worn + held/GUI) and the placed block renderer alike. Geometry
 /// still comes from the owner shape's <c>slot_&lt;code&gt;</c> markers (mesh path via
 /// <see cref="AttachmentMesh.ReadSlots"/>, worn path via the slot element found in the tree), so authored bag
 /// shapes keep working unchanged. See [[attachment-system-design]].

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 
 namespace ImmersiveBackpacks.attachments;
@@ -50,11 +49,6 @@ public abstract class AttachmentBase(ItemStack stack) : IAttachment
     }
 
     public Shape GetShape(ICoreAPI api) => AttachmentComposer.ComposeShape(api, this);
-
-    /// <summary>The composed placed/held mesh (base + children). Not part of <see cref="IAttachment"/> — the
-    /// composer resolves it via <see cref="AttachmentComposer.MeshFor"/>, honoring an
-    /// <see cref="IAttachmentMeshSource"/> override — but exposed here for host adapters that want it directly.</summary>
-    public MeshData GetComposedMesh(ICoreClientAPI capi) => AttachmentComposer.MeshFor(capi, this);
 
     public virtual void OnAttached(IAttachmentHost host) => Host = host;
     public virtual void OnDetached() => Host = null;
