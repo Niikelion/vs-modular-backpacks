@@ -224,6 +224,7 @@ public sealed class PackageTask : FrostingTask<BuildContext>
         }
 
         context.CopyFile($"../{BuildContext.ProjectName}/modinfo.json", $"../Releases/{context.Name}/modinfo.json");
+        context.CopyFile($"../{BuildContext.ProjectName}/worldconfig.json", $"../Releases/{context.Name}/worldconfig.json");
         if (context.FileExists($"../{BuildContext.ProjectName}/modicon.png"))
         {
             context.CopyFile($"../{BuildContext.ProjectName}/modicon.png", $"../Releases/{context.Name}/modicon.png");
