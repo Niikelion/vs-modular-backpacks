@@ -30,7 +30,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
         for (int i = 0; i < body.Length; i++)
             boxes[i] = RotateBoxY(body[i], angle);
         for (int i = 0; i < be.AttachmentPoints.Length; i++)
-            boxes[body.Length + i] = RotateBoxY(be.AttachmentPoints[i].Hitbox, angle);
+            boxes[body.Length + i] = RotateBoxY(be.AttachmentPoints[i].Box, angle);
         return boxes;
     }
 

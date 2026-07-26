@@ -14,16 +14,13 @@ namespace ImmersiveBackpacks.blocks;
 
 public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttachmentHost
 {
-    public record AttachmentPoint(string Code, Cuboidf Hitbox, string[] Categories,
-        AttachmentTransform Transform, Vec3f Origin);
-
     private InventoryGeneric cargoInv = new(1, null, null);
     private BackpackSlotLayout.SlotSpec[] cargoLayout;   // layout cargoInv was built for; rebuild when it changes
     private BlockEntityImmersiveBackpackRenderer renderer;
     private byte[] lastEmittedLight;
 
     public AssetLocation BackpackItemCode { get; private set; }
-    public AttachmentPoint[] AttachmentPoints { get; private set; } = [];
+    public CategoryAttachmentPoint[] AttachmentPoints { get; private set; } = [];
     public ItemStack[] AttachedItems { get; private set; } = [];
 
     // Horizontal placement orientation (radians), applied by the renderer.
@@ -302,12 +299,8 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         return CanAcceptInPoint(AttachmentPoints[pointIndex], stack);
     }
 
-    private bool CanAcceptInPoint(AttachmentPoint point, ItemStack stack)
-    {
-        foreach (var category in AttachmentCategories.Of(stack.Collectible))
-            if (Array.IndexOf(point.Categories, category) >= 0) return true;
-        return false;
-    }
+    private bool CanAcceptInPoint(CategoryAttachmentPoint point, ItemStack stack)
+        => point.Accepts(AttachmentFactory.For(stack, Api.World));
 
     private void OpenCargoDialog(IPlayer byPlayer)
     {
@@ -491,7 +484,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             : new();
 
         var raw = pointsJson.AsArray();
-        var points = new List<AttachmentPoint>();
+        var points = new List<CategoryAttachmentPoint>();
         foreach (var entry in raw)
         {
             var code = entry["code"].AsString();
@@ -521,7 +514,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
                 origin = new((hb[0] + hb[3]) / 2f, (hb[1] + hb[4]) / 2f, (hb[2] + hb[5]) / 2f);
             }
 
-            points.Add(new(code, hitbox, cats, transform, origin));
+            points.Add(new(code, cats, hitbox, transform, origin));
         }
         AttachmentPoints = [.. points];
     }
@@ -544,7 +537,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
     {
-        BackpackItemCode = new AssetLocation(tree.GetString("backpackItemCode", "game:linensack"));
+        BackpackItemCode = new(tree.GetString("backpackItemCode", "game:linensack"));
         MeshAngleRad = tree.GetFloat("meshAngle", 0f);
         var item = worldForResolving.GetItem(BackpackItemCode);
         if (item != null) LoadAttachmentConfig(worldForResolving.Api, item);

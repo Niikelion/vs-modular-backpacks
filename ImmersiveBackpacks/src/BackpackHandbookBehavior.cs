@@ -40,6 +40,20 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
             Lang.Get("immersivemodularbackpacks:handbook-backpack-text") + "\n", font));
 
         var groups = addonGroups ??= BuildAddonGroups(capi);
+
+        // The interactive preview: the bag in 3D with a dot on every attachment point, each dot cycling through
+        // what that point accepts. Needs a stack to compose from, so it only appears on a stack-backed page.
+        if (inSlot?.Itemstack != null && collObj is items.ItemImmersiveBag)
+        {
+            CollectibleBehaviorHandbookTextAndExtraInfo.AddHeading(components, capi,
+                "immersivemodularbackpacks:handbook-backpack-points-title", ref haveText);
+            components.Add(new ClearFloatTextComponent(capi, 2f));
+            components.Add(new handbook.BackpackPreviewComponent(capi, inSlot.Itemstack, 190.0, groups));
+            components.AddRange(VtmlUtil.Richtextify(capi,
+                Lang.Get("immersivemodularbackpacks:handbook-backpack-points-hint") + "\n",
+                CairoFont.WhiteDetailText()));
+        }
+
         if (groups.Length > 0)
         {
             CollectibleBehaviorHandbookTextAndExtraInfo.AddHeading(components, capi,

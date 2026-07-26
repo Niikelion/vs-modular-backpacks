@@ -30,6 +30,11 @@
             <HintPath>$(VINTAGE_STORY)/VintagestoryLib.dll</HintPath>
             <Private>false</Private>
         </Reference>
+        <!-- Cairo: the GUI drawing surface every RichTextComponent composes onto (ComposeElements). -->
+        <Reference Include="cairo-sharp">
+            <HintPath>$(VINTAGE_STORY)/Lib/cairo-sharp.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
         <!-- Soft dependency: compile against PlayerModelLib to integrate its worn-gear pipeline on custom
              player models. NOT shipped (Private=false); provided at runtime by the playermodellib mod when
              installed. All use is gated behind a ShouldLoad(IsModEnabled) ModSystem so absence is safe. -->
@@ -48,6 +53,9 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
         <Content Include="modinfo.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+        <Content Include="worldconfig.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
     </ItemGroup>

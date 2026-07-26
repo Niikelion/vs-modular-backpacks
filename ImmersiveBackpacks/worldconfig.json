@@ -1,0 +1,11 @@
+{
+	"playStyles": [],
+	"worldConfigAttributes": [
+		{
+			"code": "immersivebackpacksLightSlots",
+			"dataType": "bool",
+			"category": "survivalchallenges",
+			"default": "true"
+		}
+	]
+}
