@@ -2,7 +2,7 @@ using Vintagestory.API.Common;
 
 namespace ImmersiveBackpacks.inventory.slots;
 
-// Only tool slots subclass a vanilla slot; general and ore slots are plain vanilla ones (see
+// Only category-filtered slots subclass a vanilla slot; general and ore slots are plain vanilla ones (see
 // BackpackSlotLayout.CreateBagSlot / CreateDialogSlot). Two reasons:
 //
 // 1. They don't need a subclass. Ore is enforced by the Metallurgy storage flag, which vanilla already checks in
@@ -13,38 +13,44 @@ namespace ImmersiveBackpacks.inventory.slots;
 //    while tool slots stay ours and are therefore left alone by such a sort. Which is what we want: shuffling a
 //    pickaxe off its toolstrap into general storage would be a poor sort.
 
-/// <summary>Worn-bag tool slot: vanilla bag content, restricted to the tools a toolstrap renders.</summary>
-public class ItemSlotToolBagContent : ItemSlotBagContent
+/// <summary>Worn-bag filtered slot: vanilla bag content, restricted to the categories its spec names.</summary>
+public class ItemSlotFilteredBagContent : ItemSlotBagContent
 {
-    public ItemSlotToolBagContent(InventoryBase inventory, int bagIndex, int slotIndex,
+    private readonly BackpackSlotLayout.SlotSpec spec;
+
+    public ItemSlotFilteredBagContent(InventoryBase inventory, int bagIndex, int slotIndex,
         BackpackSlotLayout.SlotSpec spec)
         : base(inventory, bagIndex, slotIndex, spec.Flags)
-        => HexBackgroundColor = spec.Color;
+    {
+        this.spec = spec;
+        HexBackgroundColor = spec.Color;
+    }
 
     public override bool CanHold(ItemSlot sourceSlot)
-        => base.CanHold(sourceSlot) && BackpackSlotLayout.IsToolSlotItem(sourceSlot.Itemstack?.Collectible);
+        => base.CanHold(sourceSlot) && BackpackSlotLayout.CanHold(spec, sourceSlot);
 
     // CanHold only gates the GUI drag path. Auto-fill - a pickup landing anywhere with room once the hotbar and
     // inventory are full - goes through CanTakeFrom, which vanilla does NOT route through CanHold; without this
     // a firelog ends up displayed on a toolstrap.
     public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority = EnumMergePriority.AutoMerge)
-        => base.CanTakeFrom(sourceSlot, priority)
-           && BackpackSlotLayout.IsToolSlotItem(sourceSlot.Itemstack?.Collectible);
+        => base.CanTakeFrom(sourceSlot, priority) && BackpackSlotLayout.CanHold(spec, sourceSlot);
 }
 
-/// <summary>The same tool slot for the placed-backpack dialog, so placed and worn views filter alike.</summary>
-public class ItemSlotToolSurvival : ItemSlotSurvival
+/// <summary>The same filtered slot for the placed-backpack dialog, so placed and worn views filter alike.</summary>
+public class ItemSlotFilteredSurvival : ItemSlotSurvival
 {
-    public ItemSlotToolSurvival(InventoryBase inventory, BackpackSlotLayout.SlotSpec spec) : base(inventory)
+    private readonly BackpackSlotLayout.SlotSpec spec;
+
+    public ItemSlotFilteredSurvival(InventoryBase inventory, BackpackSlotLayout.SlotSpec spec) : base(inventory)
     {
+        this.spec = spec;
         StorageType = spec.Flags;
         HexBackgroundColor = spec.Color;
     }
 
     public override bool CanHold(ItemSlot sourceSlot)
-        => base.CanHold(sourceSlot) && BackpackSlotLayout.IsToolSlotItem(sourceSlot.Itemstack?.Collectible);
+        => base.CanHold(sourceSlot) && BackpackSlotLayout.CanHold(spec, sourceSlot);
 
     public override bool CanTakeFrom(ItemSlot sourceSlot, EnumMergePriority priority = EnumMergePriority.AutoMerge)
-        => base.CanTakeFrom(sourceSlot, priority)
-           && BackpackSlotLayout.IsToolSlotItem(sourceSlot.Itemstack?.Collectible);
+        => base.CanTakeFrom(sourceSlot, priority) && BackpackSlotLayout.CanHold(spec, sourceSlot);
 }
