@@ -39,17 +39,37 @@ public static class AttachmentComposer
     /// </summary>
     public static Shape ComposeShape(ICoreAPI api, IAttachment node)
     {
-        var coll = node.Stack.Collectible;
-        var baseComposite = AttachmentMesh.AttachedShapeComposite(coll) ?? GetDisplayShape(coll);
-        Shape shape = LoadShape(api, baseComposite?.Base?.ToString(), coll.Code.Domain);
-        if (shape?.Elements == null || shape.Elements.Length == 0) return shape;
+        Shape shape = StackShape(api, node.Stack);
+        if (shape == null)
+        {
+            var coll = node.Stack.Collectible;
+            var baseComposite = AttachmentMesh.AttachedShapeComposite(coll) ?? GetDisplayShape(coll);
+            shape = LoadShape(api, baseComposite?.Base?.ToString(), coll.Code.Domain);
+            if (shape?.Elements == null || shape.Elements.Length == 0) return shape;
 
-        // The node's own textures (shape-file textures overridden by the collectible's, or a variant addon's
-        // stack-driven textures via IAttachableToEntity).
-        ApplyAddonTextures(node.Stack, shape);
+            // The node's own textures (shape-file textures overridden by the collectible's, or a variant addon's
+            // stack-driven textures via IAttachableToEntity).
+            ApplyAddonTextures(node.Stack, shape);
+        }
 
         ComposeChildrenInto(api, shape, node);
         return shape;
+    }
+
+    /// <summary>
+    /// Shape providers for collectibles whose geometry lives in stack attributes rather than in a static
+    /// display shape (a Toolsmith tinkered tool). The worn counterpart of the
+    /// <see cref="IAttachmentMeshSource"/> escape hatch, which serves the placed/held mesh path only.
+    /// Tried before the node's display shape; a provider returns null to defer. Textures are the provider's
+    /// job, since it is the only one that knows what its shape references.
+    /// </summary>
+    public static readonly List<System.Func<ICoreAPI, ItemStack, Shape>> StackShapeSources = [];
+
+    private static Shape StackShape(ICoreAPI api, ItemStack stack)
+    {
+        foreach (var source in StackShapeSources)
+            if (source(api, stack) is { Elements.Length: > 0 } shape) return shape;
+        return null;
     }
 
     /// <summary>
@@ -205,7 +225,9 @@ public static class AttachmentComposer
             _ => null
         };
 
-    private static void PrefixShape(Shape shape, string prefix)
+    /// <summary>Namespaces a whole shape - element names, face texture codes and texture keys - so it can be
+    /// merged with a sibling or parent shape without colliding.</summary>
+    public static void PrefixShape(Shape shape, string prefix)
     {
         foreach (var el in shape.Elements)
             el.WalkRecursive(e =>
