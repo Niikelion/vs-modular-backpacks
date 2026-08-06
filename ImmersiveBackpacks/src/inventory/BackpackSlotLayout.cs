@@ -4,7 +4,11 @@ using Vintagestory.API.Datastructures;
 
 namespace ImmersiveBackpacks.inventory;
 
-public enum BackpackSlotType { General, Ore, Tools }
+/// <summary>
+/// What a cargo slot restricts. <see cref="BackpackSlotType.Filtered"/> is the general case - it admits the
+/// attachment categories its spec names - and is what an addon asks for with <c>slotType: "filtered"</c>.
+/// </summary>
+public enum BackpackSlotType { General, Ore, Filtered }
 
 /// <summary>
 /// Single source of truth for how a backpack's cargo slots are laid out: the base slots plus a run of
@@ -18,7 +22,19 @@ public static class BackpackSlotLayout
     // CollectibleBehaviorHeldBag.defaultFlags.
     public const int DefaultStorageFlags = 189;
 
-    public record SlotSpec(BackpackSlotType Type, EnumItemStorageFlags Flags, string Color);
+    /// <param name="Categories">
+    /// The attachment categories this slot accepts: declared as <c>slotCategories</c>, or inherited from the
+    /// addon's own attachment points - a toolstrap slot accepts exactly what the strap point above it accepts.
+    /// Empty means the slot only filters by flags.
+    /// </param>
+    public record SlotSpec(BackpackSlotType Type, EnumItemStorageFlags Flags, string Color,
+        string[] Categories = null)
+    {
+        /// <summary>Whether this slot's categories admit <paramref name="collectible"/>.</summary>
+        public bool AcceptsCategory(CollectibleObject collectible)
+            => Categories is not { Length: > 0 }
+               || attachments.AttachmentCategories.Accepts(Categories, collectible);
+    }
 
     /// <summary>The slot spec (filter/flags/colour) for a slot type. Public so a standalone attachment-bag
     /// (the toolstrap worn on its own) can filter its own slots identically to when it's attached.</summary>
@@ -59,20 +75,24 @@ public static class BackpackSlotLayout
         return System.Enum.TryParse(text, ignoreCase: true, out EnumItemStorageFlags parsed) ? parsed : null;
     }
 
-    /// <summary>Maps the JSON <c>immersiveBackpackAttachment.slotType</c> string to a slot type.</summary>
+    /// <summary>
+    /// Maps the JSON <c>immersiveBackpackAttachment.slotType</c> string to a slot type. <c>"tools"</c> is the
+    /// name this had before slots filtered by category, kept working as a filtered slot on the tool category.
+    /// </summary>
     public static BackpackSlotType TypeFromString(string slotType) => slotType switch
     {
         "ore" => BackpackSlotType.Ore,
-        "tools" => BackpackSlotType.Tools,
+        "filtered" or "tools" => BackpackSlotType.Filtered,
         _ => BackpackSlotType.General
     };
 
     private static SlotSpec Spec(BackpackSlotType type) => type switch
     {
-        // Ore: only metallic/ore items, vanilla mining-bag teal.
+        // Ore: only metallic/ore items, vanilla mining-bag teal. Flag-enforced, so no categories.
         BackpackSlotType.Ore => new(type, EnumItemStorageFlags.Metallurgy, "#c2ffe8"),
-        // Tools: general flags but additionally gated to tools via CanHold; warm tint.
-        BackpackSlotType.Tools => new(type, (EnumItemStorageFlags)DefaultStorageFlags, "#ffddaa"),
+        // Filtered: general flags, gated by whatever categories the addon names - warm tint by default, since
+        // toolstraps were the first of these and their slots have always read that way.
+        BackpackSlotType.Filtered => new(type, (EnumItemStorageFlags)DefaultStorageFlags, "#ffddaa"),
         _ => new(type, (EnumItemStorageFlags)DefaultStorageFlags, null)
     };
 
@@ -111,11 +131,39 @@ public static class BackpackSlotLayout
     public static SlotSpec BaseSpec(JsonObject bagAttributes)
         => SpecFrom(BackpackSlotType.General, bagAttributes?["backpack"]);
 
-    /// <summary>The spec an addon contributes: its <c>slotType</c> preset, with any per-addon overrides.</summary>
+    /// <summary>
+    /// The spec an addon contributes: its <c>slotType</c> preset, with any per-addon overrides, and the
+    /// categories that gate a filtered slot. Those come from <c>slotCategories</c> when the addon names them,
+    /// otherwise from its own attachment points - so a strap's cargo slot admits exactly what its point does,
+    /// whether the strap is attached to a bag or worn on its own. A legacy <c>slotType: "tools"</c> that names
+    /// neither still means the tool category.
+    /// </summary>
     public static SlotSpec AddonSpec(CollectibleObject addon)
     {
         var config = addon?.Attributes?["immersiveBackpackAttachment"];
-        return SpecFrom(TypeFromString(config?["slotType"].AsString()), config);
+        string slotType = config?["slotType"].AsString();
+        var spec = SpecFrom(TypeFromString(slotType), config);
+        if (spec.Type != BackpackSlotType.Filtered) return spec;
+
+        var declared = config?["slotCategories"];
+        var categories = (declared is { Exists: true } ? declared.AsArray<string>() : null)
+                         ?? PointCategories(addon)
+                         ?? (slotType == "tools" ? [attachments.AttachmentCategories.Tool] : null);
+        return categories == null ? spec : spec with { Categories = categories };
+    }
+
+    /// <summary>Every category named by an addon's own attachment points, deduplicated.</summary>
+    private static string[] PointCategories(CollectibleObject addon)
+    {
+        var points = addon?.Attributes?["immersiveBackpack"]["attachmentPoints"];
+        if (points is not { Exists: true }) return null;
+
+        var all = new List<string>();
+        foreach (var pt in points.AsArray() ?? [])
+            foreach (string cat in pt["categories"].AsArray<string>() ?? [])
+                if (!all.Contains(cat)) all.Add(cat);
+
+        return all.Count > 0 ? all.ToArray() : null;
     }
 
     /// <summary>Builds the full slot layout: the bag's base slots followed by each addon's slots.</summary>
@@ -146,26 +194,19 @@ public static class BackpackSlotLayout
     /// identify slots by type name (Storage Tweaks). See <see cref="slots.ItemSlotToolBagContent"/>.
     /// </summary>
     public static ItemSlotBagContent CreateBagSlot(InventoryBase inv, int bagIndex, int slotIndex, SlotSpec spec)
-        => spec.Type == BackpackSlotType.Tools
-            ? new slots.ItemSlotToolBagContent(inv, bagIndex, slotIndex, spec)
+        => spec.Type == BackpackSlotType.Filtered
+            ? new slots.ItemSlotFilteredBagContent(inv, bagIndex, slotIndex, spec)
             : new ItemSlotBagContent(inv, bagIndex, slotIndex, spec.Flags) { HexBackgroundColor = spec.Color };
 
     /// <summary>The same, for the placed backpack's dialog inventory.</summary>
     public static ItemSlotSurvival CreateDialogSlot(InventoryBase inv, SlotSpec spec)
-        => spec.Type == BackpackSlotType.Tools
-            ? new slots.ItemSlotToolSurvival(inv, spec)
+        => spec.Type == BackpackSlotType.Filtered
+            ? new slots.ItemSlotFilteredSurvival(inv, spec)
             : new ItemSlotSurvival(inv) { StorageType = spec.Flags, HexBackgroundColor = spec.Color };
 
-    /// <summary>Type-specific acceptance beyond storage flags (the Tools slot only takes digging tools).</summary>
-    public static bool CanHold(BackpackSlotType type, ItemSlot sourceSlot)
-    {
-        if (type != BackpackSlotType.Tools) return true;
-        return IsToolSlotItem(sourceSlot.Itemstack?.Collectible);
-    }
-
-    /// <summary>The tools a Tools slot (and a toolstrap) accepts: pickaxes, axes, shovels, hoes and prospecting picks.</summary>
-    public static bool IsToolSlotItem(CollectibleObject collectible)
-        => collectible?.Tool is EnumTool.Pickaxe or EnumTool.Axe or EnumTool.Shovel or EnumTool.Hoe or EnumTool.Probe;
+    /// <summary>Acceptance beyond storage flags: the categories the slot's spec names.</summary>
+    public static bool CanHold(SlotSpec spec, ItemSlot sourceSlot)
+        => spec.AcceptsCategory(sourceSlot?.Itemstack?.Collectible);
 
     /// <summary>
     /// Position-sensitive hash of a bag's unified cargo (<c>backpack.slots</c>), used to invalidate the composed

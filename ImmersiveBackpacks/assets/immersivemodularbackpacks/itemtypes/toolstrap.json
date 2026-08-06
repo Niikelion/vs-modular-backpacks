@@ -1,4 +1,4 @@
-{
+﻿{
 	"code": "toolstrap",
 	"class": "Item",
 	"maxstacksize": 1,
@@ -25,9 +25,14 @@
 			]
 		},
 		"backpack": { "quantitySlots": 1 },
+		"immersiveBackpack": {
+			"attachmentPoints": [
+				{ "code": "tool_0", "categories": [ "tool" ] }
+			]
+		},
 		"immersiveBackpackAttachment": {
 			"category": "toolstrap",
-			"slotType": "tools",
+			"slotType": "filtered",
 			"attachedTransform": { "scale": 0.5 }
 		}
 	}

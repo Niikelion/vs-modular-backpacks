@@ -40,10 +40,12 @@ public class BackpackPreviewComponent : ItemstackComponentBase
     private readonly double height;
     private readonly List<Point> points = [];
     private readonly Matrixf modelMat = new();
+    private readonly Matrixf boxMat = new();
     private readonly float[] modelViewMat = Mat4f.Create();
     private readonly DummySlot addonSlot = new();
 
     private MultiTextureMeshRef meshRef;
+    private MeshRef boxMeshRef;
     private bool meshBuilt;
     private int markerTextureId;
 
@@ -68,11 +70,11 @@ public class BackpackPreviewComponent : ItemstackComponentBase
     private sealed class Point
     {
         public Vec3f Anchor;            // model space [0,1]
+        public Cuboidf Box;             // the point's own bounds, model space, drawn as the hover outline
         public float Radius;            // model-space distance from the fit centre, for the facing cosine
         public ItemStack[][] Candidates; // one accepted addon type per entry, holding that type's variants
         public float X, Y;              // projected GUI pixels, per frame
-        public float Facing;            // cosine toward the viewer: +1 dead-on, 0 on the silhouette, -1 behind
-        public float Opacity;           // Facing put through the fade band
+        public float Opacity;           // the facing cosine put through the fade band
     }
 
     /// <param name="addonGroups">Every attachable addon, grouped by type (the handbook's own list); each group's
@@ -103,12 +105,21 @@ public class BackpackPreviewComponent : ItemstackComponentBase
         {
             // The marker's box centre, not its pivot: the pivot sits on a box corner (where an addon is
             // anchored), while the centre is what reads as "the slot" and is the better thing to aim at.
+            // The box comes along for the hover outline: it is what the point actually occupies, so drawing it
+            // says how big the addon's footprint is, not just where it lands.
             Vec3f anchor;
+            Cuboidf box;
             if (markers.TryGetValue(pt.Code, out var marker) && marker.Box != null)
-                anchor = new Vec3f((marker.Box.X1 + marker.Box.X2) / 32f,
-                                   (marker.Box.Y1 + marker.Box.Y2) / 32f,
-                                   (marker.Box.Z1 + marker.Box.Z2) / 32f);
-            else if (pt.Box != null) anchor = pt.Origin;
+            {
+                box = new Cuboidf(marker.Box.X1 / 16f, marker.Box.Y1 / 16f, marker.Box.Z1 / 16f,
+                                  marker.Box.X2 / 16f, marker.Box.Y2 / 16f, marker.Box.Z2 / 16f);
+                anchor = new Vec3f((box.X1 + box.X2) / 2f, (box.Y1 + box.Y2) / 2f, (box.Z1 + box.Z2) / 2f);
+            }
+            else if (pt.Box != null)
+            {
+                box = pt.Box;
+                anchor = pt.Origin;
+            }
             else continue;
 
             // Whole groups, not just their first stack: the cell then cycles that addon's variants the way the
@@ -120,7 +131,7 @@ public class BackpackPreviewComponent : ItemstackComponentBase
                 if (pt.Accepts(AttachmentFactory.For(group[0], capi.World))) accepted.Add(group);
             }
 
-            points.Add(new Point { Anchor = anchor, Candidates = accepted.ToArray() });
+            points.Add(new Point { Anchor = anchor, Box = box, Candidates = accepted.ToArray() });
         }
     }
 
@@ -167,12 +178,20 @@ public class BackpackPreviewComponent : ItemstackComponentBase
             .Translate(-fitCentre.X, -fitCentre.Y, -fitCentre.Z);
 
         RenderBag(renderZ);
-        capi.Render.PopScissor();
+        // The outline belongs to the previous frame's hover: picking needs this frame's projection, which the
+        // model matrix above has only just settled. A frame of lag is invisible and it keeps one matrix build.
+        DrawHoveredBox();
 
         ProjectPoints(scale);
-        hovered = PickPoint(capi.Input.MouseX, capi.Input.MouseY);
+        // A drag holds the current hover: the cursor sweeps across the model then, and letting it pick would
+        // flick the highlight from point to point while the reader is only turning the bag.
+        if (!dragging) hovered = PickPoint(capi.Input.MouseX, capi.Input.MouseY);
         DrawMarkers(overlayZ);
         DrawCandidates(x, y, rect.Width, overlayZ);
+
+        // Everything the widget draws stays inside its own box - a page scrolled so the preview is half cut off
+        // would otherwise have markers and addon cells painting over the text around it.
+        capi.Render.PopScissor();
     }
 
     private void RenderBag(double renderZ)
@@ -204,6 +223,38 @@ public class BackpackPreviewComponent : ItemstackComponentBase
         prog.Uniform("alphaTest", 0f);
     }
 
+    // The hovered point's own bounds, as a wireframe box in the model's frame. Depth testing is off for it so
+    // the near face of the bag doesn't hide the edges that wrap behind the slot.
+    private void DrawHoveredBox()
+    {
+        if (boxMeshRef == null || hovered < 0) return;
+        var box = points[hovered].Box;
+
+        // The line cube spans -1..1, so half the box's size is its scale.
+        Array.Copy(modelMat.Values, boxMat.Values, modelMat.Values.Length);
+        boxMat.Translate((box.X1 + box.X2) / 2f, (box.Y1 + box.Y2) / 2f, (box.Z1 + box.Z2) / 2f)
+              .Scale(box.Width / 2f, box.Height / 2f, box.Length / 2f);
+
+        Mat4f.Mul(modelViewMat, capi.Render.CurrentModelviewMatrix, boxMat.Values);
+
+        var prog = capi.Render.CurrentActiveShader;
+        prog.Uniform("rgbaIn", new Vec4f(0.4f, 1f, 0.45f, 1f));
+        prog.Uniform("applyColor", 0);
+        prog.Uniform("noTexture", 1f);
+        prog.UniformMatrix("projectionMatrix", capi.Render.CurrentProjectionMatrix);
+        prog.UniformMatrix("modelViewMatrix", modelViewMat);
+
+        capi.Render.LineWidth = 2f;
+        capi.Render.GLDisableDepthTest();
+        capi.Render.RenderMesh(boxMeshRef);
+        capi.Render.GLEnableDepthTest();
+        capi.Render.LineWidth = 1f;
+
+        // Leave the shader as the rest of the GUI expects to find it.
+        prog.Uniform("noTexture", 0f);
+        prog.Uniform("rgbaIn", new Vec4f(1f, 1f, 1f, 1f));
+    }
+
     // Projects every marker and works out how much of it the viewer can see. A point's outward direction is
     // taken from the fit centre, so its rotated depth divided by its (scaled) radius is the cosine against the
     // view - no per-point normal needed, and it is scale-free, so one fade band suits every bag and point.
@@ -218,8 +269,8 @@ public class BackpackPreviewComponent : ItemstackComponentBase
             p.Y = v[1];
 
             float span = scale * p.Radius;
-            p.Facing = span > 0.001f ? (v[2] - centreDepth) / span : 1f;
-            p.Opacity = GameMath.Clamp((p.Facing - FadeOut) / (FadeIn - FadeOut), 0f, 1f);
+            float facing = span > 0.001f ? (v[2] - centreDepth) / span : 1f;
+            p.Opacity = GameMath.Clamp((facing - FadeOut) / (FadeIn - FadeOut), 0f, 1f);
         }
     }
 
@@ -319,6 +370,7 @@ public class BackpackPreviewComponent : ItemstackComponentBase
         foreach (var p in points) p.Radius = p.Anchor.DistanceTo(fitCentre);
 
         markerTextureId = GenMarkerTexture();
+        boxMeshRef = capi.Render.UploadMesh(LineMeshUtil.GetCube(ColorUtil.WhiteArgb));
     }
 
     // A white square on a dark outline, tinted per-marker at draw time. Square rather than round: it reads as a
@@ -364,6 +416,8 @@ public class BackpackPreviewComponent : ItemstackComponentBase
         base.Dispose();
         meshRef?.Dispose();
         meshRef = null;
+        boxMeshRef?.Dispose();
+        boxMeshRef = null;
         if (markerTextureId != 0) capi.Render.GLDeleteTexture(markerTextureId);
         markerTextureId = 0;
     }

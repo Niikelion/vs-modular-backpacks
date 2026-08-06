@@ -1,0 +1,38 @@
+[
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "tool" },
+		"file": "game:itemtypes/tool/axe-metal.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "tool" },
+		"file": "game:itemtypes/tool/axe-stone.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "tool" },
+		"file": "game:itemtypes/tool/pickaxe.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "tool" },
+		"file": "game:itemtypes/tool/shovel.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "tool" },
+		"file": "game:itemtypes/tool/hoe.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "tool" },
+		"file": "game:itemtypes/tool/prospectingpick.json"
+	}
+]

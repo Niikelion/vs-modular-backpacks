@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using ImmersiveBackpacks.attachments;
-using ImmersiveBackpacks.inventory;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
@@ -33,9 +32,15 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             return AttachmentFactory.For(s, world);
         }
 
+        // Points come from the strap's own immersiveBackpack.attachmentPoints, the same config a backpack
+        // declares: each entry names a point and the categories it accepts. Geometry still comes from the
+        // shape's slot_<code> marker, as it does for a bag - the JSON says what fits, the shape says where.
         private IReadOnlyList<IAttachmentPoint> BuildToolPoints()
         {
             var coll = Stack.Collectible;
+            var declared = coll.Attributes?["immersiveBackpack"]["attachmentPoints"];
+            if (declared is not { Exists: true }) return [];
+
             // Same base shape the composer tesselates, so marker codes line up with the rendered mesh.
             var cs = AttachmentMesh.AttachedShapeComposite(coll)
                 ?? (coll as Item)?.Shape ?? (coll as Block)?.Shape;
@@ -44,12 +49,15 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             // Shared sizing applied to each tool slot in both render contexts.
             var toolTf = AttachmentTransform.FromJson(coll.Attributes?["immersiveBackpackAttachment"]["toolTransform"]);
 
-            var list = new List<IAttachmentPoint>(markers.Count);
-            foreach (var kv in markers)
+            var list = new List<IAttachmentPoint>();
+            foreach (var pt in declared.AsArray() ?? [])
             {
-                var b = kv.Value.Box;
+                string code = pt["code"].AsString();
+                if (code == null || !markers.TryGetValue(code, out var marker) || marker.Box == null) continue;
+
+                var b = marker.Box;
                 var box = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-                list.Add(new ToolstrapAttachmentPoint(kv.Key, box, toolTf));
+                list.Add(new CategoryAttachmentPoint(code, pt["categories"].AsArray<string>(), box, toolTf));
             }
             return list;
         }
@@ -62,11 +70,4 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
         }
     }
 
-    /// <summary>A tool point: accepts any collectible the tool slots accept, regardless of category.</summary>
-    private sealed class ToolstrapAttachmentPoint(string code, Cuboidf box, AttachmentTransform transform)
-        : AttachmentPointBase(code, box, transform)
-    {
-        public override bool Accepts(IAttachment attachment)
-            => BackpackSlotLayout.IsToolSlotItem(attachment?.Stack?.Collectible);
-    }
 }

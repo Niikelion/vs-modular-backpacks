@@ -87,6 +87,11 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
             // A multi-category addon shows up under each of its categories.
             foreach (string category in categories)
             {
+                // Tools hang on a toolstrap, not on the bag: listing every axe and shovel among the bag's addons
+                // would bury the things that actually bolt onto it. No bag point accepts the category either, so
+                // the preview loses no candidate by skipping them here.
+                if (category == attachments.AttachmentCategories.Tool) continue;
+
                 string key = category + "/" + baseCode;
                 if (!groups.TryGetValue(key, out var group))
                 {

@@ -48,13 +48,23 @@ public static class AttachmentMesh
             return TagAtlas(customMesh, blockAtlas);
         }
 
+        // A look that varies per stack (Toolsmith's tinkered tools) comes from IContainedMeshSource; the
+        // collectible's default shape below would render every stack alike.
+        if (stack.Collectible.GetCollectibleInterface<IContainedMeshSource>() is { } cms)
+        {
+            bool isItem = stack.Item != null;
+            var contained = cms.GenMesh(new DummySlot(stack),
+                isItem ? capi.ItemTextureAtlas : capi.BlockTextureAtlas, null);
+            // Empty means it declined to build one; fall through rather than render nothing.
+            if (contained is { VerticesCount: > 0 })
+                return TagAtlas(contained, isItem ? itemAtlas : blockAtlas);
+        }
+
         if (stack.Item != null)
         {
             capi.Tesselator.TesselateItem(stack.Item, out var itemMesh);
             return TagAtlas(itemMesh, itemAtlas);
         }
-        if (stack.Block is IContainedMeshSource cms)
-            return TagAtlas(cms.GenMesh(new DummySlot(stack), capi.BlockTextureAtlas, null), blockAtlas);
         capi.Tesselator.TesselateBlock(stack.Block, out var blockMesh);
         return TagAtlas(blockMesh, blockAtlas);
     }
