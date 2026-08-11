@@ -1,26 +1,53 @@
+// The shared transform is patched in as its own top-level attribute rather than as a member of
+// immersiveBackpackAttachment: that is where vanilla's Transform Editor stores it, so it can be tuned with
+// /tfedit and written straight back here. Two entries per item is the price.
 [
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "attachedTransform": { "scale": 0.45 } },
+		"value": { "category": "sack" },
+		"file": "game:itemtypes/wearable/bag/linensack.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "scale": 0.45 },
 		"file": "game:itemtypes/wearable/bag/linensack.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "slotType": "ore", "attachedTransform": { "scale": 0.45 } },
+		"value": { "category": "sack", "slotType": "ore" },
+		"file": "game:itemtypes/wearable/bag/miningbag.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "scale": 0.45 },
 		"file": "game:itemtypes/wearable/bag/miningbag.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "slotType": "ore", "attachedTransform": { "scale": 0.42 } },
+		"value": { "category": "sack", "slotType": "ore" },
+		"file": "game:itemtypes/wearable/bag/miningbagsturdy.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "scale": 0.42 },
 		"file": "game:itemtypes/wearable/bag/miningbagsturdy.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "light", "attachedTransform": { "scale": 0.38 } },
+		"value": { "category": "light" },
+		"file": "game:blocktypes/metal/lantern.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "scale": 0.38 },
 		"file": "game:blocktypes/metal/lantern.json"
 	},
 	{
@@ -28,25 +55,42 @@
 		"path": "/attributesByType/bed-hay-*/immersiveBackpackAttachment",
 		"value": {
 			"category": "bedroll",
-			"attachedShape": { "base": "block/hay/strawbed-inventory" },
-			"attachedTransform": {
-				"scale": 0.6,
-				"offset": [0.35, 0, 0.2],
-				"rotation": [0, -80, 0]
-			}
+			"attachedShape": { "base": "block/hay/strawbed-inventory" }
+		},
+		"file": "game:blocktypes/wood/bed.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributesByType/bed-hay-*/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.35, "y": 0, "z": 0.2 },
+			"rotation": { "x": 0, "y": -80, "z": 0 },
+			"scale": 0.6
 		},
 		"file": "game:blocktypes/wood/bed.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "shield", "origin": [ 0.09, 0.03, 0.19 ], "attachedTransform": { "rotation": [ 0, 0, 8 ] } },
+		"value": { "category": "shield", "origin": [ 0.09, 0.03, 0.19 ] },
+		"file": "game:itemtypes/tool/shield.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "rotation": { "x": 0, "y": 0, "z": 8 } },
 		"file": "game:itemtypes/tool/shield.json"
 	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "shield", "origin": [ 0.06, 0.06, 0.2 ], "attachedTransform": { "rotation": [ 0, 0, 8 ] } },
+		"value": { "category": "shield", "origin": [ 0.06, 0.06, 0.2 ] },
+		"file": "game:itemtypes/tool/roundshield.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "rotation": { "x": 0, "y": 0, "z": 8 } },
 		"file": "game:itemtypes/tool/roundshield.json"
 	}
 ]

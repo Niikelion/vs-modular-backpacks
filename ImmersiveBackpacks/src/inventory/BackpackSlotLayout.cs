@@ -77,7 +77,8 @@ public static class BackpackSlotLayout
 
     /// <summary>
     /// Maps the JSON <c>immersiveBackpackAttachment.slotType</c> string to a slot type. <c>"tools"</c> is the
-    /// name this had before slots filtered by category, kept working as a filtered slot on the tool category.
+    /// name this had before slots filtered by category, kept working as a filtered slot on the two-handed
+    /// category.
     /// </summary>
     public static BackpackSlotType TypeFromString(string slotType) => slotType switch
     {
@@ -136,7 +137,7 @@ public static class BackpackSlotLayout
     /// categories that gate a filtered slot. Those come from <c>slotCategories</c> when the addon names them,
     /// otherwise from its own attachment points - so a strap's cargo slot admits exactly what its point does,
     /// whether the strap is attached to a bag or worn on its own. A legacy <c>slotType: "tools"</c> that names
-    /// neither still means the tool category.
+    /// neither still means the two-handed category.
     /// </summary>
     public static SlotSpec AddonSpec(CollectibleObject addon)
     {
@@ -148,7 +149,7 @@ public static class BackpackSlotLayout
         var declared = config?["slotCategories"];
         var categories = (declared is { Exists: true } ? declared.AsArray<string>() : null)
                          ?? PointCategories(addon)
-                         ?? (slotType == "tools" ? [attachments.AttachmentCategories.Tool] : null);
+                         ?? (slotType == "tools" ? [attachments.AttachmentCategories.TwoHanded] : null);
         return categories == null ? spec : spec with { Categories = categories };
     }
 

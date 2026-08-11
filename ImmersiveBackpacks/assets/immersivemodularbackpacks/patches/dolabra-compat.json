@@ -1,0 +1,44 @@
+[
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment/category",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment/category",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment/category",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-blackbronze-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment/category",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-blackbronze-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment/category",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-steel-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment/category",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-steel-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	}
+]

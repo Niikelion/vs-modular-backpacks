@@ -1,0 +1,13 @@
+[
+	{
+		"ingredientPattern": "F,C",
+		"ingredients": {
+			"F": { "type": "item", "code": "game:flaxfibers" },
+			"C": { "type": "item", "code": "game:cloth-plain" }
+		},
+		"width": 1,
+		"height": 2,
+		"name": "toolroll",
+		"output": { "type": "item", "code": "toolroll" }
+	}
+]

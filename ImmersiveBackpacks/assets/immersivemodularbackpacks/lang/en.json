@@ -2,6 +2,7 @@
 	"immersivemodularbackpacks:item-pouch-normal": "Pouch",
 	"immersivemodularbackpacks:item-pouch-sturdy": "Sturdy Pouch",
 	"immersivemodularbackpacks:item-toolstrap": "Tool Strap",
+	"immersivemodularbackpacks:item-toolroll": "Tool Roll",
 
 	"immersivemodularbackpacks:block-backpack-placed-normal": "Backpack",
 	"immersivemodularbackpacks:block-backpack-placed-sturdy": "Sturdy Backpack",
@@ -20,5 +21,6 @@
 	"immersivemodularbackpacks:handbook-backpack-addons-title": "Addons",
 	"immersivemodularbackpacks:handbook-addon-title": "Backpack addon",
 	"immersivemodularbackpacks:handbook-addon-pouch-text": "A pouch is a small bag in its own right - slot it into one of your character's bag slots and it holds items like any other bag. A sturdy pouch holds more than a plain one.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the pouch and <hk>shift</hk> + <hk>rightmouse</hk>-click a free attachment point. Its slots then join the backpack's cargo.",
-	"immersivemodularbackpacks:handbook-addon-toolstrap-text": "A tool strap carries a single tool. Slot it into one of your character's bag slots to use it on its own.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the strap and <hk>shift</hk> + <hk>rightmouse</hk>-click a free attachment point. Fitted this way, the tool it holds rides visibly on your back."
+	"immersivemodularbackpacks:handbook-addon-toolstrap-text": "A tool strap carries a single two-handed tool - an axe, pickaxe, shovel, hoe, prospecting pick, scythe or spear. Slot it into one of your character's bag slots to use it on its own.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the strap and <hk>shift</hk> + <hk>rightmouse</hk>-click a free attachment point. Fitted this way, the tool it holds rides visibly on your back.",
+	"immersivemodularbackpacks:handbook-addon-toolroll-text": "A tool roll carries two hand tools - a knife, chisel, hammer, saw, shears or the like - where a <a href=\"handbook://item-toolstrap\">tool strap</a> takes the long-hafted ones. Slot it into one of your character's bag slots to use it on its own.<br><br>It can also be fitted to a <a href=\"handbook://item-backpack-normal\">backpack</a> as an addon: set the backpack down, hold the roll and <hk>shift</hk> + <hk>rightmouse</hk>-click a free attachment point. Fitted this way, the tools it holds ride visibly on your back."
 }

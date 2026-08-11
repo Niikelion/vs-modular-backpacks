@@ -113,10 +113,10 @@ public static class AttachmentComposer
             var slotRot = new[] { (float)slot.RotationX, (float)slot.RotationY, (float)slot.RotationZ };
             // Worn placement: the slot marker's own rotation, the point's own transform (identity for a bag's
             // addon points; a toolstrap's tool scale for its tool points), then the child's shared
-            // attachedTransform. The parent chain supplies the rest.
+            // transform. The parent chain supplies the rest.
             var tf = AttachmentTransform.FromRotation(slotRot)
                 .CombinedWith(pt.Transform)
-                .CombinedWith(AttachmentTransform.FromItem(child.Stack.Collectible, "attachedTransform"));
+                .CombinedWith(AttachmentTransform.Attached(child.Stack.Collectible));
             // Anchor by the child's fixed model origin (16-unit), not its geometry bounds - content-stable.
             var childOrigin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
             var wrapper = WrapAddon(childShape.Elements, slotOrigin, tf,

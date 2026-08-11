@@ -1,0 +1,127 @@
+{
+  "editor": {
+    "allAngles": true,
+    "backdrops": [
+      {
+        "shapeFilepath": "item/tool/knife/copper",
+        "opacity": 1.0,
+        "enabled": true
+      }
+    ],
+    "attachments": []
+  },
+  "textures": {
+    "cloth": "game:block/cloth/linen/plain",
+    "straps": "game:block/leather/plain"
+  },
+  "elements": [
+    {
+      "name": "Roll",
+      "from":[5.0,-0.5,7.5],
+      "to":[12.0,1.0,8.5],
+      "faces": {
+        "north": { "texture": "#cloth", "uv":[0.0,0.0,7.0,1.5] },
+        "east": { "texture": "#cloth", "uv":[0.0,0.0,1.0,1.5] },
+        "south": { "texture": "#cloth", "uv":[0.0,0.0,7.0,1.5] },
+        "west": { "texture": "#cloth", "uv":[0.0,0.0,1.0,1.5] },
+        "up": { "texture": "#cloth", "uv":[0.0,0.0,7.0,1.0] },
+        "down": { "texture": "#cloth", "uv":[0.0,0.0,7.0,1.0] }
+      },
+      "rotationOrigin":[5.0,-0.5,7.5],
+      "scaleX": 1.0,
+      "scaleY": 1.0,
+      "scaleZ": 1.0,
+      "children": [
+        {
+          "name": "Tie Left",
+          "from":[0.75,-0.25,-0.25],
+          "to":[1.5,1.75,1.25],
+          "faces": {
+            "north": { "texture": "#straps", "uv":[0.0,0.0,0.75,2.0] },
+            "east": { "texture": "#straps", "uv":[0.0,0.0,1.5,2.0] },
+            "south": { "texture": "#straps", "uv":[0.0,0.0,0.75,2.0] },
+            "west": { "texture": "#straps", "uv":[0.0,0.0,1.5,2.0] },
+            "up": { "texture": "#straps", "uv":[0.0,0.0,0.75,1.5] },
+            "down": { "texture": "#straps", "uv":[0.0,0.0,0.75,1.5] }
+          },
+          "rotationOrigin":[0.75,-0.25,-0.25],
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "scaleZ": 1.0,
+          "children": [],
+          "uv":[0.0,0.0]
+        },
+        {
+          "name": "Tie Middle",
+          "from":[3.125,-0.25,-0.25],
+          "to":[3.875,1.75,1.25],
+          "faces": {
+            "north": { "texture": "#straps", "uv":[0.0,0.0,0.75,2.0] },
+            "east": { "texture": "#straps", "uv":[0.0,0.0,1.5,2.0] },
+            "south": { "texture": "#straps", "uv":[0.0,0.0,0.75,2.0] },
+            "west": { "texture": "#straps", "uv":[0.0,0.0,1.5,2.0] },
+            "up": { "texture": "#straps", "uv":[0.0,0.0,0.75,1.5] },
+            "down": { "texture": "#straps", "uv":[0.0,0.0,0.75,1.5] }
+          },
+          "rotationOrigin":[3.125,-0.25,-0.25],
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "scaleZ": 1.0,
+          "children": [],
+          "uv":[0.0,0.0]
+        },
+        {
+          "name": "Tie Right",
+          "from":[5.5,-0.25,-0.25],
+          "to":[6.25,1.75,1.25],
+          "faces": {
+            "north": { "texture": "#straps", "uv":[0.0,0.0,0.75,2.0] },
+            "east": { "texture": "#straps", "uv":[0.0,0.0,1.5,2.0] },
+            "south": { "texture": "#straps", "uv":[0.0,0.0,0.75,2.0] },
+            "west": { "texture": "#straps", "uv":[0.0,0.0,1.5,2.0] },
+            "up": { "texture": "#straps", "uv":[0.0,0.0,0.75,1.5] },
+            "down": { "texture": "#straps", "uv":[0.0,0.0,0.75,1.5] }
+          },
+          "rotationOrigin":[5.5,-0.25,-0.25],
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "scaleZ": 1.0,
+          "children": [],
+          "uv":[0.0,0.0]
+        },
+        {
+          "name": "slot_tool_0",
+          "from":[1.5,0.5,-0.5],
+          "to":[3.0,2.0,1.5],
+          "faces": {},
+          "rotationOrigin":[2.25,1.25,0.5],
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "scaleZ": 1.0,
+          "children": [],
+          "uv":[0.0,0.0]
+        },
+        {
+          "name": "slot_tool_1",
+          "from":[4.0,0.5,-0.5],
+          "to":[5.5,2.0,1.5],
+          "faces": {},
+          "rotationOrigin":[4.75,1.25,0.5],
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "scaleZ": 1.0,
+          "children": [],
+          "uv":[0.0,0.0]
+        }
+      ],
+      "uv":[0.0,0.0]
+    }
+  ],
+  "animations": [],
+  "textureWidth": 16,
+  "textureHeight": 16,
+  "textureSizes": {
+    "cloth": [ 16, 16 ],
+    "straps": [ 16, 16 ]
+  }
+}

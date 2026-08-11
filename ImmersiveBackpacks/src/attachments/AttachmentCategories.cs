@@ -12,11 +12,19 @@ namespace ImmersiveBackpacks.attachments;
 public static class AttachmentCategories
 {
     /// <summary>
-    /// The category a toolstrap's points name. Vanilla's digging tools are patched into it; a mod puts its own
+    /// The category a toolstrap's points name: a tool held in both hands, which is what a strap is shaped to
+    /// carry. Vanilla's axes, pickaxe, shovel, hoe and prospecting pick are patched into it; a mod puts its own
     /// item on a strap by declaring the same category, with no code either side - and an item that declares
     /// nothing does not strap, tool or not.
     /// </summary>
-    public const string Tool = "tool";
+    public const string TwoHanded = "twohanded";
+
+    /// <summary>The category a tool roll's points name: a tool worked in one hand - knife, chisel, hammer. Held
+    /// weapons stay out of it deliberately, one-handed or not.</summary>
+    public const string HandTool = "handtool";
+
+    /// <summary>The categories that ride on a strap or roll rather than bolting onto a bag.</summary>
+    public static bool IsCarriedTool(string category) => category is TwoHanded or HandTool;
 
     // Reading them means walking the attribute JSON and deserializing an array, and the slot filters ask on every
     // pickup merge and every drag. A collectible's categories are fixed once assets are loaded, so resolve each
