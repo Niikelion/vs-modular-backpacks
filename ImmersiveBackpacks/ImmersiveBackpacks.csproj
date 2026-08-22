@@ -6,7 +6,10 @@
              ImmersiveBackpacks - VS loads mod assemblies by simple name and rejects a duplicate. -->
         <AssemblyName>ImmersiveModularBackpacks</AssemblyName>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <OutputPath>bin\$(Configuration)\Mods\mod</OutputPath>
+        <!-- Folder name, not modid, is what Vintage Story keys a folder mod by: two mods both built into a
+             folder called "mod" crash mod loading ("An item with the same key has already been added"). Name
+             it after the modid so this output can be added as a mod path alongside any other mod's. -->
+        <OutputPath>bin\$(Configuration)\Mods\immersivemodularbackpacks</OutputPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -44,6 +47,25 @@
         </Reference>
         <Reference Include="OverhaulLib">
             <HintPath>lib/OverhaulLib.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+    <!-- Dev-only: when the VSMCP agent bridge has been built next to this repo, compile the integration-test
+         seam (src/compat/BridgeActions.cs) against it. Absent - on CI, or for anyone without the bridge - the
+         reference and the file both disappear, so nothing about the shipped mod changes. Private=false keeps
+         VSMCP.dll out of our output; the game loads it as its own mod.
+         Deliberately the built DLL rather than a ProjectReference: a sibling repo mid-edit would otherwise
+         break this build. Override with -p:VsmcpDll=<path>. -->
+    <PropertyGroup>
+        <VsmcpDll Condition="'$(VsmcpDll)' == ''">$(MSBuildThisFileDirectory)..\..\VSMCP\VSMCP\bin\Debug\Mods\mod\VSMCP.dll</VsmcpDll>
+    </PropertyGroup>
+    <PropertyGroup Condition="Exists('$(VsmcpDll)')">
+        <DefineConstants>$(DefineConstants);VSMCP_BRIDGE</DefineConstants>
+    </PropertyGroup>
+    <ItemGroup Condition="Exists('$(VsmcpDll)')">
+        <Reference Include="VSMCP">
+            <HintPath>$(VsmcpDll)</HintPath>
             <Private>false</Private>
         </Reference>
     </ItemGroup>
