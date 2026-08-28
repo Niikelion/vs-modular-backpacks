@@ -139,6 +139,23 @@ public static class BackpackSlotLayout
     /// whether the strap is attached to a bag or worn on its own. A legacy <c>slotType: "tools"</c> that names
     /// neither still means the two-handed category.
     /// </summary>
+    public static SlotSpec AddonSpec(ItemStack addonStack)
+    {
+        var spec = AddonSpec(addonStack?.Collectible);
+        var heldBag = addonStack?.Collectible?.GetCollectibleInterface<IHeldBag>();
+        if (heldBag == null) return spec;
+
+        var config = addonStack.Collectible.Attributes?["immersiveBackpackAttachment"];
+        var flags = config?["storageFlags"] is { Exists: true }
+            ? spec.Flags
+            : heldBag.GetStorageFlags(addonStack);
+        string color = config?["slotBgColor"] is { Exists: true }
+            ? spec.Color
+            : heldBag.GetSlotBgColor(addonStack);
+
+        return spec with { Flags = flags, Color = color ?? spec.Color };
+    }
+
     public static SlotSpec AddonSpec(CollectibleObject addon)
     {
         var config = addon?.Attributes?["immersiveBackpackAttachment"];
@@ -181,7 +198,7 @@ public static class BackpackSlotLayout
         {
             int qty = AddonSlotCount(stack);
             if (qty <= 0) continue;
-            var spec = AddonSpec(stack.Collectible);
+            var spec = AddonSpec(stack);
             for (int j = 0; j < qty; j++)
                 list.Add(spec);
         }
