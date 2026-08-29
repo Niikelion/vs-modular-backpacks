@@ -51,7 +51,7 @@
 	},
 	{
 		"op": "remove",
-		"path": "/attributes/immersiveBackpackByType/*-sturdy/attachmentPoints/0/categories/0",
+		"path": "/attributes/immersiveBackpackByType/*-sturdy/attachmentPoints/6/categories/0",
 		"file": "game:itemtypes/wearable/bag/backpack.json",
 		"condition": { "when": "immersivebackpacksLightSlots", "isValue": "false" }
 	}
