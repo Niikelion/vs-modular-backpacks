@@ -1,5 +1,50 @@
 # Changelog
 
+## 1.8.0
+
+- **Breaking, for mod authors: the shared attachment transform moved to its own top-level attribute**, and is now
+  written in the same shape as every other transform in the game:
+
+  ```json
+  "immersiveBackpackAttachment": { "category": "twohanded" },
+  "immersiveAttachedTransform": {
+    "translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+    "scale": 1.32
+  }
+  ```
+
+  The old `immersiveBackpackAttachment.attachedTransform`, with its `offset`/`rotation` arrays, is still read when
+  the new attribute is absent, so existing assets and third-party patches keep working. `placed`, `worn`,
+  `toolTransform` and the rest are unchanged.
+
+  The reason is tooling. Vanilla's Transform Editor stores an extra transform at a *top-level* collectible
+  attribute in ModelTransform form; this mod stored it nested and in its own format, so the editor tab only worked
+  because we hijacked its get/set events. That put the live-tuned number somewhere no write-back tool could find:
+  `/tfedit` could show it, but nothing could save it. With the storage matching what the editor already does, the
+  tab needs no interception, and a transform tuned in game can be written straight back into the asset - which is
+  what that editor tab was built for.
+
+## 1.7.0
+
+- **Breaking, for mod authors: an item must now declare a category to go on a toolstrap.** A strap used to take
+  anything the game calls a pickaxe, axe, shovel, hoe or prospecting pick, so modded tools landed there by
+  accident as much as by design. A strap now names the categories its point accepts, the way a backpack does, and
+  an item that declares none does not strap - tool or not. The category is `twohanded`, since a strap is shaped
+  to carry a tool you hold in both hands. Vanilla's axes, pickaxe, shovel, hoe and prospecting pick are patched
+  in; anything else opts in with one line next to the transform it already has:
+
+  ```json
+  "immersiveBackpackAttachment": {
+    "category": "twohanded",
+    "attachedTransform": { "scale": 1.32, "offset": [0.18, 0.045, 0.038] }
+  }
+  ```
+
+- **Toolsmith compatibility.** A tinkered tool on a worn toolstrap showed the plain vanilla tool instead of the
+  head, handle and binding you built it from. Worn geometry has to be a shape rather than a mesh - it hangs off
+  the player's skeleton - so Toolsmith's own renderer could not serve it; the same parts are now composed into a
+  shape for that path.
+
 ## 1.5.0
 
 - **Custom storage flags for mod authors.** A bag's own slots and an addon's slots were locked to our presets, so

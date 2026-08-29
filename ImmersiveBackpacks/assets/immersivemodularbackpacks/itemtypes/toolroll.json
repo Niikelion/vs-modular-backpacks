@@ -1,9 +1,9 @@
-﻿{
-	"code": "toolstrap",
+{
+	"code": "toolroll",
 	"class": "Item",
 	"maxstacksize": 1,
 	"storageFlags": 3,
-	"shape": { "base": "immersivemodularbackpacks:item/bag/toolstrap" },
+	"shape": { "base": "immersivemodularbackpacks:item/bag/toolroll" },
 	"guiTransform": {
 		"translation": { "x": 0, "y": 0, "z": 0 },
 		"rotation": { "x": -68, "y": -24, "z": 0 },
@@ -18,19 +18,20 @@
 	},
 	"creativeinventory": { "general": ["*"] },
 	"behaviors": [
-		{ "name": "HeldBag", "properties": { "tags": [ "twohanded" ] } },
+		{ "name": "HeldBag", "properties": { "tags": [ "handtool" ] } },
 		{ "name": "ImmersiveToolstrapAttachment" }
 	],
 	"attributes": {
 		"handbook": {
 			"extraSections": [
-				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolstrap-text" }
+				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolroll-text" }
 			]
 		},
-		"backpack": { "quantitySlots": 1, "storageFlags": 189, "slotBgColor": "#ffddaa" },
+		"backpack": { "quantitySlots": 2, "storageFlags": 189, "slotBgColor": "#ffddaa" },
 		"immersiveBackpack": {
 			"attachmentPoints": [
-				{ "code": "tool_0", "categories": [ "twohanded" ] }
+				{ "code": "tool_0", "categories": [ "handtool" ] },
+				{ "code": "tool_1", "categories": [ "handtool" ] }
 			]
 		},
 		"immersiveBackpackAttachment": { "category": "toolstrap" },

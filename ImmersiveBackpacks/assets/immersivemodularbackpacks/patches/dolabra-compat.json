@@ -1,0 +1,110 @@
+[
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+			"rotation": { "x": 0, "y": 0, "z": 0 },
+			"scale": 1.32
+		},
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/tags/-",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+			"rotation": { "x": 0, "y": 0, "z": 0 },
+			"scale": 1.32
+		},
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/tags",
+		"value": [ "twohanded" ],
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+			"rotation": { "x": 0, "y": 0, "z": 0 },
+			"scale": 1.32
+		},
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-blackbronze-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/tags/-",
+		"value": "twohanded",
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-blackbronze-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+			"rotation": { "x": 0, "y": 0, "z": 0 },
+			"scale": 1.32
+		},
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-blackbronze-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/tags",
+		"value": [ "twohanded" ],
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-blackbronze-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+			"rotation": { "x": 0, "y": 0, "z": 0 },
+			"scale": 1.32
+		},
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-steel-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/tags",
+		"value": [ "twohanded" ],
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-steel-axe.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.18, "y": 0.045, "z": 0.038 },
+			"rotation": { "x": 0, "y": 0, "z": 0 },
+			"scale": 1.32
+		},
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-steel-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	},
+	{
+		"op": "add",
+		"path": "/tags",
+		"value": [ "twohanded" ],
+		"file": "dolabra:itemtypes/tool/dolabra/dolabra-steel-pick.json",
+		"dependsOn": [ { "modid": "dolabra" } ]
+	}
+]

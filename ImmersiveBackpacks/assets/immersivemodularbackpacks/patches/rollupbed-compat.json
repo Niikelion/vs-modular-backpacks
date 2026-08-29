@@ -7,12 +7,18 @@
 			"attachedShapeByType": {
 				"@.*-bear(black|brown|panda|polar|sun)-.*": { "base": "rollupbed:block/bear-inventory" },
 				"*": { "base": "rollupbed:block/inventory" }
-			},
-			"attachedTransform": {
-				"scale": 0.6,
-				"offset": [0.35, 0, 0.2],
-				"rotation": [0, -80, 0]
 			}
+		},
+		"file": "rollupbed:blocktypes/bed.json",
+		"dependsOn": [ { "modid": "rollupbed" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": {
+			"translation": { "x": 0.35, "y": 0, "z": 0.2 },
+			"rotation": { "x": 0, "y": -80, "z": 0 },
+			"scale": 0.6
 		},
 		"file": "rollupbed:blocktypes/bed.json",
 		"dependsOn": [ { "modid": "rollupbed" } ]

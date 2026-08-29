@@ -54,16 +54,16 @@
 			"*-sturdy": { "quantitySlots": 5 }
 		},
 		"immersiveBackpackAttachment": {
-			"category": "pouch",
-			"attachedTransformByType": {
-				"*-normal": {
-					"offset": [0, 0, -0.1],
-					"scale": 0.5
-				},
-				"*-sturdy": {
-					"offset": [0, 0, -0.06],
-					"scale": 0.5
-				}
+			"category": "pouch"
+		},
+		"immersiveAttachedTransformByType": {
+			"*-normal": {
+				"translation": { "x": 0, "y": 0, "z": -0.1 },
+				"scale": 0.5
+			},
+			"*-sturdy": {
+				"translation": { "x": 0, "y": 0, "z": -0.06 },
+				"scale": 0.5
 			}
 		}
 	}

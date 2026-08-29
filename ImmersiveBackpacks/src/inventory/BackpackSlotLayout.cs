@@ -4,112 +4,16 @@ using Vintagestory.API.Datastructures;
 
 namespace ImmersiveBackpacks.inventory;
 
-/// <summary>
-/// What a cargo slot restricts. <see cref="BackpackSlotType.Filtered"/> is the general case - it admits the
-/// attachment categories its spec names - and is what an addon asks for with <c>slotType: "filtered"</c>.
-/// </summary>
-public enum BackpackSlotType { General, Ore, Filtered }
-
-/// <summary>
-/// Single source of truth for how a backpack's cargo slots are laid out: the base slots plus a run of
-/// slots contributed by each attached addon, each with its filter type, storage flags and GUI colour.
-/// Shared by the placed block entity's dialog inventory and the worn-bag <c>IHeldBag</c> slots so both
-/// show the same coloured, filtered slots and store into the same vanilla <c>backpack.slots</c> tree.
-/// </summary>
+/// <summary>Builds the shared placed and worn cargo layout from vanilla bag contracts.</summary>
 public static class BackpackSlotLayout
 {
-    // Vanilla default bag storage flags (everything except Backpack-nesting and Outfit). Matches
-    // CollectibleBehaviorHeldBag.defaultFlags.
     public const int DefaultStorageFlags = 189;
 
-    /// <param name="Categories">
-    /// The attachment categories this slot accepts: declared as <c>slotCategories</c>, or inherited from the
-    /// addon's own attachment points - a toolstrap slot accepts exactly what the strap point above it accepts.
-    /// Empty means the slot only filters by flags.
-    /// </param>
-    public record SlotSpec(BackpackSlotType Type, EnumItemStorageFlags Flags, string Color,
-        string[] Categories = null)
-    {
-        /// <summary>Whether this slot's categories admit <paramref name="collectible"/>.</summary>
-        public bool AcceptsCategory(CollectibleObject collectible)
-            => Categories is not { Length: > 0 }
-               || attachments.AttachmentCategories.Accepts(Categories, collectible);
-    }
+    public record SlotSpec(EnumItemStorageFlags Flags, TagSet Tags, string Color);
 
-    /// <summary>The slot spec (filter/flags/colour) for a slot type. Public so a standalone attachment-bag
-    /// (the toolstrap worn on its own) can filter its own slots identically to when it's attached.</summary>
-    public static SlotSpec SpecOf(BackpackSlotType type) => Spec(type);
-
-    /// <summary>
-    /// The slot spec for a config block that may override the preset picked by its <c>slotType</c>:
-    /// <c>storageFlags</c> (int bitmask, or one/many <see cref="EnumItemStorageFlags"/> names) and
-    /// <c>slotBgColor</c> (hex tint). Lets a compat patch give a bag or addon an arbitrary filter instead
-    /// of choosing between our three presets. <paramref name="config"/> is the bag's <c>backpack</c> or the
-    /// addon's <c>immersiveBackpackAttachment</c> attribute block.
-    /// </summary>
-    public static SlotSpec SpecFrom(BackpackSlotType type, JsonObject config)
-    {
-        var spec = Spec(type);
-        if (config is not { Exists: true }) return spec;
-
-        var flags = ParseStorageFlags(config["storageFlags"]);
-        string color = config["slotBgColor"].AsString(spec.Color);
-        return spec with { Flags = flags ?? spec.Flags, Color = color };
-    }
-
-    /// <summary>
-    /// Storage flags from JSON, or null when unset/unparseable. Accepts a raw bitmask (<c>189</c>) or flag
-    /// names, single or as a list (<c>"Metallurgy"</c>, <c>["General", "Agriculture"]</c>).
-    /// </summary>
-    public static EnumItemStorageFlags? ParseStorageFlags(JsonObject json)
-    {
-        if (json is not { Exists: true }) return null;
-
-        // Enum.TryParse already handles a comma-separated list of names, so an array just joins into one.
-        string text = json.IsArray()
-            ? string.Join(",", json.AsArray<string>() ?? [])
-            : json.AsString();
-        if (string.IsNullOrWhiteSpace(text)) return null;
-
-        if (int.TryParse(text, out int bits)) return (EnumItemStorageFlags)bits;
-        return System.Enum.TryParse(text, ignoreCase: true, out EnumItemStorageFlags parsed) ? parsed : null;
-    }
-
-    /// <summary>
-    /// Maps the JSON <c>immersiveBackpackAttachment.slotType</c> string to a slot type. <c>"tools"</c> is the
-    /// name this had before slots filtered by category, kept working as a filtered slot on the tool category.
-    /// </summary>
-    public static BackpackSlotType TypeFromString(string slotType) => slotType switch
-    {
-        "ore" => BackpackSlotType.Ore,
-        "filtered" or "tools" => BackpackSlotType.Filtered,
-        _ => BackpackSlotType.General
-    };
-
-    private static SlotSpec Spec(BackpackSlotType type) => type switch
-    {
-        // Ore: only metallic/ore items, vanilla mining-bag teal. Flag-enforced, so no categories.
-        BackpackSlotType.Ore => new(type, EnumItemStorageFlags.Metallurgy, "#c2ffe8"),
-        // Filtered: general flags, gated by whatever categories the addon names - warm tint by default, since
-        // toolstraps were the first of these and their slots have always read that way.
-        BackpackSlotType.Filtered => new(type, (EnumItemStorageFlags)DefaultStorageFlags, "#ffddaa"),
-        _ => new(type, (EnumItemStorageFlags)DefaultStorageFlags, null)
-    };
-
-    /// <summary>
-    /// Number of cargo slots an addon contributes. Slot-bearing addons are always bags (vanilla sacks and
-    /// our pouches/toolstrap, all via the HeldBag behavior), so the count is exactly what the bag provides
-    /// when worn and its contents map 1:1 in and out on attach/detach. Non-bag addons (lantern) contribute 0.
-    /// </summary>
     public static int AddonSlotCount(ItemStack stack)
         => stack?.Collectible?.GetCollectibleInterface<IHeldBag>()?.GetQuantitySlots(stack) ?? 0;
 
-    /// <summary>
-    /// The unified-cargo slot range <c>[offset, offset+count)</c> each addon owns, aligned 1:1 with
-    /// <paramref name="addonStacks"/> (and thus with the attachment points). Base slots come first, then each
-    /// addon's run in order — the same ordering <see cref="Build"/> produces — so a toolstrap can find which
-    /// cargo slots hold the tools that render on it. A non-slot addon (lantern, or an empty point) gets count 0.
-    /// </summary>
     public static (int offset, int count)[] AddonRanges(int baseSlots, IReadOnlyList<ItemStack> addonStacks)
     {
         int n = addonStacks?.Count ?? 0;
@@ -117,109 +21,69 @@ public static class BackpackSlotLayout
         int off = baseSlots;
         for (int i = 0; i < n; i++)
         {
-            int c = AddonSlotCount(addonStacks![i]);
-            ranges[i] = (off, c);
-            off += c;
+            int count = AddonSlotCount(addonStacks![i]);
+            ranges[i] = (off, count);
+            off += count;
         }
         return ranges;
     }
 
-    /// <summary>
-    /// The spec of the bag's own (base) slots: general unless its <c>backpack</c> attribute block overrides
-    /// the flags/colour. <paramref name="bagAttributes"/> is the bag collectible's <c>Attributes</c>.
-    /// </summary>
     public static SlotSpec BaseSpec(JsonObject bagAttributes)
-        => SpecFrom(BackpackSlotType.General, bagAttributes?["backpack"]);
-
-    /// <summary>
-    /// The spec an addon contributes: its <c>slotType</c> preset, with any per-addon overrides, and the
-    /// categories that gate a filtered slot. Those come from <c>slotCategories</c> when the addon names them,
-    /// otherwise from its own attachment points - so a strap's cargo slot admits exactly what its point does,
-    /// whether the strap is attached to a bag or worn on its own. A legacy <c>slotType: "tools"</c> that names
-    /// neither still means the tool category.
-    /// </summary>
-    public static SlotSpec AddonSpec(CollectibleObject addon)
     {
-        var config = addon?.Attributes?["immersiveBackpackAttachment"];
-        string slotType = config?["slotType"].AsString();
-        var spec = SpecFrom(TypeFromString(slotType), config);
-        if (spec.Type != BackpackSlotType.Filtered) return spec;
-
-        var declared = config?["slotCategories"];
-        var categories = (declared is { Exists: true } ? declared.AsArray<string>() : null)
-                         ?? PointCategories(addon)
-                         ?? (slotType == "tools" ? [attachments.AttachmentCategories.Tool] : null);
-        return categories == null ? spec : spec with { Categories = categories };
+        var config = bagAttributes?["backpack"];
+        return new(
+            (EnumItemStorageFlags)(config?["storageFlags"].AsInt(DefaultStorageFlags) ?? DefaultStorageFlags),
+            TagSet.Empty,
+            config?["slotBgColor"].AsString());
     }
 
-    /// <summary>Every category named by an addon's own attachment points, deduplicated.</summary>
-    private static string[] PointCategories(CollectibleObject addon)
+    public static SlotSpec AddonSpec(ItemStack stack)
     {
-        var points = addon?.Attributes?["immersiveBackpack"]["attachmentPoints"];
-        if (points is not { Exists: true }) return null;
-
-        var all = new List<string>();
-        foreach (var pt in points.AsArray() ?? [])
-            foreach (string cat in pt["categories"].AsArray<string>() ?? [])
-                if (!all.Contains(cat)) all.Add(cat);
-
-        return all.Count > 0 ? all.ToArray() : null;
+        var bag = stack?.Collectible?.GetCollectibleInterface<IHeldBag>();
+        return bag == null
+            ? new((EnumItemStorageFlags)DefaultStorageFlags, TagSet.Empty, null)
+            : new(bag.GetStorageFlags(stack), bag.GetStorageTags(stack), bag.GetSlotBgColor(stack));
     }
 
-    /// <summary>Builds the full slot layout: the bag's base slots followed by each addon's slots.</summary>
     public static SlotSpec[] Build(JsonObject bagAttributes, int baseSlots, IReadOnlyList<ItemStack> addonStacks)
     {
-        var baseSpec = BaseSpec(bagAttributes);
         var list = new List<SlotSpec>(baseSlots);
-        for (int i = 0; i < baseSlots; i++)
-            list.Add(baseSpec);
+        var baseSpec = BaseSpec(bagAttributes);
+        for (int i = 0; i < baseSlots; i++) list.Add(baseSpec);
 
         if (addonStacks == null) return list.ToArray();
 
         foreach (var stack in addonStacks)
         {
-            int qty = AddonSlotCount(stack);
-            if (qty <= 0) continue;
-            var spec = AddonSpec(stack.Collectible);
-            for (int j = 0; j < qty; j++)
-                list.Add(spec);
+            int count = AddonSlotCount(stack);
+            if (count <= 0) continue;
+            var spec = AddonSpec(stack);
+            for (int i = 0; i < count; i++) list.Add(spec);
         }
-
         return list.ToArray();
     }
 
-    /// <summary>
-    /// A worn-bag cargo slot for a spec. Only a tool slot needs a class of ours - ore is enforced by its storage
-    /// flag and a general slot restricts nothing - and staying vanilla keeps those slots sortable by mods that
-    /// identify slots by type name (Storage Tweaks). See <see cref="slots.ItemSlotToolBagContent"/>.
-    /// </summary>
     public static ItemSlotBagContent CreateBagSlot(InventoryBase inv, int bagIndex, int slotIndex, SlotSpec spec)
-        => spec.Type == BackpackSlotType.Filtered
-            ? new slots.ItemSlotFilteredBagContent(inv, bagIndex, slotIndex, spec)
-            : new ItemSlotBagContent(inv, bagIndex, slotIndex, spec.Flags) { HexBackgroundColor = spec.Color };
+        => new(inv, bagIndex, slotIndex, spec.Flags)
+        {
+            CanStoreTags = spec.Tags,
+            HexBackgroundColor = spec.Color
+        };
 
-    /// <summary>The same, for the placed backpack's dialog inventory.</summary>
     public static ItemSlotSurvival CreateDialogSlot(InventoryBase inv, SlotSpec spec)
-        => spec.Type == BackpackSlotType.Filtered
-            ? new slots.ItemSlotFilteredSurvival(inv, spec)
-            : new ItemSlotSurvival(inv) { StorageType = spec.Flags, HexBackgroundColor = spec.Color };
+        => new(inv)
+        {
+            StorageType = spec.Flags,
+            CanStoreTags = spec.Tags,
+            HexBackgroundColor = spec.Color
+        };
 
-    /// <summary>Acceptance beyond storage flags: the categories the slot's spec names.</summary>
-    public static bool CanHold(SlotSpec spec, ItemSlot sourceSlot)
-        => spec.AcceptsCategory(sourceSlot?.Itemstack?.Collectible);
-
-    /// <summary>
-    /// Position-sensitive hash of a bag's unified cargo (<c>backpack.slots</c>), used to invalidate the composed
-    /// worn/held/GUI meshes when the contents change. Folds each slot's stack by index, so moving a tool between
-    /// slots changes the hash - unlike <see cref="TreeAttribute.GetHashCode"/>, which XORs entries and so is
-    /// unchanged when two slots swap their stacks (an axe moving off a toolstrap tool slot would render stale).
-    /// </summary>
     public static int CargoHash(ITreeAttribute slots)
     {
         if (slots == null) return 0;
-        int h = 17;
+        int hash = 17;
         for (int i = 0; slots.HasAttribute("slot-" + i); i++)
-            h = h * 31 + ((slots["slot-" + i] as ItemstackAttribute)?.value?.GetHashCode() ?? 0);
-        return h;
+            hash = hash * 31 + ((slots["slot-" + i] as ItemstackAttribute)?.value?.GetHashCode() ?? 0);
+        return hash;
     }
 }
