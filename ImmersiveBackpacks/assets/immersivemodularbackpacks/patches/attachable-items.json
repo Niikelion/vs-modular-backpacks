@@ -1,6 +1,3 @@
-// The shared transform is patched in as its own top-level attribute rather than as a member of
-// immersiveBackpackAttachment: that is where vanilla's Transform Editor stores it, so it can be tuned with
-// /tfedit and written straight back here. Two entries per item is the price.
 [
 	{
 		"op": "add",

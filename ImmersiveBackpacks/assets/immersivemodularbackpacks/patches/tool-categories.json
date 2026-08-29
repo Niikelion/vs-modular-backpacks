@@ -54,7 +54,20 @@
 		"value": { "category": "twohanded" },
 		"file": "game:itemtypes/tool/scythe.json"
 	},
-	{ "op": "add", "path": "/tags/-", "value": "twohanded", "file": "game:itemtypes/tool/scythe.json" },
+	{ "op": "add", "path": "/tags", "value": ["twohanded"], "file": "game:itemtypes/tool/scythe.json" },
+	{
+		"op": "add",
+		"path": "/attributes/immersiveBackpackAttachment",
+		"value": { "category": "twohanded" },
+		"file": "game:itemtypes/tool/fishingpole.json"
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": -1, "y": 0, "z": 0 } },
+		"file": "game:itemtypes/tool/fishingpole.json"
+	},
+	{ "op": "add", "path": "/tags/-", "value": "twohanded", "file": "game:itemtypes/tool/fishingpole.json" },
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
