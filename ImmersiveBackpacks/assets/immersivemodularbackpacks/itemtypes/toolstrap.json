@@ -17,23 +17,23 @@
 		"scale": 0.6
 	},
 	"creativeinventory": { "general": ["*"] },
-	"behaviors": [ { "name": "ImmersiveFilteredBag" }, { "name": "ImmersiveToolstrapAttachment" } ],
+	"behaviors": [
+		{ "name": "HeldBag", "properties": { "tags": [ "twohanded" ] } },
+		{ "name": "ImmersiveToolstrapAttachment" }
+	],
 	"attributes": {
 		"handbook": {
 			"extraSections": [
 				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolstrap-text" }
 			]
 		},
-		"backpack": { "quantitySlots": 1 },
+		"backpack": { "quantitySlots": 1, "storageFlags": 189, "slotBgColor": "#ffddaa" },
 		"immersiveBackpack": {
 			"attachmentPoints": [
 				{ "code": "tool_0", "categories": [ "twohanded" ] }
 			]
 		},
-		"immersiveBackpackAttachment": {
-			"category": "toolstrap",
-			"slotType": "filtered"
-		},
+		"immersiveBackpackAttachment": { "category": "toolstrap" },
 		"immersiveAttachedTransform": { "scale": 0.5 }
 	}
 }

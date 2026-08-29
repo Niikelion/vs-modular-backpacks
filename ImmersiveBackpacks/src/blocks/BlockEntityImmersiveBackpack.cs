@@ -340,7 +340,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         return stack;
     }
 
-    // Slot layout (base slots + addon slots, each with its type/color) shared with the worn-bag
+    // Slot layout (base slots + addon slots, each with its vanilla flags/tags/color) shared with the worn-bag
     // IHeldBag implementation so the placed dialog and the worn bag look and store identically.
     private BackpackSlotLayout.SlotSpec[] Layout()
         => BackpackSlotLayout.Build(BagAttributes(), GetBaseSlots(), AttachedItems);
@@ -557,7 +557,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
         int baseSlots = item?.Attributes?["backpack"]?["quantitySlots"]?.AsInt(0) ?? 0;
         // Rebuild on any layout change, not just a slot-count change, so swapping an addon for another with the
-        // same count but a different slot type refreshes each slot's filter/color on the client.
+        // same count but different flags/tags/color refreshes each slot on the client.
         var layout = BackpackSlotLayout.Build(item?.Attributes, baseSlots, AttachedItems);
         bool layoutChanged = !LayoutEquals(cargoLayout, layout);
         if (layoutChanged)

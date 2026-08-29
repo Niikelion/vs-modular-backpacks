@@ -17,24 +17,24 @@
 		"scale": 0.6
 	},
 	"creativeinventory": { "general": ["*"] },
-	"behaviors": [ { "name": "ImmersiveFilteredBag" }, { "name": "ImmersiveToolstrapAttachment" } ],
+	"behaviors": [
+		{ "name": "HeldBag", "properties": { "tags": [ "handtool" ] } },
+		{ "name": "ImmersiveToolstrapAttachment" }
+	],
 	"attributes": {
 		"handbook": {
 			"extraSections": [
 				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolroll-text" }
 			]
 		},
-		"backpack": { "quantitySlots": 2 },
+		"backpack": { "quantitySlots": 2, "storageFlags": 189, "slotBgColor": "#ffddaa" },
 		"immersiveBackpack": {
 			"attachmentPoints": [
 				{ "code": "tool_0", "categories": [ "handtool" ] },
 				{ "code": "tool_1", "categories": [ "handtool" ] }
 			]
 		},
-		"immersiveBackpackAttachment": {
-			"category": "toolstrap",
-			"slotType": "filtered"
-		},
+		"immersiveBackpackAttachment": { "category": "toolstrap" },
 		"immersiveAttachedTransform": { "scale": 0.5 }
 	}
 }

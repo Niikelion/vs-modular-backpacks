@@ -17,7 +17,7 @@
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "slotType": "ore" },
+		"value": { "category": "sack" },
 		"file": "game:itemtypes/wearable/bag/miningbag.json"
 	},
 	{
@@ -29,7 +29,7 @@
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "sack", "slotType": "ore" },
+		"value": { "category": "sack" },
 		"file": "game:itemtypes/wearable/bag/miningbagsturdy.json"
 	},
 	{

@@ -133,7 +133,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         return true;
     }
 
-    public string GetSlotBgColor(ItemStack bagstack) => null;            // per-slot colours, see layout
+    public string GetSlotBgColor(ItemStack bagstack) => null;            // add-on colours come from their IHeldBag
 
     // Explicit: IHeldBag.GetStorageFlags (what the bag may contain) shares a signature with
     // CollectibleObject.GetStorageFlags (where this item itself may be stored - must stay Backpack so
@@ -176,7 +176,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
         var addons = itemstack.Attributes?.GetTreeAttribute("placed_addons");
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
-        if (addons == null || addons.Count == 0 || points == null || !points.Exists) return;
+        if (addons == null || addons.Count == 0 || points is not { Exists: true }) return;
 
         // Keyed by addon placement (point code + addon content hash, in point order) plus whether this is the
         // mirrored GUI variant, so per-frame cost is a single cheap hash + dictionary lookup; the actual
