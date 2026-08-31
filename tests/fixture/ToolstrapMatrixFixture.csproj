@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\Debug\Mods\toolstrapmatrixfixture</OutputPath>
+    <VsmcpRoot Condition="'$(VSMCP_ROOT)' == ''">$(MSBuildThisFileDirectory)..\..\..\VSMCP</VsmcpRoot>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="VintagestoryAPI" HintPath="$(VINTAGE_STORY)\VintagestoryAPI.dll" Private="false" />
+    <Reference Include="VSMCP" HintPath="$(VsmcpRoot)\VSMCP\bin\Debug\Mods\mod\VSMCP.dll" Private="false" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

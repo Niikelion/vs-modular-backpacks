@@ -42,19 +42,44 @@
 	},
 	{ "op": "add", "path": "/tags/-", "value": "twohanded", "file": "game:itemtypes/tool/prospectingpick.json" },
 	{
-		"op": "add",
-		"path": "/attributes/immersiveBackpackAttachment",
-		"value": { "category": "twohanded" },
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransformByType": {
+				"*-erel": {
+					"translation": {
+						"x": 0.9,
+						"y": 0,
+						"z": 0
+					}
+				},
+				"*": {
+					"translation": {
+						"x": 0.1,
+						"y": 0,
+						"z": 0
+					}
+				}
+			}
+		},
 		"file": "game:itemtypes/tool/spear.json"
 	},
-	{ "op": "add", "path": "/tags/-", "value": "twohanded", "file": "game:itemtypes/tool/spear.json" },
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [ "twohanded" ],
+		"file": "game:itemtypes/tool/spear.json"
+	},
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
 		"value": { "category": "twohanded" },
 		"file": "game:itemtypes/tool/scythe.json"
 	},
-	{ "op": "add", "path": "/tags", "value": ["twohanded"], "file": "game:itemtypes/tool/scythe.json" },
+	{ "op": "add", "path": "/tags/-", "value": "twohanded", "file": "game:itemtypes/tool/scythe.json" },
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",
@@ -67,7 +92,7 @@
 		"value": { "translation": { "x": -1, "y": 0, "z": 0 } },
 		"file": "game:itemtypes/tool/fishingpole.json"
 	},
-	{ "op": "add", "path": "/tags/-", "value": "twohanded", "file": "game:itemtypes/tool/fishingpole.json" },
+	{ "op": "addmerge", "path": "/tags", "value": ["twohanded"], "file": "game:itemtypes/tool/fishingpole.json" },
 	{
 		"op": "add",
 		"path": "/attributes/immersiveBackpackAttachment",

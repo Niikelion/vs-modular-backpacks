@@ -1,0 +1,11 @@
+{
+  "type": "code",
+  "modid": "toolstrapmatrixfixture",
+  "name": "Toolstrap Screenshot Matrix Fixture",
+  "version": "1.0.0",
+  "dependencies": {
+    "game": "1.22.0",
+    "vsmcp": "",
+    "immersivemodularbackpacks": ""
+  }
+}
