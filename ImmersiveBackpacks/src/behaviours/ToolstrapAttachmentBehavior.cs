@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
@@ -41,24 +41,13 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             var declared = coll.Attributes?["immersiveBackpack"]["attachmentPoints"];
             if (declared is not { Exists: true }) return [];
 
-            // Same base shape the composer tesselates, so marker codes line up with the rendered mesh.
-            var cs = AttachmentMesh.AttachedShapeComposite(coll)
-                ?? (coll as Item)?.Shape ?? (coll as Block)?.Shape;
-            var markers = AttachmentMesh.ReadSlots(world.Api, cs?.Base?.ToString(), coll.Code.Domain);
-
             // Shared sizing applied to each tool slot in both render contexts.
             var toolTf = AttachmentTransform.FromJson(coll.Attributes?["immersiveBackpackAttachment"]["toolTransform"]);
 
             var list = new List<IAttachmentPoint>();
-            foreach (var pt in declared.AsArray() ?? [])
-            {
-                string code = pt["code"].AsString();
-                if (code == null || !markers.TryGetValue(code, out var marker) || marker.Box == null) continue;
-
-                var b = marker.Box;
-                var box = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-                list.Add(new CategoryAttachmentPoint(code, pt["categories"].AsArray<string>(), box, toolTf));
-            }
+            foreach (var slot in SlotDataLoader.Load(world.Api, coll, declared,
+                         additionalTransform: toolTf))
+                list.Add(new CategoryAttachmentPoint(slot));
             return list;
         }
 

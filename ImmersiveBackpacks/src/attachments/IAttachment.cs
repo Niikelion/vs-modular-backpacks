@@ -3,7 +3,16 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
+
+[System.Flags]
+public enum AttachmentMirror
+{
+    None = 0,
+    X = 1,
+    Y = 2,
+    Z = 4
+}
 
 /**
  * <summary>
@@ -60,6 +69,10 @@ public interface IAttachmentPoint
 {
     string Code { get; }
 
+    bool IsVirtual { get; }
+
+    IReadOnlyList<string> MemberCodes { get; }
+
     /// <summary>Whether this point accepts the given attachment (category match, or a custom rule).</summary>
     bool Accepts(IAttachment attachment);
 
@@ -71,6 +84,12 @@ public interface IAttachmentPoint
 
     /// <summary>Transform applied to the occupant, in both the placed/held (mesh) and worn/entity (shape) contexts.</summary>
     AttachmentTransform Transform { get; }
+
+    AttachmentMirror Mirror { get; }
+
+    void OnAttached(IAttachment child, IAttachmentHost host);
+
+    void OnDetached();
 }
 
 /**

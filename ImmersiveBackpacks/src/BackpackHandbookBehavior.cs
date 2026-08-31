@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ImmersiveModularBackpacks.Attachments;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -39,7 +40,8 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
         components.AddRange(VtmlUtil.Richtextify(capi,
             Lang.Get("immersivemodularbackpacks:handbook-backpack-text") + "\n", font));
 
-        var groups = addonGroups ??= BuildAddonGroups(capi);
+        var allGroups = addonGroups ??= BuildAddonGroups(capi);
+        var groups = GroupsForBackpack(capi, inSlot?.Itemstack, allGroups);
 
         // The interactive preview: the bag in 3D with a dot on every attachment point, each dot cycling through
         // what that point accepts. Needs a stack to compose from, so it only appears on a stack-backed page.
@@ -76,7 +78,7 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
 
         foreach (var coll in capi.World.Collectibles)
         {
-            var categories = attachments.AttachmentCategories.Of(coll);
+            var categories = AttachmentCategories.Of(coll);
             string baseCode = coll.Code?.FirstCodePart();
             if (categories.Length == 0 || baseCode == null) continue;
 
@@ -90,7 +92,7 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
                 // Tools hang on a strap or roll, not on the bag: listing every axe and knife among the bag's addons
                 // would bury the things that actually bolt onto it. No bag point accepts those categories either,
                 // so the preview loses no candidate by skipping them here.
-                if (attachments.AttachmentCategories.IsCarriedTool(category)) continue;
+                if (AttachmentCategories.IsCarriedTool(category)) continue;
 
                 string key = category + "/" + baseCode;
                 if (!groups.TryGetValue(key, out var group))
@@ -108,6 +110,17 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
             .OrderBy(v => v.cat, StringComparer.Ordinal)
             .ThenBy(v => v.name, StringComparer.Ordinal)
             .Select(v => v.stacks.ToArray())
+            .ToArray();
+    }
+
+    private static ItemStack[][] GroupsForBackpack(ICoreClientAPI capi, ItemStack bagStack,
+        ItemStack[][] groups)
+    {
+        if (bagStack?.Collectible is not items.ItemImmersiveBag bag) return [];
+
+        var points = bag.BagNodeFor(bagStack).Points;
+        return groups.Where(group => group.Length > 0 && points.Any(point =>
+                point.Accepts(AttachmentFactory.For(group[0], capi.World))))
             .ToArray();
     }
 }

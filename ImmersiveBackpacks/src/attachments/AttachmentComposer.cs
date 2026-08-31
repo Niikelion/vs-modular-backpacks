@@ -5,7 +5,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// The single, host-agnostic composition core for the attachment tree. Every render path routes through here:
@@ -20,10 +20,8 @@ namespace ImmersiveBackpacks.attachments;
 ///
 /// A faithful generalisation of the bag's original inline composition, lifted to run over any
 /// <see cref="IAttachment"/> node instead of a fixed point list. Every host routes through here —
-/// <c>ItemImmersiveBag</c> (worn + held/GUI) and the placed block renderer alike. Geometry
-/// still comes from the owner shape's <c>slot_&lt;code&gt;</c> markers (mesh path via
-/// <see cref="AttachmentMesh.ReadSlots"/>, worn path via the slot element found in the tree), so authored bag
-/// shapes keep working unchanged. See [[attachment-system-design]].
+/// <c>ItemImmersiveBag</c> (worn + held/GUI) and the placed block renderer alike. Point geometry is baked before
+/// composition, so both paths consume the same anchor and transform. See [[attachment-system-design]].
 /// </summary>
 public static class AttachmentComposer
 {
@@ -73,9 +71,8 @@ public static class AttachmentComposer
     }
 
     /// <summary>
-    /// Attaches a node's occupied children into an ALREADY-LOADED parent shape, under each child's
-    /// <c>slot_&lt;code&gt;</c> element (inheriting the full ancestor transform chain), textures merged and
-    /// per-child prefixed. Separated from <see cref="ComposeShape"/> so a host root that must build its base
+    /// Attaches a node's occupied children into an ALREADY-LOADED parent shape using each point's baked geometry,
+    /// with textures merged and per-child prefixed. Separated from <see cref="ComposeShape"/> so a host root that must build its base
     /// shape specially (the worn bag: its own <c>attachableToEntity.attachedShape</c> + step-parent prep) can
     /// reuse the exact same child-attaching logic without going through the node's own display shape.
     /// </summary>
@@ -84,13 +81,13 @@ public static class AttachmentComposer
         var points = node.Points;
         if (points == null || points.Count == 0 || parentShape?.Elements == null) return;
 
-        var slotElems = FindSlotElements(parentShape.Elements);
+        string stepParent = RootStepParent(parentShape.Elements);
         int idx = 0;
         foreach (var pt in points)
         {
             var child = node.GetAttached(pt.Code);
             if (child == null) continue;
-            if (!slotElems.TryGetValue(pt.Code, out var s) || s.parent == null) continue;
+            if (pt.Origin == null) continue;
 
             // Through the node's own GetShape (not ComposeShape directly) so a child can override how it renders;
             // the default delegates back here, bringing its own children.
@@ -104,24 +101,15 @@ public static class AttachmentComposer
             MergeInto(parentShape.Textures ??= new(), childShape.Textures);
             MergeInto(parentShape.TextureSizes ??= new(), childShape.TextureSizes);
 
-            var slot = s.slot;
-            // Anchor at the slot's pivot (rotationOrigin), not its box centre - matches the mesh path and
-            // is independent of the box extent. Defaults to box centre when no pivot is authored.
-            double[] slotOrigin = slot.RotationOrigin is { Length: >= 3 }
-                ? slot.RotationOrigin
-                : new[] { (slot.From[0] + slot.To[0]) / 2.0, (slot.From[1] + slot.To[1]) / 2.0, (slot.From[2] + slot.To[2]) / 2.0 };
-            var slotRot = new[] { (float)slot.RotationX, (float)slot.RotationY, (float)slot.RotationZ };
-            // Worn placement: the slot marker's own rotation, the point's own transform (identity for a bag's
-            // addon points; a toolstrap's tool scale for its tool points), then the child's shared
-            // transform. The parent chain supplies the rest.
-            var tf = AttachmentTransform.FromRotation(slotRot)
-                .CombinedWith(pt.Transform)
-                .CombinedWith(AttachmentTransform.Attached(child.Stack.Collectible));
+            var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "worn").Mirrored(pt.Mirror);
+            var tf = pt.Transform.CombinedWith(itemTransform);
             // Anchor by the child's fixed model origin (16-unit), not its geometry bounds - content-stable.
             var childOrigin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
-            var wrapper = WrapAddon(childShape.Elements, slotOrigin, tf,
+            var wrapper = WrapAddon(childShape.Elements,
+                new[] { pt.Origin.X * 16.0, pt.Origin.Y * 16.0, pt.Origin.Z * 16.0 }, tf,
                 new[] { childOrigin.X * 16.0, childOrigin.Y * 16.0, childOrigin.Z * 16.0 });
-            AttachUnder(s.parent, new[] { wrapper });
+            wrapper.StepParentName = stepParent;
+            parentShape.Elements = Append(parentShape.Elements, wrapper);
         }
     }
 
@@ -157,10 +145,6 @@ public static class AttachmentComposer
         var points = node.Points;
         if (points == null || points.Count == 0) return baseMesh;
 
-        var coll = node.Stack.Collectible;
-        var baseComposite = AttachmentMesh.AttachedShapeComposite(coll) ?? GetDisplayShape(coll);
-        var markers = AttachmentMesh.ReadSlots(capi, baseComposite?.Base?.ToString(), coll.Code.Domain);
-
         var mat = new Matrixf();
         foreach (var pt in points)
         {
@@ -174,25 +158,14 @@ public static class AttachmentComposer
             // Anchor the child by its fixed model origin (not its bounds centre) so a container child
             // (a toolstrap) doesn't shift when its own children change, and asymmetric addons don't drift.
             var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
-            var tf = pt.Transform.CombinedWith(AttachmentTransform.ForItem(child.Stack.Collectible, "placed"));
+            var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "placed").Mirrored(pt.Mirror);
+            var tf = pt.Transform.CombinedWith(itemTransform);
 
-            float cx, cy, cz;
-            if (markers.TryGetValue(pt.Code, out var marker))
-            {
-                // Anchor at the marker's pivot (origin), 16-unit -> [0,1].
-                cx = marker.Origin.X / 16f; cy = marker.Origin.Y / 16f; cz = marker.Origin.Z / 16f;
-                tf = AttachmentTransform.FromRotation(marker.Rotation).CombinedWith(tf);
-            }
-            else if (pt.Box != null)
-            {
-                // No shape marker: fall back to the point's own anchor (box centre unless it set one).
-                cx = pt.Origin.X; cy = pt.Origin.Y; cz = pt.Origin.Z;
-            }
-            else continue;   // no marker and no box: nowhere to place
+            if (pt.Origin == null) continue;
 
             float s = tf.Scale;
             mat.Identity()
-                .Translate(cx, cy, cz)
+                .Translate(pt.Origin.X, pt.Origin.Y, pt.Origin.Z)
                 .RotateX(tf.Rotation[0] * D2R)
                 .RotateY(tf.Rotation[1] * D2R)
                 .RotateZ(tf.Rotation[2] * D2R)
@@ -345,40 +318,18 @@ public static class AttachmentComposer
         p[0] -= delta[0]; p[1] -= delta[1]; p[2] -= delta[2];
     }
 
-    private static Dictionary<string, (ShapeElement slot, ShapeElement parent)> FindSlotElements(ShapeElement[] roots)
+    private static ShapeElement[] Append(ShapeElement[] elements, ShapeElement added)
     {
-        var map = new Dictionary<string, (ShapeElement, ShapeElement)>();
-        if (roots == null) return map;
-
-        void Walk(ShapeElement el, ShapeElement parent)
-        {
-            if (el.Name != null && el.Name.StartsWith("slot_", StringComparison.OrdinalIgnoreCase))
-                map[el.Name.Substring("slot_".Length)] = (el, parent);
-            if (el.Children != null)
-                foreach (var c in el.Children) Walk(c, el);
-        }
-
-        foreach (var r in roots) Walk(r, null);
-        return map;
+        var result = new ShapeElement[elements.Length + 1];
+        elements.CopyTo(result, 0);
+        result[^1] = added;
+        return result;
     }
 
-    private static void AttachUnder(ShapeElement root, ShapeElement[] addonElements)
+    private static string RootStepParent(ShapeElement[] elements)
     {
-        foreach (var el in addonElements)
-        {
-            el.StepParentName = null;
-            el.ParentElement = root;
-        }
-
-        if (root.Children == null || root.Children.Length == 0)
-        {
-            root.Children = addonElements;
-            return;
-        }
-
-        var merged = new ShapeElement[root.Children.Length + addonElements.Length];
-        root.Children.CopyTo(merged, 0);
-        addonElements.CopyTo(merged, root.Children.Length);
-        root.Children = merged;
+        foreach (var element in elements)
+            if (!string.IsNullOrEmpty(element.StepParentName)) return element.StepParentName;
+        return null;
     }
 }

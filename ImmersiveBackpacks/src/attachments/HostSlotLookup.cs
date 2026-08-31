@@ -3,7 +3,7 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.GameContent;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Recovers the attachment slot a stack occupies on a host entity (an Equus horse, a mannequin, ...).

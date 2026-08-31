@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Helper for converting ItemStack to <see cref="IAttachment"/> node.

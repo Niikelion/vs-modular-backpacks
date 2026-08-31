@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Reads an addon's declared attachment categories. The <c>immersiveBackpackAttachment.category</c>

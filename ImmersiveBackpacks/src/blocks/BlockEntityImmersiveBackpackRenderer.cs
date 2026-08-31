@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -96,7 +96,8 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             var origin = AttachmentMesh.ModelOrigin(stack.Collectible);  // addon's fixed model origin
 
             // Apply the point's placed transform combined with the item override (no hitbox auto-fit).
-            var tf = point.Transform.CombinedWith(AttachmentTransform.ForItem(stack.Collectible, "placed"));
+            var itemTransform = AttachmentTransform.ForItem(stack.Collectible, "placed").Mirrored(point.Mirror);
+            var tf = point.Transform.CombinedWith(itemTransform);
             float scale = tf.Scale;
 
             // Rotate about the block centre (placement orientation), then position at the point's anchor

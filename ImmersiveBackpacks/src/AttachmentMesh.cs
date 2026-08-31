@@ -5,7 +5,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
-namespace ImmersiveBackpacks;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Shared addon-rendering helpers used by every place an attached addon is drawn: the placed block renderer

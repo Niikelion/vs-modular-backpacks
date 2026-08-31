@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.0
+
+- **Public attachment API.** Attachment contracts now live in `ImmersiveModularBackpacks.Attachments`, with
+  baked slot geometry and lifecycle hooks for external addons and hosts.
+- **Virtual attachment slots.** A spanning addon can occupy several real points; the sturdy backpack's new
+  `front_span` carries bedrolls across both lower-front points.
+- **Mirrored slot transforms.** Attachment points can mirror an addon's offset and rotation per local axis;
+  right-side backpack points now mirror across X.
+
 ## 1.8.0
 
 - **Breaking, for mod authors: the shared attachment transform moved to its own top-level attribute**, and is now

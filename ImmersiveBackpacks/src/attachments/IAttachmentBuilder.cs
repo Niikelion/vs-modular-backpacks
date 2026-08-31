@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Collectible-level capability: this addon builds its own <see cref="IAttachment"/> node when attached to a

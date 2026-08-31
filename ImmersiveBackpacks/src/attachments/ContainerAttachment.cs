@@ -1,6 +1,6 @@
 using Vintagestory.API.Common;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// A node that hosts children at its points, with the uniform storage every container shares: children live in

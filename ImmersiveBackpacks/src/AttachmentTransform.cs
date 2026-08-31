@@ -1,7 +1,7 @@
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
-namespace ImmersiveBackpacks;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// A render transform for an attached addon: a uniform scale multiplier, an offset and an XYZ rotation
@@ -125,4 +125,31 @@ public class AttachmentTransform
         Offset = new[] { Offset[0] + other.Offset[0], Offset[1] + other.Offset[1], Offset[2] + other.Offset[2] },
         Rotation = new[] { Rotation[0] + other.Rotation[0], Rotation[1] + other.Rotation[1], Rotation[2] + other.Rotation[2] }
     };
+
+    public AttachmentTransform Mirrored(AttachmentMirror mirror)
+    {
+        var offset = (float[])Offset.Clone();
+        var rotation = (float[])Rotation.Clone();
+
+        if ((mirror & AttachmentMirror.X) != 0)
+        {
+            offset[0] = -offset[0];
+            rotation[1] = -rotation[1];
+            rotation[2] = -rotation[2];
+        }
+        if ((mirror & AttachmentMirror.Y) != 0)
+        {
+            offset[1] = -offset[1];
+            rotation[0] = -rotation[0];
+            rotation[2] = -rotation[2];
+        }
+        if ((mirror & AttachmentMirror.Z) != 0)
+        {
+            offset[2] = -offset[2];
+            rotation[0] = -rotation[0];
+            rotation[1] = -rotation[1];
+        }
+
+        return new AttachmentTransform { Scale = Scale, Offset = offset, Rotation = rotation };
+    }
 }

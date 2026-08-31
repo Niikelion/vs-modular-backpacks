@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using Vintagestory.API.Common;
 
 namespace ImmersiveBackpacks.items;

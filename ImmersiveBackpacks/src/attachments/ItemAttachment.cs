@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// The simplest node: a bare stack that renders and hosts nothing — a tool on a strap, an item in a structure

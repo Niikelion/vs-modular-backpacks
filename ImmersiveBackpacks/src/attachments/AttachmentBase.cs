@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Default <see cref="IAttachment"/> node. Supplies everything host-agnostic — identity, a recursive content

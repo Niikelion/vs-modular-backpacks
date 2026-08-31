@@ -69,21 +69,26 @@ internal static class BridgeActions
         if (accessor.GetBlockEntity(pos) is not BlockEntityImmersiveBackpack be)
             return new { found = false, block = block?.Code?.ToString() };
 
-        // Selection boxes are body boxes first, then one per attachment point (BlockImmersiveBackpack
-        // .GetSelectionBoxes). Derive the offset rather than assuming one body box, so a mismatch with the
-        // attach gesture's own SelectionBoxIndex-1 shows up as a test failure instead of hiding.
+        // Selection boxes are body boxes first, then real attachment points. Virtual points have geometry for
+        // placement but no targetable box of their own.
         var boxes = block?.GetSelectionBoxes(accessor, pos) ?? [];
-        int bodyCount = Math.Max(0, boxes.Length - be.AttachmentPoints.Length);
+        int bodyCount = block?.SelectionBoxes?.Length ?? 0;
         var eye = EyePos(c);
+        int selectable = 0;
 
         var points = be.AttachmentPoints.Select((pt, i) =>
         {
-            var box = bodyCount + i < boxes.Length ? boxes[bodyCount + i] : pt.Box;
+            int selectionBoxIndex = pt.IsVirtual ? -1 : bodyCount + selectable++;
+            var box = selectionBoxIndex >= 0 && selectionBoxIndex < boxes.Length
+                ? boxes[selectionBoxIndex]
+                : pt.Box;
             return new
             {
                 code = pt.Code,
                 index = i,
-                selectionBoxIndex = bodyCount + i,
+                selectionBoxIndex,
+                virtualPoint = pt.IsVirtual,
+                slots = pt.MemberCodes,
                 categories = pt.Categories,
                 box = new
                 {

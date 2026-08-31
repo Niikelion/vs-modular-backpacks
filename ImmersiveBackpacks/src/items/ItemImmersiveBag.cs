@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.inventory;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -213,30 +213,22 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     // config, occupants read from placed_addons. A slot-bearing addon (a toolstrap) also gets the run of
     // unified cargo (backpack.slots) it owns, so its tools render — resolved here since only the bag knows the
     // layout. Point order matches BackpackSlotLayout, so the cargo ranges line up.
-    internal IAttachment BagNodeFor(ItemStack stack)
+    internal IAttachment BagNodeFor(ItemStack stack, string shapeBasePath = null, string context = "placed")
     {
         var pts = new List<IAttachmentPoint>();
         var orderedAddons = new List<ItemStack>();
         var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
-        if (points is { Exists: true })
-            foreach (var pt in points.AsArray() ?? [])
-            {
-                string code = pt["code"].AsString();
-                if (code == null) continue;
-                string[] cats = pt["categories"].AsArray<string>();
-                Cuboidf box = null;
-                float[] hb = pt["hitbox"].AsArray<float>();
-                if (hb is { Length: >= 6 })
-                    box = new(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
-                pts.Add(new CategoryAttachmentPoint(code, cats, box, AttachmentTransform.FromJson(pt["placed"])));
-                // Resolve before it feeds AddonRanges: an unresolved stack has a null Collectible, so
-                // AddonSlotCount reports 0 slots and a slot-bearing addon (toolstrap) would own no cargo
-                // range - its tools would silently drop out of the held/GUI mesh.
-                var addonStack = addonsTree?.GetItemstack(code);
-                addonStack?.ResolveBlockOrItem(api.World);
-                orderedAddons.Add(addonStack);
-            }
+        foreach (var slot in SlotDataLoader.Load(api, stack.Collectible, points, shapeBasePath, context))
+        {
+            pts.Add(new CategoryAttachmentPoint(slot));
+            // Resolve before it feeds AddonRanges: an unresolved stack has a null Collectible, so
+            // AddonSlotCount reports 0 slots and a slot-bearing addon (toolstrap) would own no cargo
+            // range - its tools would silently drop out of the held/GUI mesh.
+            var addonStack = addonsTree?.GetItemstack(slot.Code);
+            addonStack?.ResolveBlockOrItem(api.World);
+            orderedAddons.Add(addonStack);
+        }
 
         int baseSlots = Attributes?["backpack"]["quantitySlots"].AsInt() ?? 0;
         var ranges = BackpackSlotLayout.AddonRanges(baseSlots, orderedAddons);
@@ -403,7 +395,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         var combined = AttachmentComposer.LoadShape(capi, attached?.Base?.ToString(), Code.Domain);
         if (combined?.Elements == null || combined.Elements.Length == 0) return combined;
 
-        AttachmentComposer.ComposeChildrenInto(capi, combined, BagNodeFor(stack));
+        AttachmentComposer.ComposeChildrenInto(capi, combined,
+            BagNodeFor(stack, attached?.Base?.ToString(), "worn"));
 
         // The caller does NOT step-parent-prepare IWearableShapeSupplier results, so do it here.
         combined.SubclassForStepParenting(texturePrefixCode);
