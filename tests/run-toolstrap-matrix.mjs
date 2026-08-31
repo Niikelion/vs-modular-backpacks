@@ -27,6 +27,10 @@ run("dotnet", ["build", fixtureProject, "-c", "Debug"], repoRoot);
 const fixtureMods = path.join(testsRoot, "fixture", "bin", "Debug", "Mods");
 const dolabraPath = process.env.IB_MATRIX_DOLABRA_PATH
   ?? path.join(repoRoot, ".compat-test", "mods", "Infantry-dolabra_2.0.2.zip");
+const toolsmithPath = process.env.IB_MATRIX_TOOLSMITH_PATH
+  ?? path.join(repoRoot, ".compat-test", "mods", "toolsmith_1.2.19.zip");
+const soldierSpyCraftworksPath = process.env.IB_MATRIX_SOLDIERSPY_CRAFTWORKS_PATH
+  ?? path.join(repoRoot, ".compat-test", "mods", "SoldierSpy-Craftworks-1.4.1.zip");
 const walkingSticksPath = process.env.IB_MATRIX_WALKING_STICKS_PATH
   ?? newestMatchingFile(
     path.join(process.env.APPDATA ?? "", "VintagestoryData", "ModsByServer"),
@@ -34,6 +38,8 @@ const walkingSticksPath = process.env.IB_MATRIX_WALKING_STICKS_PATH
   );
 
 stageMod(dolabraPath, path.join(fixtureMods, "matrix-dolabra.zip"), "IB_MATRIX_DOLABRA_PATH");
+stageMod(toolsmithPath, path.join(fixtureMods, "matrix-toolsmith.zip"), "IB_MATRIX_TOOLSMITH_PATH");
+stageMod(soldierSpyCraftworksPath, path.join(fixtureMods, "matrix-soldierspy-craftworks.zip"), "IB_MATRIX_SOLDIERSPY_CRAFTWORKS_PATH");
 stageMod(walkingSticksPath, path.join(fixtureMods, "matrix-walking-sticks.zip"), "IB_MATRIX_WALKING_STICKS_PATH");
 
 run(process.execPath, [path.join(testsRoot, "node_modules", "typescript", "bin", "tsc")], testsRoot);

@@ -32,4 +32,6 @@ Environment overrides:
 - `IB_MATRIX_OUTPUT_PATH`: screenshot and HTML output directory.
 - `IB_MATRIX_DATA_PATH`: isolated Vintage Story data directory.
 - `IB_MATRIX_DOLABRA_PATH`: Dolabra mod archive used by the matrix.
+- `IB_MATRIX_TOOLSMITH_PATH`: Toolsmith mod archive used by the matrix.
+- `IB_MATRIX_SOLDIERSPY_CRAFTWORKS_PATH`: SoldierSpy Craftworks mod archive used by the matrix.
 - `IB_MATRIX_WALKING_STICKS_PATH`: Adventurer's Walking Stick Lite mod archive used by the matrix.

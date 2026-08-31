@@ -9,6 +9,7 @@ interface MatrixItem {
   group: string;
   code: string;
   label: string;
+  preset?: string;
 }
 
 // One representative per distinct model shape. Material-only texture variants are intentionally omitted.
@@ -42,6 +43,10 @@ const ITEMS: MatrixItem[] = [
   { group: "Scythe", code: "game:scythe-copper", label: "Scythe" },
   { group: "Fishing pole", code: "game:fishingpole-simple-bamboo", label: "Fishing pole — bamboo" },
   { group: "Fishing pole", code: "game:fishingpole-simple-wood", label: "Fishing pole — wood" },
+  { group: "Toolsmith", code: "game:axe-felling-iron", label: "Toolsmith — axe", preset: "toolsmith:axe" },
+  { group: "Toolsmith", code: "game:pickaxe-iron", label: "Toolsmith — pickaxe", preset: "toolsmith:pickaxe" },
+  { group: "Toolsmith", code: "game:shovel-copper", label: "Toolsmith — shovel", preset: "toolsmith:shovel" },
+  { group: "Toolsmith", code: "game:scythe-copper", label: "Toolsmith — scythe", preset: "toolsmith:scythe" },
   { group: "Dolabra", code: "dolabra:dolabra-axe", label: "Dolabra — axe" },
   { group: "Dolabra", code: "dolabra:dolabra-pick", label: "Dolabra — pick" },
   { group: "Dolabra", code: "dolabra:dolabra-blackbronze-axe", label: "Dolabra — black bronze axe" },
@@ -54,6 +59,7 @@ const ITEMS: MatrixItem[] = [
   { group: "Walking stick", code: "walkingstick:walkingstick-fine", label: "Walking stick — fine" },
   { group: "Walking stick", code: "walkingstick:walkingstick-lantern-copper", label: "Walking stick — lantern" },
   { group: "Walking stick", code: "walkingstick:walkingstick-reinforced", label: "Walking stick — reinforced" },
+  { group: "SoldierSpy Craftworks", code: "soldierspycraftworks:warpick", label: "SoldierSpy — Blackguard Warpick" },
 ];
 
 const here = path.dirname(fileURLToPath(import.meta.url));
