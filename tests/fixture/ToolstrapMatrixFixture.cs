@@ -1,4 +1,5 @@
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using VSMCP;
 
@@ -19,7 +20,8 @@ public sealed class ToolstrapMatrixFixtureMod : ModSystem
                     y = new { type = "integer" },
                     z = new { type = "integer" },
                     slot = new { type = "integer", minimum = 0 },
-                    code = new { type = "string" }
+                    code = new { type = "string" },
+                    preset = new { type = "string" }
                 },
                 required = new[] { "x", "y", "z", "slot", "code" }
             }, module: "toolstrapmatrixfixture");
@@ -41,7 +43,42 @@ public sealed class ToolstrapMatrixFixtureMod : ModSystem
 
         var slot = container.Inventory[slotIndex];
         slot.Itemstack = new ItemStack(item);
+        ApplyPreset(slot.Itemstack, args.GetString("preset", null));
         slot.MarkDirty();
         return new { ok = true, slot = slotIndex, code = item.Code.ToString() };
+    }
+
+    private static void ApplyPreset(ItemStack stack, string preset)
+    {
+        if (preset == null || !preset.StartsWith("toolsmith:")) return;
+
+        string tool = preset["toolsmith:".Length..];
+        var multi = new TreeAttribute();
+        multi.SetAttribute("head", ToolsmithNode($"toolsmith:item/parts/{tool}/heads/advanced",
+            ("material", "game:block/metal/ingot/steel")));
+        multi.SetAttribute("handle", ToolsmithNode($"toolsmith:item/parts/{tool}/handles/fine/handle",
+            ("wood", "game:block/wood/debarked/oak")));
+        multi.SetAttribute("binding", ToolsmithNode($"toolsmith:item/parts/{tool}/handles/universal/binding/metal-metalhead",
+            ("material", "game:block/metal/ingot/copper")));
+
+        ((TreeAttribute)stack.Attributes).SetAttribute("modularMultiPartRenderData", multi);
+    }
+
+    private static TreeAttribute ToolsmithNode(string shapePath, params (string Code, string Texture)[] textures)
+    {
+        var part = new TreeAttribute();
+        part.SetString("partShapeIndex", shapePath);
+
+        var partTextures = new TreeAttribute();
+        foreach (var (code, texture) in textures)
+        {
+            partTextures.SetString(code, texture);
+        }
+
+        part.SetAttribute("partTextures", partTextures);
+
+        var node = new TreeAttribute();
+        node.SetAttribute("modularPartRenderData", part);
+        return node;
     }
 }
