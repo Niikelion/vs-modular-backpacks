@@ -1,0 +1,44 @@
+[
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick.json",
+		"dependsOn": [ { "modid": "walkingsticklite" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-cowskull.json",
+		"dependsOn": [ { "modid": "walkingsticklite" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-crude.json",
+		"dependsOn": [ { "modid": "walkingsticklite" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-fine.json",
+		"dependsOn": [ { "modid": "walkingsticklite" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-lantern.json",
+		"dependsOn": [ { "modid": "walkingsticklite" } ]
+	},
+	{
+		"op": "add",
+		"path": "/attributes/immersiveAttachedTransform",
+		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-reinforced.json",
+		"dependsOn": [ { "modid": "walkingsticklite" } ]
+	}
+]

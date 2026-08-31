@@ -5,8 +5,11 @@
   "type": "module",
   "description": "Integration tests that drive a real Vintage Story client through the VSMCP bridge.",
   "scripts": {
+    "build": "tsc",
     "test": "tsc && node --test \"dist/**/*.test.js\"",
-    "test:only": "tsc && node --test \"dist/**/*.test.js\" --test-name-pattern"
+    "test:only": "tsc && node --test \"dist/**/*.test.js\" --test-name-pattern",
+    "matrix:toolstrap": "node ./run-toolstrap-matrix.mjs",
+    "matrix:serve": "node ./serve-toolstrap-matrix.mjs"
   },
   "dependencies": {
     "vsmcp-server": "file:../../VSMCP/mcp-server"
