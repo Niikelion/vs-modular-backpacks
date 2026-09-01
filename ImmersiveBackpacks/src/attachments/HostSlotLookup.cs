@@ -1,3 +1,4 @@
+#nullable enable
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
@@ -23,10 +24,10 @@ public static class HostSlotLookup
     private const string BehaviorCode = "rideableaccessories";
 
     /// <summary>The host slot code holding <paramref name="stack"/>, or null if the host has no such slot.</summary>
-    public static string SlotCodeFor(Entity host, ItemStack stack)
+    public static string? SlotCodeFor(Entity? host, ItemStack? stack)
     {
-        InventoryBase inv = host?.GetBehavior<EntityBehaviorAttachable>()?.Inventory;
-        if (inv == null || stack == null) return null;
+        InventoryBase? inv = host?.GetBehavior<EntityBehaviorAttachable>()?.Inventory;
+        if (inv == null || stack == null || host == null) return null;
 
         int index = -1;
         for (int i = 0; i < inv.Count; i++)
@@ -40,26 +41,26 @@ public static class HostSlotLookup
 
         if (index < 0) return null;
 
-        WearableSlotConfig[] slots = SlotConfigs(host);
+        var slots = SlotConfigs(host);
         return slots != null && index < slots.Length ? slots[index].Code : null;
     }
 
-    private static WearableSlotConfig[] SlotConfigs(Entity host)
+    private static WearableSlotConfig[]? SlotConfigs(Entity host)
     {
-        JsonObject[][] sides =
+        JsonObject[]?[] sides =
         [
             host.Properties?.Client?.BehaviorsAsJsonObj,
             host.Properties?.Server?.BehaviorsAsJsonObj
         ];
 
-        foreach (JsonObject[] behaviors in sides)
+        foreach (var behaviors in sides)
         {
             if (behaviors == null) continue;
-            foreach (JsonObject behavior in behaviors)
+            foreach (var behavior in behaviors)
             {
                 if (behavior["code"].AsString() != BehaviorCode) continue;
 
-                var slots = behavior["wearableSlots"].AsObject<WearableSlotConfig[]>(null);
+                var slots = behavior["wearableSlots"].AsObject<WearableSlotConfig[]>();
                 if (slots != null) return slots;
             }
         }

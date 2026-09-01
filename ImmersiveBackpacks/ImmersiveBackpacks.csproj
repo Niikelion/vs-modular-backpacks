@@ -6,6 +6,7 @@
              ImmersiveBackpacks - VS loads mod assemblies by simple name and rejects a duplicate. -->
         <AssemblyName>ImmersiveModularBackpacks</AssemblyName>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
         <!-- Folder name, not modid, is what Vintage Story keys a folder mod by: two mods both built into a
              folder called "mod" crash mod loading ("An item with the same key has already been added"). Name
              it after the modid so this output can be added as a mod path alongside any other mod's. -->

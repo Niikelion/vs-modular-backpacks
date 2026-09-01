@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using ImmersiveModularBackpacks.Attachments;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -86,14 +87,10 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
             if (stacks == null || stacks.Count == 0)
                 stacks = new List<ItemStack> { coll is Block b ? new ItemStack(b) : new ItemStack((Item)coll) };
 
-            // A multi-category addon shows up under each of its categories.
+            // A multi-category addon shows up under each of its categories. GroupsForBackpack later filters
+            // these through the concrete backpack's actual attachment points.
             foreach (string category in categories)
             {
-                // Tools hang on a strap or roll, not on the bag: listing every axe and knife among the bag's addons
-                // would bury the things that actually bolt onto it. No bag point accepts those categories either,
-                // so the preview loses no candidate by skipping them here.
-                if (AttachmentCategories.IsCarriedTool(category)) continue;
-
                 string key = category + "/" + baseCode;
                 if (!groups.TryGetValue(key, out var group))
                 {
@@ -119,8 +116,9 @@ public class BackpackHandbookBehavior : CollectibleBehavior, ICustomHandbookPage
         if (bagStack?.Collectible is not items.ItemImmersiveBag bag) return [];
 
         var points = bag.BagNodeFor(bagStack).Points;
-        return groups.Where(group => group.Length > 0 && points.Any(point =>
-                point.Accepts(AttachmentFactory.For(group[0], capi.World))))
+        return groups.Where(group => group.Length > 0
+                && AttachmentFactory.For(group[0], capi.World) is { } attachment
+                && points.Any(point => point.Accepts(attachment)))
             .ToArray();
     }
 }

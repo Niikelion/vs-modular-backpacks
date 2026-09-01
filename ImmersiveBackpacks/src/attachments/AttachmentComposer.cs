@@ -1,8 +1,8 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace ImmersiveModularBackpacks.Attachments;
@@ -18,9 +18,9 @@ namespace ImmersiveModularBackpacks.Attachments;
 ///     escape hatch lives: a child implementing <see cref="IAttachmentMeshSource"/> (the lantern) supplies its
 ///     authoritative mesh; everything else bakes/composes from its shape.
 ///
-/// A faithful generalisation of the bag's original inline composition, lifted to run over any
+/// A faithful generalization of the bag's original inline composition, lifted to run over any
 /// <see cref="IAttachment"/> node instead of a fixed point list. Every host routes through here —
-/// <c>ItemImmersiveBag</c> (worn + held/GUI) and the placed block renderer alike. Point geometry is baked before
+/// <c>ItemImmersiveBag</c> (worn and held/GUI) and the placed block renderer alike. Point geometry is baked before
 /// composition, so both paths consume the same anchor and transform. See [[attachment-system-design]].
 /// </summary>
 public static class AttachmentComposer
@@ -35,12 +35,13 @@ public static class AttachmentComposer
     /// must not, so this only wraps + attaches. Returns null-ish (empty) when the node has no usable shape,
     /// letting a node opt out of worn rendering.
     /// </summary>
-    public static Shape ComposeShape(ICoreAPI api, IAttachment node)
+    public static Shape? ComposeShape(ICoreAPI api, IAttachment node)
     {
-        Shape shape = StackShape(api, node.Stack);
+        var shape = StackShape(api, node.Stack);
         if (shape == null)
         {
             var coll = node.Stack.Collectible;
+            if (coll == null) return null;
             var baseComposite = AttachmentMesh.AttachedShapeComposite(coll) ?? GetDisplayShape(coll);
             shape = LoadShape(api, baseComposite?.Base?.ToString(), coll.Code.Domain);
             if (shape?.Elements == null || shape.Elements.Length == 0) return shape;
@@ -61,9 +62,9 @@ public static class AttachmentComposer
     /// Tried before the node's display shape; a provider returns null to defer. Textures are the provider's
     /// job, since it is the only one that knows what its shape references.
     /// </summary>
-    public static readonly List<System.Func<ICoreAPI, ItemStack, Shape>> StackShapeSources = [];
+    public static readonly List<System.Func<ICoreAPI, ItemStack, Shape?>> StackShapeSources = [];
 
-    private static Shape StackShape(ICoreAPI api, ItemStack stack)
+    private static Shape? StackShape(ICoreAPI api, ItemStack stack)
     {
         foreach (var source in StackShapeSources)
             if (source(api, stack) is { Elements.Length: > 0 } shape) return shape;
@@ -79,19 +80,18 @@ public static class AttachmentComposer
     public static void ComposeChildrenInto(ICoreAPI api, Shape parentShape, IAttachment node)
     {
         var points = node.Points;
-        if (points == null || points.Count == 0 || parentShape?.Elements == null) return;
+        if (points.Count == 0 || parentShape?.Elements == null) return;
 
-        string stepParent = RootStepParent(parentShape.Elements);
+        string? stepParent = RootStepParent(parentShape.Elements);
         int idx = 0;
         foreach (var pt in points)
         {
             var child = node.GetAttached(pt.Code);
             if (child == null) continue;
-            if (pt.Origin == null) continue;
 
             // Through the node's own GetShape (not ComposeShape directly) so a child can override how it renders;
             // the default delegates back here, bringing its own children.
-            Shape childShape = child.GetShape(api);
+            var childShape = child.GetShape(api);
             if (childShape?.Elements == null || childShape.Elements.Length == 0) continue;
 
             // Prefix the whole child subtree so its (already-composed) element/texture codes never collide with
@@ -106,8 +106,8 @@ public static class AttachmentComposer
             // Anchor by the child's fixed model origin (16-unit), not its geometry bounds - content-stable.
             var childOrigin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
             var wrapper = WrapAddon(childShape.Elements,
-                new[] { pt.Origin.X * 16.0, pt.Origin.Y * 16.0, pt.Origin.Z * 16.0 }, tf,
-                new[] { childOrigin.X * 16.0, childOrigin.Y * 16.0, childOrigin.Z * 16.0 });
+                [pt.Origin.X * 16.0, pt.Origin.Y * 16.0, pt.Origin.Z * 16.0], tf,
+                [childOrigin.X * 16.0, childOrigin.Y * 16.0, childOrigin.Z * 16.0]);
             wrapper.StepParentName = stepParent;
             parentShape.Elements = Append(parentShape.Elements, wrapper);
         }
@@ -120,30 +120,27 @@ public static class AttachmentComposer
     /// if it implements <see cref="IAttachmentMeshSource"/> (the lantern's variant/glass/glow), otherwise
     /// composes its shape-derived base mesh with its children.
     /// </summary>
-    public static MeshData MeshFor(ICoreClientAPI capi, IAttachment node)
+    public static MeshData? MeshFor(ICoreClientAPI capi, IAttachment node)
     {
-        if (node is IAttachmentMeshSource ms)
-        {
-            var m = ms.GetMesh(capi);
-            if (m != null) return m;
-        }
-        return ComposeMesh(capi, node);
+        if (node is not IAttachmentMeshSource ms) return ComposeMesh(capi, node);
+        var m = ms.GetMesh(capi);
+        return m;
     }
 
     /// <summary>
-    /// A node's base mesh (its own shape/stack, honouring an attached-specific shape) with each occupied
+    /// A node's base mesh (its own shape/stack, honoring an attached-specific shape) with each occupied
     /// child's <see cref="MeshFor"/> matrix-placed at its slot marker. Local item-model space ([0,1]); the
     /// host adapter applies the world/block or item ModelTransform on top. Mirror of <c>BuildHeldMesh</c>
-    /// minus the GUI mirror, generalised over child nodes.
+    /// minus the GUI mirror, generalized over child nodes.
     /// </summary>
-    public static MeshData ComposeMesh(ICoreClientAPI capi, IAttachment node)
+    public static MeshData? ComposeMesh(ICoreClientAPI capi, IAttachment node)
     {
-        var baseMesh = AttachmentMesh.Tesselate(capi, node.Stack);
+        var baseMesh = AttachmentMesh.Tessellate(capi, node.Stack);
         if (baseMesh == null) return null;
         baseMesh = baseMesh.Clone();
 
         var points = node.Points;
-        if (points == null || points.Count == 0) return baseMesh;
+        if (points.Count == 0) return baseMesh;
 
         var mat = new Matrixf();
         foreach (var pt in points)
@@ -160,8 +157,6 @@ public static class AttachmentComposer
             var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
             var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "placed").Mirrored(pt.Mirror);
             var tf = pt.Transform.CombinedWith(itemTransform);
-
-            if (pt.Origin == null) continue;
 
             float s = tf.Scale;
             mat.Identity()
@@ -182,7 +177,7 @@ public static class AttachmentComposer
 
     /// <summary>Loads a fresh, independent shape from a composite base path (host adapters use it to build a
     /// root base shape before composing children in).</summary>
-    public static Shape LoadShape(ICoreAPI api, string basePath, string defaultDomain)
+    public static Shape? LoadShape(ICoreAPI api, string? basePath, string defaultDomain)
     {
         if (string.IsNullOrEmpty(basePath)) return null;
         var loc = AssetLocation.Create(basePath, defaultDomain)
@@ -190,7 +185,7 @@ public static class AttachmentComposer
         return Shape.TryGet(api, loc.ToString());
     }
 
-    private static CompositeShape GetDisplayShape(CollectibleObject collectible)
+    private static CompositeShape? GetDisplayShape(CollectibleObject collectible)
         => collectible switch
         {
             Item it => it.Shape,
@@ -208,7 +203,7 @@ public static class AttachmentComposer
                 e.Name = prefix + e.Name;
                 if (e.FacesResolved == null) return;
                 foreach (var face in e.FacesResolved)
-                    if (face != null && face.Enabled)
+                    if (face.Enabled)
                         face.Texture = prefix + face.Texture;
             });
 
@@ -223,7 +218,7 @@ public static class AttachmentComposer
             addonShape.Textures ??= new();
             try
             {
-                atta.CollectTextures(addonStack, addonShape, "", new Dictionary<string, CompositeTexture>());
+                atta.CollectTextures(addonStack, addonShape, "", new());
                 return;
             }
             catch (Exception)
@@ -237,7 +232,7 @@ public static class AttachmentComposer
 
     private static void MergeAddonTextures(CollectibleObject collectible, Shape addonShape)
     {
-        IDictionary<string, CompositeTexture> src = collectible switch
+        IDictionary<string, CompositeTexture>? src = collectible switch
         {
             Item it => it.Textures,
             Block bl => bl.Textures,
@@ -251,7 +246,7 @@ public static class AttachmentComposer
     }
 
     private static Dictionary<string, AssetLocation> RekeyAssets(
-        Dictionary<string, AssetLocation> src, string prefix)
+        Dictionary<string, AssetLocation>? src, string prefix)
     {
         var dst = new Dictionary<string, AssetLocation>();
         if (src != null)
@@ -259,7 +254,7 @@ public static class AttachmentComposer
         return dst;
     }
 
-    private static Dictionary<string, int[]> RekeySizes(Dictionary<string, int[]> src, string prefix)
+    private static Dictionary<string, int[]> RekeySizes(Dictionary<string, int[]>? src, string prefix)
     {
         var dst = new Dictionary<string, int[]>();
         if (src != null)
@@ -267,7 +262,7 @@ public static class AttachmentComposer
         return dst;
     }
 
-    private static void MergeInto<T>(Dictionary<string, T> target, Dictionary<string, T> src)
+    private static void MergeInto<T>(Dictionary<string, T> target, Dictionary<string, T>? src)
     {
         if (src == null) return;
         foreach (var kv in src) target[kv.Key] = kv.Value;
@@ -312,7 +307,7 @@ public static class AttachmentComposer
         return wrapper;
     }
 
-    private static void Shift(double[] p, double[] delta)
+    private static void Shift(double[]? p, double[] delta)
     {
         if (p == null) return;
         p[0] -= delta[0]; p[1] -= delta[1]; p[2] -= delta[2];
@@ -326,7 +321,7 @@ public static class AttachmentComposer
         return result;
     }
 
-    private static string RootStepParent(ShapeElement[] elements)
+    private static string? RootStepParent(ShapeElement[] elements)
     {
         foreach (var element in elements)
             if (!string.IsNullOrEmpty(element.StepParentName)) return element.StepParentName;

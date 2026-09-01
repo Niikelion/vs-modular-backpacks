@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+#nullable enable
 using Vintagestory.API.Common;
 
 namespace ImmersiveModularBackpacks.Attachments;
@@ -8,13 +8,12 @@ namespace ImmersiveModularBackpacks.Attachments;
 /// </summary>
 public static class AttachmentFactory
 {
-    /// <summary>Builds an addon's node, given the host cargo it owns. An addon supplying an
-    /// <see cref="IAttachmentBuilder"/> (class or behavior) builds its own container over that cargo; else a leaf.</summary>
-    public static IAttachment For(ItemStack itemStack, IWorldAccessor world, IReadOnlyList<ItemStack> ownedCargo = null)
+    /// <summary>Builds a node from the complete state carried by its stack.</summary>
+    public static IAttachment? For(ItemStack? itemStack, IWorldAccessor world)
     {
         if (itemStack?.Collectible is not { } collectible) return null;
 
         var builder = collectible.GetCollectibleInterface<IAttachmentBuilder>();
-        return builder != null ? builder.Build(itemStack, world, ownedCargo) : new ItemAttachment(itemStack);
+        return builder != null ? builder.Build(itemStack, world) : new ItemAttachment(itemStack);
     }
 }

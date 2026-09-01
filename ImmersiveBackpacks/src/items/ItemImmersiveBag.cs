@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.inventory;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -120,8 +121,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     public void Clear(ItemStack bagstack)
     {
-        var backpack = bagstack.Attributes.GetTreeAttribute("backpack");
-        if (backpack != null) backpack["slots"] = new TreeAttribute();
+        var backpack = bagstack.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
+        if (backpack != null) backpack[BackpackSaveData.SlotsKey] = new TreeAttribute();
     }
 
     public bool IsEmpty(ItemStack bagstack)
@@ -174,7 +175,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     {
         base.OnBeforeRender(capi, itemstack, target, ref renderinfo);
 
-        var addons = itemstack.Attributes?.GetTreeAttribute("placed_addons");
+        var addons = BackpackSaveData.GetAddons(itemstack.Attributes);
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
         if (addons == null || addons.Count == 0 || points is not { Exists: true }) return;
 
@@ -217,7 +218,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     {
         var pts = new List<IAttachmentPoint>();
         var orderedAddons = new List<ItemStack>();
-        var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
+        var addonsTree = BackpackSaveData.GetAddons(stack.Attributes);
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
         foreach (var slot in SlotDataLoader.Load(api, stack.Collectible, points, shapeBasePath, context))
         {
@@ -291,7 +292,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     private List<ItemStack> ReadAddons(ItemStack bagStack)
     {
         var result = new List<ItemStack>();
-        var tree = bagStack.Attributes?.GetTreeAttribute("placed_addons");
+        var tree = BackpackSaveData.GetAddons(bagStack.Attributes);
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
         if (tree == null || points is not { Exists: true }) return result;
 
@@ -309,19 +310,19 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     private static ITreeAttribute SlotsTree(ItemStack bagStack, bool create)
     {
-        var backpack = bagStack.Attributes.GetTreeAttribute("backpack");
+        var backpack = bagStack.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
         if (backpack == null)
         {
             if (!create) return null;
             backpack = new TreeAttribute();
-            bagStack.Attributes["backpack"] = backpack;
+            bagStack.Attributes[BackpackSaveData.BackpackKey] = backpack;
         }
-        var slots = backpack.GetTreeAttribute("slots");
+        var slots = backpack.GetTreeAttribute(BackpackSaveData.SlotsKey);
         if (slots == null)
         {
             if (!create) return null;
             slots = new TreeAttribute();
-            backpack["slots"] = slots;
+            backpack[BackpackSaveData.SlotsKey] = slots;
         }
         return slots;
     }

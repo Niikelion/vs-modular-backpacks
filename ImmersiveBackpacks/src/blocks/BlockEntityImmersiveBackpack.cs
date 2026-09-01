@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.inventory;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -74,12 +75,15 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     // Called by BackpackPlacementBehavior when the block is freshly placed.
     public void InitFromItemStack(ItemStack stack)
+        => InitFromItemStack(stack, initializeInventory: true);
+
+    internal void InitFromItemStack(ItemStack stack, bool initializeInventory)
     {
         BackpackItemCode = stack.Collectible.Code;
         LoadAttachmentConfig(Api, stack.Collectible);
         AttachedItems = new ItemStack[AttachmentPoints.Length];
 
-        var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
+        var addonsTree = BackpackSaveData.GetAddons(stack.Attributes);
         if (addonsTree != null)
         {
             WarnOrphanedAddons(addonsTree, Api);
@@ -92,9 +96,9 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             }
         }
 
-        cargoInv = NewCargoInv(Layout());
+        cargoInv = NewCargoInv(Layout(), initializeInventory);
 
-        var slotsTree = stack.Attributes?.GetTreeAttribute("backpack")?.GetTreeAttribute("slots");
+        var slotsTree = BackpackSaveData.GetHeldSlots(stack.Attributes);
         if (slotsTree != null)
         {
             for (int i = 0; i < cargoInv.Count; i++)
@@ -251,7 +255,8 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             s.ResolveBlockOrItem(Api.World);
             cargoInv[indices[k]].Itemstack = s;
         }
-        addon.Attributes.GetTreeAttribute("backpack")?.RemoveAttribute("slots");
+        addon.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey)
+            ?.RemoveAttribute(BackpackSaveData.SlotsKey);
     }
 
     // Move the cargo from a bag's owned slots back inside the bag stack (vanilla IHeldBag layout) and clear
@@ -266,31 +271,31 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             cargoInv[indices[k]].Itemstack = null;
         }
 
-        var backpack = addon.Attributes.GetTreeAttribute("backpack");
+        var backpack = addon.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
         if (backpack == null)
         {
             backpack = new TreeAttribute();
-            addon.Attributes["backpack"] = backpack;
+            addon.Attributes[BackpackSaveData.BackpackKey] = backpack;
         }
-        backpack["slots"] = slots;
+        backpack[BackpackSaveData.SlotsKey] = slots;
     }
 
     // The vanilla IHeldBag content tree on a bag stack: backpack -> slots -> slot-{i}.
     private static ITreeAttribute AddonSlotsTree(ItemStack addon, bool create)
     {
-        var backpack = addon.Attributes.GetTreeAttribute("backpack");
+        var backpack = addon.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
         if (backpack == null)
         {
             if (!create) return null;
             backpack = new TreeAttribute();
-            addon.Attributes["backpack"] = backpack;
+            addon.Attributes[BackpackSaveData.BackpackKey] = backpack;
         }
-        var slots = backpack.GetTreeAttribute("slots");
+        var slots = backpack.GetTreeAttribute(BackpackSaveData.SlotsKey);
         if (slots == null)
         {
             if (!create) return null;
             slots = new TreeAttribute();
-            backpack["slots"] = slots;
+            backpack[BackpackSaveData.SlotsKey] = slots;
         }
         return slots;
     }
@@ -342,15 +347,14 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
                 if (AttachedItems[i] == null) continue;
                 addonsTree.SetItemstack(AttachmentPoints[i].Code, AttachedItems[i]);
             }
-            stack.Attributes["placed_addons"] = addonsTree;
+            BackpackSaveData.SetAddons(stack.Attributes, addonsTree);
         }
 
         // Vanilla IHeldBag layout (backpack -> slots -> slot-{i}) so the worn bag reads the same cargo.
         var slotsTree = new TreeAttribute();
         for (int i = 0; i < cargoInv.Count; i++)
             slotsTree["slot-" + i] = new ItemstackAttribute(cargoInv[i].Itemstack);
-        var backpackTree = new TreeAttribute { ["slots"] = slotsTree };
-        stack.Attributes["backpack"] = backpackTree;
+        BackpackSaveData.SetHeldSlots(stack.Attributes, slotsTree);
 
         return stack;
     }
@@ -360,7 +364,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     private BackpackSlotLayout.SlotSpec[] Layout()
         => BackpackSlotLayout.Build(BagAttributes(), GetBaseSlots(), AttachedItems);
 
-    private InventoryGeneric NewCargoInv(BackpackSlotLayout.SlotSpec[] layout)
+    private InventoryGeneric NewCargoInv(BackpackSlotLayout.SlotSpec[] layout, bool initialize = true)
     {
         cargoLayout = layout;
         int size = Math.Max(1, layout.Length);
@@ -369,12 +373,12 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
                 ? BackpackSlotLayout.CreateDialogSlot(slotInv, layout[slotId])
                 : new(slotInv));
 
-        if (Api != null)
+        if (initialize && Api != null)
             inv.LateInitialize(InventoryClassName + "-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, Api);
 
         // A toolstrap renders the tools in the cargo slots it owns, so a cargo edit can change the model. Mark
         // the renderer dirty (client-only; renderer is null server-side) — its reconcile keys on each addon's
-        // ContentHash, so only the addon whose cargo changed re-meshes, not all of them. On the server, also
+        // RenderKey, so only the addon whose cargo changed re-meshes, not all of them. On the server, also
         // push the BE state so a cargo edit by ANY player (e.g. a remote client's dialog) reaches other clients
         // - without this the rendered tools and other clients' view stay stale until they reopen the dialog.
         inv.SlotModified += _ =>
@@ -396,14 +400,14 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     /// <summary>
     /// The unified-cargo stacks the addon at the given attachment point owns, in slot order — a toolstrap's
     /// rendered tools. Null when the point has no addon or the addon contributes no slots. The placed renderer
-    /// hands this to <c>AttachmentFactory.For</c> so the toolstrap composes its tools.
+    /// projects this through the addon's <c>IHeldBag</c> contract so the toolstrap composes its tools.
     /// </summary>
     // The live-host attachment node for the addon at a point (its owned cargo composed in), or null if empty.
     private IAttachment NodeAt(int pointIndex)
     {
         if (pointIndex < 0 || pointIndex >= AttachedItems.Length) return null;
         var addon = AttachedItems[pointIndex];
-        return addon == null ? null : AttachmentFactory.For(addon, Api.World, OwnedCargo(pointIndex));
+        return addon == null ? null : BackpackAttachmentFactory.For(addon, Api.World, OwnedCargo(pointIndex));
     }
 
     public IReadOnlyList<ItemStack> OwnedCargo(int pointIndex)
@@ -510,7 +514,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             if (AttachedItems[i] == null) continue;
             addonsTree.SetItemstack(AttachmentPoints[i].Code, AttachedItems[i]);
         }
-        tree["placed_addons"] = addonsTree;
+        BackpackSaveData.SetAddons(tree, addonsTree);
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
@@ -520,7 +524,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         var item = worldForResolving.GetItem(BackpackItemCode);
         if (item != null) LoadAttachmentConfig(worldForResolving.Api, item);
 
-        var addonsTree = tree.GetTreeAttribute("placed_addons");
+        var addonsTree = BackpackSaveData.GetAddons(tree);
         AttachedItems = new ItemStack[AttachmentPoints.Length];
         if (addonsTree != null)
         {

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using ImmersiveModularBackpacks.Attachments;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;

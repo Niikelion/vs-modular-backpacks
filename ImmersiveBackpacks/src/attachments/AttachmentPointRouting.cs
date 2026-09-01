@@ -1,4 +1,4 @@
-using System;
+#nullable enable
 using System.Collections.Generic;
 using Vintagestory.API.Common;
 
@@ -14,14 +14,14 @@ internal static class AttachmentPointRouting
 
         foreach (var (point, index) in Enumerate(points))
         {
-            if (point.IsVirtual || point.Box == null) continue;
+            if (point.IsVirtual) continue;
             if (selectableIndex-- == 0) return index;
         }
         return -1;
     }
 
     public static int OccupiedPointAt(IReadOnlyList<IAttachmentPoint> points,
-        IReadOnlyList<ItemStack> occupants, int realPointIndex)
+        IReadOnlyList<ItemStack?> occupants, int realPointIndex)
     {
         if (!IsReal(points, realPointIndex)) return -1;
         if (Occupant(occupants, realPointIndex) != null) return realPointIndex;
@@ -34,7 +34,7 @@ internal static class AttachmentPointRouting
     }
 
     public static int AttachTargetAt(IReadOnlyList<IAttachmentPoint> points,
-        IReadOnlyList<ItemStack> occupants, int realPointIndex, IAttachment candidate)
+        IReadOnlyList<ItemStack?> occupants, int realPointIndex, IAttachment? candidate)
     {
         if (candidate == null || !IsFree(points, occupants, realPointIndex)) return -1;
         if (points[realPointIndex].Accepts(candidate)) return realPointIndex;
@@ -48,7 +48,7 @@ internal static class AttachmentPointRouting
     }
 
     public static IReadOnlyList<IAttachmentPoint> AvailablePointsAt(IReadOnlyList<IAttachmentPoint> points,
-        IReadOnlyList<ItemStack> occupants, int realPointIndex)
+        IReadOnlyList<ItemStack?> occupants, int realPointIndex)
     {
         var available = new List<IAttachmentPoint>();
         if (!IsFree(points, occupants, realPointIndex)) return available;
@@ -63,7 +63,7 @@ internal static class AttachmentPointRouting
     }
 
     private static bool IsAvailableVirtual(IReadOnlyList<IAttachmentPoint> points,
-        IReadOnlyList<ItemStack> occupants, int virtualPointIndex)
+        IReadOnlyList<ItemStack?> occupants, int virtualPointIndex)
     {
         var point = points[virtualPointIndex];
         if (!point.IsVirtual || Occupant(occupants, virtualPointIndex) != null) return false;
@@ -76,7 +76,7 @@ internal static class AttachmentPointRouting
     }
 
     private static bool IsFree(IReadOnlyList<IAttachmentPoint> points,
-        IReadOnlyList<ItemStack> occupants, int realPointIndex)
+        IReadOnlyList<ItemStack?> occupants, int realPointIndex)
         => IsReal(points, realPointIndex) && OccupiedPointAt(points, occupants, realPointIndex) < 0;
 
     private static bool IsReal(IReadOnlyList<IAttachmentPoint> points, int index)
@@ -89,7 +89,7 @@ internal static class AttachmentPointRouting
         return -1;
     }
 
-    private static ItemStack Occupant(IReadOnlyList<ItemStack> occupants, int index)
+    private static ItemStack? Occupant(IReadOnlyList<ItemStack?> occupants, int index)
         => index >= 0 && index < occupants.Count ? occupants[index] : null;
 
     private static bool Contains(IReadOnlyList<string> values, string value)

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using Vintagestory.API.Common;
@@ -16,5 +17,5 @@ public sealed class ItemAttachment : AttachmentBase
 
     public override IReadOnlyList<IAttachmentPoint> Points => [];
 
-    public override IAttachment GetAttached(string pointCode) => null;
+    public override IAttachment? GetAttached(string pointCode) => null;
 }

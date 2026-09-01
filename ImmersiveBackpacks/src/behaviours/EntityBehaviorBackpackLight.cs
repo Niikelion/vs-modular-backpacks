@@ -76,7 +76,7 @@ public class EntityBehaviorBackpackLight(Entity entity) : EntityBehavior(entity)
         int n = Math.Min(4, inv.Count);
         for (int i = 0; i < n; i++)
         {
-            var slots = inv[i]?.Itemstack?.Attributes?.GetTreeAttribute("backpack")?.GetTreeAttribute("slots");
+            var slots = BackpackSaveData.GetHeldSlots(inv[i]?.Itemstack?.Attributes);
             sig = sig * 31 + BackpackSlotLayout.CargoHash(slots);
         }
 
@@ -128,10 +128,10 @@ public class EntityBehaviorBackpackLight(Entity entity) : EntityBehavior(entity)
             var stack = inv[i]?.Itemstack;
             sig = sig * 31 + (stack?.Collectible?.Id ?? 0);
             // Fold placed_addons so attaching/detaching an addon (also a synced stack attribute) re-tesselates.
-            sig = sig * 31 + (stack?.Attributes?.GetTreeAttribute("placed_addons")?.GetHashCode() ?? 0);
+            sig = sig * 31 + (BackpackSaveData.GetAddons(stack?.Attributes)?.GetHashCode() ?? 0);
             // Fold the cargo (position-sensitive) so a tool moving in/out of a worn toolstrap's slot re-tesselates
             // - otherwise the tool renders stale on the body until the whole bag is moved or re-equipped.
-            var slots = stack?.Attributes?.GetTreeAttribute("backpack")?.GetTreeAttribute("slots");
+            var slots = BackpackSaveData.GetHeldSlots(stack?.Attributes);
             sig = sig * 31 + BackpackSlotLayout.CargoHash(slots);
             // Fold Deven's "Immersive Backpacks" hide flag so selecting/deselecting a worn bag re-tesselates
             // and our GetShape guard hides/shows it, rather than relying only on that mod's own retessellation.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ImmersiveModularBackpacks.Attachments;
+using ImmersiveBackpacks.inventory;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -10,15 +11,17 @@ namespace ImmersiveBackpacks.blocks;
 public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI capi, BlockEntityImmersiveBackpack be)
     : IRenderer
 {
+    private readonly record struct AttachmentMeshKey(int PointIndex, ulong RenderKey);
+
     private MeshRef bodyMeshRef;
     // Multi-texture so a composed addon whose faces span both atlases (item-atlas strap + block-atlas tool)
     // binds each atlas per sub-mesh, instead of one atlas for the whole addon.
-    private readonly Dictionary<string, MultiTextureMeshRef> attachmentMeshRefs = new();
-    private readonly Dictionary<string, MultiTextureMeshRef> attachmentTransparentRefs = new();
-    private readonly HashSet<string> builtKeys = new();
+    private readonly Dictionary<AttachmentMeshKey, MultiTextureMeshRef> attachmentMeshRefs = new();
+    private readonly Dictionary<AttachmentMeshKey, MultiTextureMeshRef> attachmentTransparentRefs = new();
+    private readonly HashSet<AttachmentMeshKey> builtKeys = new();
     // Current cache key per attachment point, set on rebuild and read by the draw loop, so a frame needn't
     // rebuild a node just to look its mesh up.
-    private string[] pointKeys = Array.Empty<string>();
+    private AttachmentMeshKey?[] pointKeys = Array.Empty<AttachmentMeshKey?>();
     private bool dirty = true;
     // The generation these meshes were composed at. A live /tfedit tweak changes neither the addon placement nor
     // its contents, so nothing else would invalidate them - and a tool's transform is baked into its toolstrap's
@@ -86,9 +89,9 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             var stack = be.AttachedItems[i];
             if (stack == null) continue;
             var key = i < pointKeys.Length ? pointKeys[i] : null;
-            if (key == null) continue;
-            bool hasOpaque = attachmentMeshRefs.TryGetValue(key, out var opaqueRef);
-            bool hasTransp = attachmentTransparentRefs.TryGetValue(key, out var transpRef);
+            if (!key.HasValue) continue;
+            bool hasOpaque = attachmentMeshRefs.TryGetValue(key.Value, out var opaqueRef);
+            bool hasTransp = attachmentTransparentRefs.TryGetValue(key.Value, out var transpRef);
             if (!hasOpaque && !hasTransp) continue;                       // addon had no mesh; skip
 
             var point = be.AttachmentPoints[i];
@@ -159,7 +162,7 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
 
         if (be.BackpackItemCode == null)
         {
-            pointKeys = Array.Empty<string>();
+            pointKeys = Array.Empty<AttachmentMeshKey?>();
             return;
         }
 
@@ -175,19 +178,19 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
         }
 
         int n = be.AttachmentPoints.Length;
-        pointKeys = new string[n];
-        var desired = new HashSet<string>();
+        pointKeys = new AttachmentMeshKey?[n];
+        var desired = new HashSet<AttachmentMeshKey>();
 
         for (int i = 0; i < n; i++)
         {
             var stack = be.AttachedItems[i];
             if (stack?.Collectible == null) continue;
 
-            // Key on the node's ContentHash: it folds the addon's cargo children (a toolstrap's tools, which
+            // Key on the node's RenderKey: it folds the addon's cargo children (a toolstrap's tools, which
             // live in the bag's cargo rather than the addon stack), so a tool swap changes only this key and the
             // reconcile below re-meshes just this addon instead of every one.
-            var node = AttachmentFactory.For(stack, capi.World, be.OwnedCargo(i));
-            string key = $"{i}:{node.ContentHash}";
+            var node = BackpackAttachmentFactory.For(stack, capi.World, be.OwnedCargo(i));
+            var key = new AttachmentMeshKey(i, node.RenderKey);
             pointKeys[i] = key;
             desired.Add(key);
 
@@ -217,12 +220,12 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
 
     // Dispose and forget cached addon meshes whose key is no longer wanted (an addon detached, or its content
     // changed so a new key replaced it), keeping the rest so one addon's change doesn't re-mesh the others.
-    private void PruneStaleMeshes(HashSet<string> desired)
+    private void PruneStaleMeshes(HashSet<AttachmentMeshKey> desired)
     {
-        List<string> stale = null;
+        List<AttachmentMeshKey> stale = null;
         foreach (var k in builtKeys)
             if (!desired.Contains(k))
-                (stale ??= new List<string>()).Add(k);
+                (stale ??= new List<AttachmentMeshKey>()).Add(k);
         if (stale == null) return;
 
         foreach (var k in stale)
