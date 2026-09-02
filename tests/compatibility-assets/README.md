@@ -9,6 +9,7 @@ dotnet run --project tests/compatibility-assets/CompatibilityAssetTests.csproj
 The tests apply production patches using the game's `Tavis.JsonPatch` library. They check inventory tags,
 attachment categories, optional-mod gating, and preservation of existing tags and attributes. Covered models:
 six walking sticks (original and Lite editions), six Dolabra forms, SoldierSpy's warpick, and patched vanilla tools.
+When the installation includes survival assets, the vanilla patches are also checked against those files.
 
 Optionally pass a folder containing published mod ZIPs to repeat the checks against upstream assets:
 
