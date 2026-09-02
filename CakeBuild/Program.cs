@@ -188,6 +188,7 @@ public sealed class ValidateJsonTask : FrostingTask<BuildContext>
 
 [TaskName("Build")]
 [IsDependentOn(typeof(ValidateJsonTask))]
+[IsDependentOn(typeof(CompatibilityAssetTestsTask))]
 public sealed class BuildTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)
@@ -204,6 +205,16 @@ public sealed class BuildTask : FrostingTask<BuildContext>
             {
                 Configuration = context.BuildConfiguration
             });
+    }
+}
+
+[TaskName("CompatibilityAssetTests")]
+public sealed class CompatibilityAssetTestsTask : FrostingTask<BuildContext>
+{
+    public override void Run(BuildContext context)
+    {
+        context.DotNetRun("../tests/compatibility-assets/CompatibilityAssetTests.csproj",
+            new DotNetRunSettings { Configuration = context.BuildConfiguration });
     }
 }
 

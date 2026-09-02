@@ -1,9 +1,30 @@
 [
 	{
-		"op": "add",
-		"path": "/tags/-",
-		"value": "twohanded",
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			}
+		},
 		"file": "soldierspycraftworks:itemtypes/warpick.json",
-		"dependsOn": [ { "modid": "soldierspycraftworks" } ]
+		"dependsOn": [
+			{
+				"modid": "soldierspycraftworks"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "soldierspycraftworks:itemtypes/warpick.json",
+		"dependsOn": [
+			{
+				"modid": "soldierspycraftworks"
+			}
+		]
 	}
 ]
