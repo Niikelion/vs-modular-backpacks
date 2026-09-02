@@ -16,12 +16,14 @@ public abstract class AttachmentPointBase(
     Vec3f? origin = null,
     AttachmentMirror mirror = AttachmentMirror.None,
     bool isVirtual = false,
-    IReadOnlyList<string>? memberCodes = null)
-    : IAttachmentPoint
+    IReadOnlyList<string>? memberCodes = null,
+    IReadOnlyList<string>? tags = null)
+    : IAttachmentPoint, ITaggedAttachmentPoint
 {
     public string Code { get; } = code;
     public bool IsVirtual { get; } = isVirtual;
     public IReadOnlyList<string> MemberCodes { get; } = memberCodes ?? [];
+    public IReadOnlyList<string> Tags { get; } = tags ?? [];
     public Cuboidf Box { get; } = box;
     public AttachmentTransform Transform { get; } = transform ?? AttachmentTransform.Identity;
     public Vec3f Origin { get; } = origin ?? box.Center.ToVec3f();

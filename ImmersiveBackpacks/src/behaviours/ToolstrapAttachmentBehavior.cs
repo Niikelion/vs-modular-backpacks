@@ -17,11 +17,25 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
         => new ToolstrapAttachment(stack, world);
 
     private sealed class ToolstrapAttachment(ItemStack stack, IWorldAccessor world)
-        : AttachmentBase(stack)
+        : AttachmentBase(stack), IAttachmentPointContextReceiver
     {
         private readonly IReadOnlyList<ItemStack?> tools = ReadTools(stack, world);
+        private IReadOnlyList<string> parentPointTags = [];
+        private IReadOnlyList<IAttachmentPoint>? toolPoints;
 
-        public override IReadOnlyList<IAttachmentPoint> Points => field ??= BuildToolPoints();
+        public override IReadOnlyList<IAttachmentPoint> Points => toolPoints ??= BuildToolPoints();
+
+        public void SetAttachmentPointContext(IAttachmentPoint point)
+        {
+            parentPointTags = point is ITaggedAttachmentPoint tagged ? tagged.Tags : [];
+            toolPoints = null;
+        }
+
+        protected override void AppendOwnRenderState(ref AttachmentRenderKeyBuilder key)
+        {
+            base.AppendOwnRenderState(ref key);
+            foreach (string tag in parentPointTags) key.Add(tag);
+        }
 
         public override IAttachment? GetAttached(string pointCode)
         {
@@ -48,6 +62,10 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             // Shared sizing applied to each tool slot in both render contexts.
             var toolTf = AttachmentTransform.FromModelTransform(
                 coll.Attributes?["immersiveBackpackAttachment"]["toolTransform"]);
+            var transformsByTag = coll.Attributes?["immersiveBackpackAttachment"]["toolTransformByPointTag"];
+            foreach (string tag in parentPointTags)
+                toolTf = toolTf.CombinedWith(
+                    AttachmentTransform.FromModelTransform(transformsByTag?[tag]));
 
             var list = new List<IAttachmentPoint>();
             foreach (var slot in SlotDataLoader.Load(world.Api, coll, declared,

@@ -37,6 +37,13 @@ public sealed class BagAttachment : AttachmentBase
         s.ResolveBlockOrItem(world);
 
         toolsByPoint.TryGetValue(pointCode, out var owned);
-        return BackpackAttachmentFactory.For(s, world, owned);
+        IAttachmentPoint? point = null;
+        foreach (var candidate in points)
+            if (candidate.Code == pointCode)
+            {
+                point = candidate;
+                break;
+            }
+        return BackpackAttachmentFactory.For(s, world, owned, point);
     }
 }

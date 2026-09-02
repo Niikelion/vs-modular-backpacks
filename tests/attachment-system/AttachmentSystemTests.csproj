@@ -13,5 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="fixtures/**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../ImmersiveBackpacks/assets/immersivemodularbackpacks/patches/vanilla-backpack.json"
+          Link="assets/vanilla-backpack.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

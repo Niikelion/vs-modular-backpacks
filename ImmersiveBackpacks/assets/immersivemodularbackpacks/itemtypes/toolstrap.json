@@ -33,7 +33,12 @@
 				{ "code": "tool_0", "categories": [ "twohanded" ], "interactionColor": "#b3975b" }
 			]
 		},
-		"immersiveBackpackAttachment": { "category": "toolstrap" },
+		"immersiveBackpackAttachment": {
+			"category": "toolstrap",
+			"toolTransformByPointTag": {
+				"right": { "rotation": { "x": 180 } }
+			}
+		},
 		"immersiveAttachedTransform": { "scale": 0.5 }
 	}
 }

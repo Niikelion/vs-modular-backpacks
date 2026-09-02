@@ -87,7 +87,7 @@ public static class AttachmentComposer
         int idx = 0;
         foreach (var pt in points)
         {
-            var child = node.GetAttached(pt.Code);
+            var child = AttachmentFactory.WithPointContext(node.GetAttached(pt.Code), pt);
             if (child == null) continue;
 
             // Through the node's own GetShape (not ComposeShape directly) so a child can override how it renders;
@@ -119,13 +119,13 @@ public static class AttachmentComposer
     /// <summary>
     /// The mesh for a node in placed/held (item/block-atlas) space. Prefers the node's own authoritative mesh
     /// if it implements <see cref="IAttachmentMeshSource"/> (the lantern's variant/glass/glow), otherwise
-    /// composes its shape-derived base mesh with its children.
+    /// composes its shape-derived base mesh with its children. Returns an independently owned quad-layout mesh.
     /// </summary>
     public static MeshData? MeshFor(ICoreClientAPI capi, IAttachment node)
     {
         if (node is not IAttachmentMeshSource ms) return ComposeMesh(capi, node);
         var m = ms.GetMesh(capi);
-        return m;
+        return m == null ? null : AttachmentMeshNormalizer.CloneForComposition(m);
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ public static class AttachmentComposer
     {
         var baseMesh = AttachmentMesh.Tessellate(capi, node.Stack);
         if (baseMesh == null) return null;
-        baseMesh = baseMesh.Clone();
+        baseMesh = AttachmentMeshNormalizer.CloneForComposition(baseMesh);
 
         var points = node.Points;
         if (points.Count == 0) return baseMesh;
@@ -146,12 +146,11 @@ public static class AttachmentComposer
         var mat = new Matrixf();
         foreach (var pt in points)
         {
-            var child = node.GetAttached(pt.Code);
+            var child = AttachmentFactory.WithPointContext(node.GetAttached(pt.Code), pt);
             if (child == null) continue;
 
             var childMesh = MeshFor(capi, child);
             if (childMesh == null) continue;
-            childMesh = childMesh.Clone();
 
             ChildMatrix(mat, pt, child);
             childMesh.MatrixTransform(mat.Values);

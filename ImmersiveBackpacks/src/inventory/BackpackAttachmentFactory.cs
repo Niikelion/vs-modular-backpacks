@@ -10,10 +10,10 @@ namespace ImmersiveBackpacks.inventory;
 internal static class BackpackAttachmentFactory
 {
     public static IAttachment? For(ItemStack? stack, IWorldAccessor world,
-        IReadOnlyList<ItemStack?>? ownedCargo)
+        IReadOnlyList<ItemStack?>? ownedCargo, IAttachmentPoint? attachmentPoint = null)
     {
         if (stack?.Collectible?.GetCollectibleInterface<IHeldBag>() is not { } bag)
-            return AttachmentFactory.For(stack, world);
+            return AttachmentFactory.For(stack, world, attachmentPoint);
 
         var hydrated = stack.Clone();
         var slots = new TreeAttribute();
@@ -23,6 +23,6 @@ internal static class BackpackAttachmentFactory
                 i < (ownedCargo?.Count ?? 0) ? ownedCargo![i]?.Clone() : null);
         BackpackSaveData.SetHeldSlots(hydrated.Attributes, slots);
 
-        return AttachmentFactory.For(hydrated, world);
+        return AttachmentFactory.For(hydrated, world, attachmentPoint);
     }
 }

@@ -557,7 +557,8 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     {
         if (pointIndex < 0 || pointIndex >= AttachedItems.Length) return null;
         var addon = AttachedItems[pointIndex];
-        return addon == null ? null : BackpackAttachmentFactory.For(addon, Api.World, OwnedCargo(pointIndex));
+        return addon == null ? null : BackpackAttachmentFactory.For(
+            addon, Api.World, OwnedCargo(pointIndex), AttachmentPoints[pointIndex]);
     }
 
     public IReadOnlyList<ItemStack> OwnedCargo(int pointIndex)

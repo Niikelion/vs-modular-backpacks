@@ -191,6 +191,11 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     private MultiTextureMeshRef BuildHeldMesh(ICoreClientAPI capi, ItemStack itemstack, bool mirror)
     {
+        // Keep the GUI mirror pivot tied to the unmodified backpack. Using the composed bounds here makes an
+        // asymmetric addon (especially a long tool) move the backpack whenever attachments change.
+        var baseMesh = mirror ? AttachmentMesh.Tessellate(capi, itemstack) : null;
+        float mirrorX = baseMesh != null ? AttachmentMesh.Bounds(baseMesh).center.X : 0.5f;
+
         // Base bag mesh + each addon composed at its marker, in item-model space ([0,1]). The shared composer
         // is the single source of this (the placed block and worn shape route through the same core).
         var body = AttachmentComposer.ComposeMesh(capi, BagNodeFor(itemstack));
@@ -201,9 +206,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // side as the placed block (and the in-hand/ground renders, which use the unmirrored mesh).
         if (mirror)
         {
-            var (c, _) = AttachmentMesh.Bounds(body);
             var mat = new Matrixf();
-            mat.Identity().Translate(c.X, 0f, 0f).Scale(-1f, 1f, 1f).Translate(-c.X, 0f, 0f);
+            mat.Identity().Translate(mirrorX, 0f, 0f).Scale(-1f, 1f, 1f).Translate(-mirrorX, 0f, 0f);
             body.MatrixTransform(mat.Values);
         }
 

@@ -88,16 +88,19 @@ internal static class BridgeActions
         {
             if (stack == null) return null;
             var cargo = be.OwnedCargo(i);
-            var node = BackpackAttachmentFactory.For(stack, c.Server.World, cargo);
+            var node = BackpackAttachmentFactory.For(
+                stack, c.Server.World, cargo, be.AttachmentPoints[i]);
             return new
             {
                 point = be.AttachmentPoints[i].Code,
+                tags = (be.AttachmentPoints[i] as ITaggedAttachmentPoint)?.Tags,
                 addon = stack.Collectible?.Code?.ToString(),
                 cargo = cargo?.Select(s => s?.Collectible?.Code?.ToString()).ToArray(),
                 renderKey = node?.RenderKey,
                 children = node?.Points.Select(p => new
                 {
                     point = p.Code,
+                    transform = new { p.Transform.Rotation, p.Transform.Offset, p.Transform.Scale },
                     child = node.GetAttached(p.Code)?.Stack?.Collectible?.Code?.ToString()
                 }).ToArray()
             };

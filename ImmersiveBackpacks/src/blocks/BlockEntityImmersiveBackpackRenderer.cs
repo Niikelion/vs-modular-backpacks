@@ -189,7 +189,8 @@ public class BlockEntityImmersiveBackpackRenderer(BlockPos pos, ICoreClientAPI c
             // Key on the node's RenderKey: it folds the addon's cargo children (a toolstrap's tools, which
             // live in the bag's cargo rather than the addon stack), so a tool swap changes only this key and the
             // reconcile below re-meshes just this addon instead of every one.
-            var node = BackpackAttachmentFactory.For(stack, capi.World, be.OwnedCargo(i));
+            var node = BackpackAttachmentFactory.For(
+                stack, capi.World, be.OwnedCargo(i), be.AttachmentPoints[i]);
             var key = new AttachmentMeshKey(i, node.RenderKey);
             pointKeys[i] = key;
             desired.Add(key);

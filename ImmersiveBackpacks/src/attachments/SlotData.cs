@@ -12,5 +12,6 @@ public readonly record struct SlotData(
     AttachmentMirror Mirror,
     bool Virtual,
     string[] Slots,
+    string[] Tags,
     JsonObject Config
 );

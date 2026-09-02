@@ -14,14 +14,15 @@ public class CategoryAttachmentPoint(
     Vec3f? origin = null,
     AttachmentMirror mirror = AttachmentMirror.None,
     bool isVirtual = false,
-    IReadOnlyList<string>? memberCodes = null)
-    : AttachmentPointBase(code, box, transform, origin, mirror, isVirtual, memberCodes)
+    IReadOnlyList<string>? memberCodes = null,
+    IReadOnlyList<string>? tags = null)
+    : AttachmentPointBase(code, box, transform, origin, mirror, isVirtual, memberCodes, tags)
 {
     public string[] Categories { get; } = categories ?? [];
 
     public CategoryAttachmentPoint(in SlotData slot)
         : this(slot.Code, AttachmentCategories.Read(slot.Config["categories"]), slot.Box, slot.Transform,
-            slot.Origin, slot.Mirror, slot.Virtual, slot.Slots) { }
+            slot.Origin, slot.Mirror, slot.Virtual, slot.Slots, slot.Tags) { }
 
     public override bool Accepts(IAttachment attachment)
         => AttachmentCategories.Accepts(Categories, attachment.Stack.Collectible);

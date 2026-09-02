@@ -41,6 +41,8 @@ static void AssertEquivalent(float[] expected, float[] actual, string message)
 }
 
 SaveCompatibilityTests.Run();
+BackpackAssetTests.Run();
+AttachmentMeshTests.Run();
 
 var sparseShape = new Shape
 {
@@ -66,6 +68,13 @@ Assert(sameA.RenderKey != differentQuantity.RenderKey, "Stack quantity must affe
 
 var left = new CategoryAttachmentPoint("left", [], new Cuboidf());
 var right = new CategoryAttachmentPoint("right", [], new Cuboidf());
+var tagged = new CategoryAttachmentPoint("tagged", [], new Cuboidf(), tags: ["left", "outer"]);
+Assert(tagged is ITaggedAttachmentPoint { Tags: ["left", "outer"] },
+    "Point tags must remain available through the optional metadata facet.");
+var contextual = new ContextAttachment(Stack(19));
+AttachmentFactory.WithPointContext(contextual, tagged);
+Assert(contextual.Tags is ["left", "outer"],
+    "Attachments must receive point tags through the optional context facet.");
 var childA = new ItemAttachment(Stack(20));
 var childB = new ItemAttachment(Stack(21));
 var ordered = new TestAttachment(Stack(30), [left, right], childA, childB);
@@ -182,4 +191,16 @@ sealed class CustomStateAttachment(ItemStack stack, int state) : AttachmentBase(
         base.AppendOwnRenderState(ref key);
         key.Add(state);
     }
+}
+
+sealed class ContextAttachment(ItemStack stack) : AttachmentBase(stack), IAttachmentPointContextReceiver
+{
+    public IReadOnlyList<string> Tags { get; private set; } = [];
+
+    public override IReadOnlyList<IAttachmentPoint> Points => [];
+
+    public override IAttachment GetAttached(string pointCode) => null;
+
+    public void SetAttachmentPointContext(IAttachmentPoint point)
+        => Tags = point is ITaggedAttachmentPoint tagged ? tagged.Tags : [];
 }

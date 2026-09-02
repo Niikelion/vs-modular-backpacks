@@ -45,7 +45,7 @@ public abstract class AttachmentBase(ItemStack stack) : IAttachment
             foreach (var pt in points)
             {
                 key.Add(pt.Code);
-                var child = GetAttached(pt.Code);
+                var child = AttachmentFactory.WithPointContext(GetAttached(pt.Code), pt);
                 key.Add(child != null);
                 if (child != null) key.Add(child.RenderKey);
             }

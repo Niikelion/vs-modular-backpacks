@@ -53,6 +53,7 @@ internal static class SlotDataLoader
                 ParseMirror(Strings(config["mirror"])),
                 config["virtual"].AsBool(),
                 Strings(config["slots"]),
+                Strings(config["tags"]),
                 config
             ));
         }

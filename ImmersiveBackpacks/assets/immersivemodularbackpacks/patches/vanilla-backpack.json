@@ -17,29 +17,29 @@
 		"value": {
 			"*-normal": {
 				"attachmentPoints": [
-					{ "code": "left_pouch",        "categories": ["pouch"] },
-					{ "code": "right_pouch",       "categories": ["pouch"], "mirror": ["x"] },
-					{ "code": "front_left_pouch",  "categories": ["pouch"] },
-					{ "code": "front_right_pouch", "categories": ["pouch"], "mirror": ["x"] },
+					{ "code": "left_pouch",        "categories": ["pouch"], "tags": ["left"] },
+					{ "code": "right_pouch",       "categories": ["pouch"], "mirror": ["x"], "tags": ["right"] },
+					{ "code": "front_left_pouch",  "categories": ["pouch"], "tags": ["left"] },
+					{ "code": "front_right_pouch", "categories": ["pouch"], "mirror": ["x"], "tags": ["right"] },
 					{ "code": "lantern",           "categories": ["light", "shield"] },
-					{ "code": "left_strap",        "categories": ["toolstrap"] },
-					{ "code": "right_strap",       "categories": ["toolstrap"], "mirror": ["x"] }
+					{ "code": "left_strap",        "categories": ["toolstrap"], "tags": ["left"] },
+					{ "code": "right_strap",       "categories": ["toolstrap"], "mirror": ["x"], "tags": ["right"] }
 				]
 			},
 			"*-sturdy": {
 				"attachmentPoints": [
-					{ "code": "lower_left_pouch",  "categories": ["pouch"] },
-					{ "code": "lower_right_pouch", "categories": ["pouch"], "mirror": ["x"] },
-					{ "code": "lower_front_left",  "categories": ["pouch", "sack"] },
-					{ "code": "lower_front_right", "categories": ["pouch", "sack"], "mirror": ["x"] },
+					{ "code": "lower_left_pouch",  "categories": ["pouch"], "tags": ["left"] },
+					{ "code": "lower_right_pouch", "categories": ["pouch"], "mirror": ["x"], "tags": ["right"] },
+					{ "code": "lower_front_left",  "categories": ["pouch", "sack"], "tags": ["left"] },
+					{ "code": "lower_front_right", "categories": ["pouch", "sack"], "mirror": ["x"], "tags": ["right"] },
 					{ "code": "front_span", "virtual": true,
 					  "slots": ["lower_front_left", "lower_front_right"], "categories": ["bedroll", "sack"] },
-					{ "code": "upper_left_pouch",  "categories": ["pouch"] },
-					{ "code": "upper_right_pouch", "categories": ["pouch"], "mirror": ["x"] },
+					{ "code": "upper_left_pouch",  "categories": ["pouch"], "tags": ["left"] },
+					{ "code": "upper_right_pouch", "categories": ["pouch"], "mirror": ["x"], "tags": ["right"] },
 					{ "code": "lantern",           "categories": ["light", "shield"] },
 					{ "code": "toolstrap_top",     "categories": ["toolstrap", "bedroll"] },
-					{ "code": "toolstrap_left",    "categories": ["toolstrap"] },
-					{ "code": "toolstrap_right",   "categories": ["toolstrap"], "mirror": ["z"] }
+					{ "code": "toolstrap_left",    "categories": ["toolstrap"], "tags": ["left"] },
+					{ "code": "toolstrap_right",   "categories": ["toolstrap"], "mirror": ["z"], "tags": ["right"] }
 				]
 			}
 		},
@@ -53,7 +53,7 @@
 	},
 	{
 		"op": "remove",
-		"path": "/attributes/immersiveBackpackByType/*-sturdy/attachmentPoints/6/categories/0",
+		"path": "/attributes/immersiveBackpackByType/*-sturdy/attachmentPoints/7/categories/0",
 		"file": "game:itemtypes/wearable/bag/backpack.json",
 		"condition": { "when": "immersivebackpacksLightSlots", "isValue": "false" }
 	}

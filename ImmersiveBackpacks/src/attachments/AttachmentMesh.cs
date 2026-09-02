@@ -85,7 +85,7 @@ public static class AttachmentMesh
         // only synthesize one when it's absent, which is the case that leaves a merged mesh unable to bind
         // this sub-mesh's atlas.
         if (mesh is { TextureIds.Length: > 0, TextureIndices: not null }) return mesh;
-        int faces = mesh.VerticesCount / 4;                 // quad meshes: 4 verts per face
+        int faces = mesh.IndicesCount / mesh.IndicesPerFace;
         mesh.TextureIds = [atlasTextureId];
         mesh.TextureIndices = new byte[faces];              // all 0 -> index 0 -> atlasTextureId
         mesh.TextureIndicesCount = faces;
