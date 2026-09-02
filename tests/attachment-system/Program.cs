@@ -42,6 +42,21 @@ static void AssertEquivalent(float[] expected, float[] actual, string message)
 
 SaveCompatibilityTests.Run();
 
+var sparseShape = new Shape
+{
+    Elements =
+    [
+        new ShapeElement
+        {
+            Name = "root",
+            FacesResolved = new ShapeElementFace[6]
+        }
+    ]
+};
+AttachmentComposer.PrefixShape(sparseShape, "addon-");
+Assert(sparseShape.Elements[0].Name == "addon-root",
+    "Sparse face arrays must not abort worn-shape composition.");
+
 var sameA = new ItemAttachment(Stack(10, 1));
 var sameB = new ItemAttachment(Stack(10, 1));
 var differentQuantity = new ItemAttachment(Stack(10, 2));
@@ -123,6 +138,20 @@ AssertEquivalent(
     Mat4f.Mul(Mat4f.Create(), Matrix(wornTopPoint), Matrix(bedrollTransform)),
     Matrix(wornTopPoint.CombinedWith(bedrollTransform)),
     "Worn top bedroll must use sequential affine composition.");
+
+var interactionParent = new CategoryAttachmentPoint(
+    "strap", [], new Cuboidf(), origin: new Vec3f(0.5f, 0.5f, 0.5f));
+var interactionBox = AttachmentComposer.TransformChildBox(
+    interactionParent,
+    new ItemAttachment(Stack(50)),
+    new Cuboidf(0.4f, 0f, 0.4f, 0.6f, 1f, 0.6f));
+Assert(MathF.Abs(interactionBox.X1 - 0.4f) < 1e-4f
+       && MathF.Abs(interactionBox.Y1 - 0.5f) < 1e-4f
+       && MathF.Abs(interactionBox.Z1 - 0.4f) < 1e-4f
+       && MathF.Abs(interactionBox.X2 - 0.6f) < 1e-4f
+       && MathF.Abs(interactionBox.Y2 - 1.5f) < 1e-4f
+       && MathF.Abs(interactionBox.Z2 - 0.6f) < 1e-4f,
+    "Nested interaction boxes must use the same child placement transform as rendering.");
 
 Console.WriteLine("Attachment and save-compatibility checks passed.");
 

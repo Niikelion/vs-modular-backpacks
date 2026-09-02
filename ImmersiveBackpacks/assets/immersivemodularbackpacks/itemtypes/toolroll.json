@@ -27,11 +27,11 @@
 				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolroll-text" }
 			]
 		},
-		"backpack": { "quantitySlots": 2, "storageFlags": 189, "slotBgColor": "#ffddaa" },
+		"backpack": { "quantitySlots": 2, "storageFlags": 189, "slotBgColor": "#b3975b" },
 		"immersiveBackpack": {
 			"attachmentPoints": [
-				{ "code": "tool_0", "categories": [ "handtool" ] },
-				{ "code": "tool_1", "categories": [ "handtool" ] }
+				{ "code": "tool_0", "categories": [ "handtool" ], "interactionColor": "#b3975b" },
+				{ "code": "tool_1", "categories": [ "handtool" ], "interactionColor": "#b3975b" }
 			]
 		},
 		"immersiveBackpackAttachment": { "category": "toolstrap" },

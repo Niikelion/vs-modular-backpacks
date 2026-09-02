@@ -21,6 +21,24 @@ internal static class SaveCompatibilityTests
         CurrentHeldBagLoadsLegacyState();
         CurrentBlockEntityLoadsLegacyState();
         PlacedItemWornPlacedRoundTrip();
+        EmptyHeldBagCanReceiveProjectedCargo();
+    }
+
+    private static void EmptyHeldBagCanReceiveProjectedCargo()
+    {
+        var context = TestContext.Create();
+        var addon = new TestHeldBagItem(401, "empty-toolstrap");
+        var cargoItem = new Item { ItemId = 402, Code = new AssetLocation("fixture", "projected-tool") };
+        var cargo = new ItemStack(cargoItem) { StackSize = 1 };
+
+        var node = BackpackAttachmentFactory.For(new ItemStack(addon), context.World, [cargo]);
+        var projected = addon.GetContents(node!.Stack, context.World);
+        var emptyNode = BackpackAttachmentFactory.For(new ItemStack(addon), context.World, [null]);
+
+        Assert(projected is { Length: 1 }, "Projected held-bag cargo slot was not created.");
+        Assert(projected[0]?.Collectible == cargoItem, "Projected held-bag cargo was not stored.");
+        Assert(node.RenderKey != emptyNode!.RenderKey,
+            "Projected cargo changes must invalidate the attachment mesh key.");
     }
 
     private static void CurrentHeldBagLoadsLegacyState()
@@ -287,10 +305,26 @@ internal sealed class TestHeldBagItem : Item, IHeldBag
 
     public int GetQuantitySlots(ItemStack bagstack) => 1;
     public List<ItemSlotBagContent> GetOrCreateSlots(ItemStack bagstack, InventoryBase parentinv,
-        int bagIndex, IWorldAccessor world) => throw new NotSupportedException();
-    public ItemStack[] GetContents(ItemStack bagstack, IWorldAccessor world) => [];
-    public void Store(ItemStack bagstack, ItemSlotBagContent slot) => throw new NotSupportedException();
-    public void Clear(ItemStack bagstack) { }
+        int bagIndex, IWorldAccessor world)
+    {
+        var slots = BackpackSaveData.GetHeldSlots(bagstack.Attributes)
+            ?? throw new NullReferenceException("Empty held bags have no storage tree yet.");
+        var slot = BackpackSlotLayout.CreateBagSlot(parentinv, bagIndex, 0,
+            new BackpackSlotLayout.SlotSpec(EnumItemStorageFlags.General, TagSet.Empty, null!));
+        slot.Itemstack = BackpackSaveData.GetStack(slots, "slot-0");
+        return [slot];
+    }
+    public ItemStack[] GetContents(ItemStack bagstack, IWorldAccessor world)
+        => [BackpackSaveData.GetStack(BackpackSaveData.GetHeldSlots(bagstack.Attributes), "slot-0")!];
+    public void Store(ItemStack bagstack, ItemSlotBagContent slot)
+        => BackpackSaveData.GetHeldSlots(bagstack.Attributes)!
+            .SetItemstack("slot-0", slot.Itemstack);
+    public void Clear(ItemStack bagstack)
+    {
+        if (BackpackSaveData.GetHeldSlots(bagstack.Attributes) == null)
+            throw new NullReferenceException("Empty held bags have no storage tree yet.");
+        BackpackSaveData.SetHeldSlots(bagstack.Attributes, new TreeAttribute());
+    }
     public bool IsEmpty(ItemStack bagstack) => true;
     public string GetSlotBgColor(ItemStack bagstack) => null!;
     EnumItemStorageFlags IHeldBag.GetStorageFlags(ItemStack bagstack) => EnumItemStorageFlags.General;

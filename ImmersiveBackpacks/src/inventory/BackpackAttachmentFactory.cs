@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using ImmersiveModularBackpacks.Attachments;
 using Vintagestory.API.Common;
-using Vintagestory.GameContent;
+using Vintagestory.API.Datastructures;
 
 namespace ImmersiveBackpacks.inventory;
 
@@ -16,15 +16,12 @@ internal static class BackpackAttachmentFactory
             return AttachmentFactory.For(stack, world);
 
         var hydrated = stack.Clone();
-        bag.Clear(hydrated);
-
-        var parent = new InventoryGeneric(1, null, null);
-        var slots = bag.GetOrCreateSlots(hydrated, parent, 0, world);
-        for (int i = 0; i < slots.Count; i++)
-        {
-            slots[i].Itemstack = i < (ownedCargo?.Count ?? 0) ? ownedCargo![i]?.Clone() : null;
-            bag.Store(hydrated, slots[i]);
-        }
+        var slots = new TreeAttribute();
+        int count = bag.GetQuantitySlots(hydrated);
+        for (int i = 0; i < count; i++)
+            slots[$"slot-{i}"] = new ItemstackAttribute(
+                i < (ownedCargo?.Count ?? 0) ? ownedCargo![i]?.Clone() : null);
+        BackpackSaveData.SetHeldSlots(hydrated.Attributes, slots);
 
         return AttachmentFactory.For(hydrated, world);
     }

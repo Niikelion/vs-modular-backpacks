@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace ImmersiveModularBackpacks.Attachments;
@@ -152,25 +153,56 @@ public static class AttachmentComposer
             if (childMesh == null) continue;
             childMesh = childMesh.Clone();
 
-            // Anchor the child by its fixed model origin (not its bounds centre) so a container child
-            // (a toolstrap) doesn't shift when its own children change, and asymmetric addons don't drift.
-            var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
-            var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "placed").Mirrored(pt.Mirror);
-            var tf = pt.Transform.CombinedWith(itemTransform);
-
-            float s = tf.Scale;
-            mat.Identity()
-                .Translate(pt.Origin.X, pt.Origin.Y, pt.Origin.Z)
-                .RotateX(tf.Rotation[0] * D2R)
-                .RotateY(tf.Rotation[1] * D2R)
-                .RotateZ(tf.Rotation[2] * D2R)
-                .Scale(s, s, s)
-                .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z);
+            ChildMatrix(mat, pt, child);
             childMesh.MatrixTransform(mat.Values);
 
             baseMesh.AddMeshData(childMesh);
         }
         return baseMesh;
+    }
+
+    /// <summary>
+    /// Transforms a box from a child attachment's local model space into its parent's model space using the
+    /// exact placed-render transform. Hosts use this for nested interaction-point hitboxes.
+    /// </summary>
+    public static Cuboidf TransformChildBox(IAttachmentPoint parentPoint, IAttachment child, Cuboidf childBox)
+    {
+        var matrix = ChildMatrix(new Matrixf(), parentPoint, child).Values;
+        float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
+        float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
+
+        float[] xs = [childBox.X1, childBox.X2];
+        float[] ys = [childBox.Y1, childBox.Y2];
+        float[] zs = [childBox.Z1, childBox.Z2];
+        foreach (float x in xs)
+        foreach (float y in ys)
+        foreach (float z in zs)
+        {
+            float tx = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12];
+            float ty = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13];
+            float tz = matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14];
+            minX = MathF.Min(minX, tx); maxX = MathF.Max(maxX, tx);
+            minY = MathF.Min(minY, ty); maxY = MathF.Max(maxY, ty);
+            minZ = MathF.Min(minZ, tz); maxZ = MathF.Max(maxZ, tz);
+        }
+
+        return new(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    private static Matrixf ChildMatrix(Matrixf matrix, IAttachmentPoint point, IAttachment child)
+    {
+        // Anchor by the fixed model origin so container contents never move the container itself.
+        var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
+        var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "placed").Mirrored(point.Mirror);
+        var tf = point.Transform.CombinedWith(itemTransform);
+        float s = tf.Scale;
+        return matrix.Identity()
+            .Translate(point.Origin.X, point.Origin.Y, point.Origin.Z)
+            .RotateX(tf.Rotation[0] * D2R)
+            .RotateY(tf.Rotation[1] * D2R)
+            .RotateZ(tf.Rotation[2] * D2R)
+            .Scale(s, s, s)
+            .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z);
     }
 
     // ---- shape helpers (lifted from ItemImmersiveBag; kept behaviour-identical) ----
@@ -203,7 +235,7 @@ public static class AttachmentComposer
                 e.Name = prefix + e.Name;
                 if (e.FacesResolved == null) return;
                 foreach (var face in e.FacesResolved)
-                    if (face.Enabled)
+                    if (face != null && face.Enabled)
                         face.Texture = prefix + face.Texture;
             });
 

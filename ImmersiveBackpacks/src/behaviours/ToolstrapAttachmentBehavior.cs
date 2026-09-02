@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.points;
 using Vintagestory.API.Common;
-using Vintagestory.API.MathTools;
-using Vintagestory.GameContent;
 
 namespace ImmersiveBackpacks.behaviours;
 
@@ -54,7 +52,7 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             var list = new List<IAttachmentPoint>();
             foreach (var slot in SlotDataLoader.Load(world.Api, coll, declared,
                          additionalTransform: toolTf))
-                list.Add(new CategoryAttachmentPoint(slot));
+                list.Add(new ToolStorageAttachmentPoint(slot));
             return list;
         }
 

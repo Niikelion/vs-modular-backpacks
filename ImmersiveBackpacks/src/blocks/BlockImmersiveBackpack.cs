@@ -27,12 +27,15 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
 
         float angle = be.MeshAngleRad;
         var body = SelectionBoxes ?? [];
-        var boxes = new List<Cuboidf>(body.Length + be.AttachmentPoints.Length);
+        var interactionTargets = be.InteractionTargets();
+        var boxes = new List<Cuboidf>(body.Length + be.AttachmentPoints.Length + interactionTargets.Count);
         for (int i = 0; i < body.Length; i++)
             boxes.Add(RotateBoxY(body[i], angle));
         for (int i = 0; i < be.AttachmentPoints.Length; i++)
             if (!be.AttachmentPoints[i].IsVirtual && be.AttachmentPoints[i].Box != null)
                 boxes.Add(RotateBoxY(be.AttachmentPoints[i].Box, angle));
+        foreach (var target in interactionTargets)
+            boxes.Add(RotateBoxY(target.Box, angle));
         return boxes.ToArray();
     }
 
@@ -93,8 +96,23 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
         int idx = blockSel.SelectionBoxIndex;
         if (idx >= bodyCount && idx < boxes.Length)
         {
-            int pointIndex = be.PointIndexForSelectionBox(idx, bodyCount);
-            renderBoxHandler(boxes[idx], width, SlotColor(capi, blockSel.Position, pointIndex) ?? color);
+            if (be.TryGetInteractionTarget(idx, bodyCount, out var target))
+            {
+                var activeSlot = capi?.World?.Player?.InventoryManager?.ActiveHotbarSlot;
+                var interactionColor = color;
+                if (activeSlot != null)
+                {
+                    var context = be.InteractionContext(target, activeSlot);
+                    if (target.Interaction.IsInteractionActive(context))
+                        interactionColor = target.Interaction.GetInteractionColor(context);
+                }
+                renderBoxHandler(boxes[idx], width, interactionColor);
+            }
+            else
+            {
+                int pointIndex = be.PointIndexForSelectionBox(idx, bodyCount);
+                renderBoxHandler(boxes[idx], width, SlotColor(capi, blockSel.Position, pointIndex) ?? color);
+            }
         }
     }
 
@@ -156,16 +174,57 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection blockSel, IPlayer forPlayer)
     {
         var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityImmersiveBackpack;
-
-        // Plain right-click picks the pack up; ctrl+right-click opens the cargo dialog.
-        var interactions = new List<WorldInteraction>
-        {
-            new() { ActionLangCode = "immersivemodularbackpacks:pick-up", MouseButton = EnumMouseButton.Right },
-            new() { ActionLangCode = "immersivemodularbackpacks:open-cargo", MouseButton = EnumMouseButton.Right, HotKeyCode = "ctrl" }
-        };
-
         int bodyCount = SelectionBoxes?.Length ?? 0;
-        int pointIndex = be?.PointIndexForSelectionBox(blockSel.SelectionBoxIndex, bodyCount) ?? -1;
+        AttachmentInteractionTarget nestedInteraction = default;
+        bool nestedTarget = be != null && be.TryGetInteractionTarget(
+            blockSel.SelectionBoxIndex, bodyCount, out nestedInteraction);
+        int pointIndex = nestedTarget
+            ? nestedInteraction.OwnerPointIndex
+            : be?.PointIndexForSelectionBox(blockSel.SelectionBoxIndex, bodyCount) ?? -1;
+
+        var interactions = new List<WorldInteraction>();
+        var activeSlot = forPlayer.InventoryManager.ActiveHotbarSlot;
+        AttachmentInteractionTarget activeInteraction = default;
+        bool interactionActive = false;
+        if (be != null && nestedTarget)
+        {
+            var context = be.InteractionContext(nestedInteraction, activeSlot);
+            if (nestedInteraction.Interaction.IsInteractionActive(context))
+            {
+                activeInteraction = nestedInteraction;
+                interactionActive = true;
+            }
+        }
+        else if (be?.TryGetActiveInteractionAtPoint(pointIndex, activeSlot, out activeInteraction) == true)
+        {
+            interactionActive = true;
+        }
+
+        if (interactionActive)
+        {
+            var context = be.InteractionContext(activeInteraction, activeSlot);
+            interactions.Add(new()
+            {
+                ActionLangCode = activeInteraction.Interaction.GetInteractionHelpCode(context),
+                MouseButton = EnumMouseButton.Right
+            });
+        }
+        else if (!nestedTarget && !(be?.HasInteractiveAttachmentContentAt(pointIndex) ?? false))
+        {
+            interactions.Add(new()
+            {
+                ActionLangCode = "immersivemodularbackpacks:pick-up",
+                MouseButton = EnumMouseButton.Right
+            });
+        }
+
+        interactions.Add(new()
+        {
+            ActionLangCode = "immersivemodularbackpacks:open-cargo",
+            MouseButton = EnumMouseButton.Right,
+            HotKeyCode = "ctrl"
+        });
+
         if (be == null || pointIndex < 0)
             return interactions.ToArray().Append(base.GetPlacedBlockInteractionHelp(world, blockSel, forPlayer));
         bool occupied = be.OccupiedPointAt(pointIndex) >= 0;

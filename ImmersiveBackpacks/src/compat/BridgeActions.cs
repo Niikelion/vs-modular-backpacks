@@ -2,7 +2,9 @@
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.blocks;
+using ImmersiveBackpacks.inventory;
 using Vintagestory.API.Client;
 using Vintagestory.API.MathTools;
 using VSMCP;
@@ -58,6 +60,50 @@ internal static class BridgeActions
                 required = new[] { "x", "y", "z" }
             },
             module: "immersivebackpacks");
+
+        VsmcpApi.RegisterAction("ib_attachment_tree_at", ActionSide.Server, (a, c) => AttachmentTreeAt(a, c),
+            "Render-facing attachment tree for a placed modular backpack, including host-owned cargo projected " +
+            "into each addon and the children reconstructed from it.",
+            new
+            {
+                type = "object",
+                properties = new
+                {
+                    x = new { type = "integer" },
+                    y = new { type = "integer" },
+                    z = new { type = "integer" }
+                },
+                required = new[] { "x", "y", "z" }
+            },
+            module: "immersivebackpacks");
+    }
+
+    private static object AttachmentTreeAt(ActionArgs a, ActionContext c)
+    {
+        var pos = new BlockPos(a.GetInt("x"), a.GetInt("y"), a.GetInt("z"));
+        if (c.Server.World.BlockAccessor.GetBlockEntity(pos) is not BlockEntityImmersiveBackpack be)
+            return new { found = false };
+
+        var nodes = be.AttachedItems.Select((stack, i) =>
+        {
+            if (stack == null) return null;
+            var cargo = be.OwnedCargo(i);
+            var node = BackpackAttachmentFactory.For(stack, c.Server.World, cargo);
+            return new
+            {
+                point = be.AttachmentPoints[i].Code,
+                addon = stack.Collectible?.Code?.ToString(),
+                cargo = cargo?.Select(s => s?.Collectible?.Code?.ToString()).ToArray(),
+                renderKey = node?.RenderKey,
+                children = node?.Points.Select(p => new
+                {
+                    point = p.Code,
+                    child = node.GetAttached(p.Code)?.Stack?.Collectible?.Code?.ToString()
+                }).ToArray()
+            };
+        }).Where(n => n != null).ToArray();
+
+        return new { found = true, nodes };
     }
 
     private static object PointsAt(ActionArgs a, ActionContext c)
@@ -69,8 +115,7 @@ internal static class BridgeActions
         if (accessor.GetBlockEntity(pos) is not BlockEntityImmersiveBackpack be)
             return new { found = false, block = block?.Code?.ToString() };
 
-        // Selection boxes are body boxes first, then real attachment points. Virtual points have geometry for
-        // placement but no targetable box of their own.
+        // Selection boxes are body boxes, real attachment points, then nested interaction points.
         var boxes = block?.GetSelectionBoxes(accessor, pos) ?? [];
         int bodyCount = block?.SelectionBoxes?.Length ?? 0;
         var eye = EyePos(c);
@@ -99,7 +144,36 @@ internal static class BridgeActions
             };
         }).ToArray();
 
-        return new { found = true, bodyBoxes = bodyCount, points };
+        int interactionStart = bodyCount + selectable;
+        var player = c.Server.World.AllOnlinePlayers.FirstOrDefault();
+        var interactions = be.InteractionTargets().Select((target, i) =>
+        {
+            var box = boxes[interactionStart + i];
+            bool active = false;
+            string help = null;
+            if (player != null)
+            {
+                var context = be.InteractionContext(target, player.InventoryManager.ActiveHotbarSlot);
+                active = target.Interaction.IsInteractionActive(context);
+                if (active) help = target.Interaction.GetInteractionHelpCode(context);
+            }
+            return new
+            {
+                owner = be.AttachmentPoints[target.OwnerPointIndex].Code,
+                point = target.PointCode,
+                selectionBoxIndex = interactionStart + i,
+                active,
+                help,
+                box = new
+                {
+                    x1 = pos.X + box.X1, y1 = pos.Y + box.Y1, z1 = pos.Z + box.Z1,
+                    x2 = pos.X + box.X2, y2 = pos.Y + box.Y2, z2 = pos.Z + box.Z2
+                },
+                aim = Aim(pos, box, eye)
+            };
+        }).ToArray();
+
+        return new { found = true, bodyBoxes = bodyCount, points, interactions };
     }
 
     /// <summary>

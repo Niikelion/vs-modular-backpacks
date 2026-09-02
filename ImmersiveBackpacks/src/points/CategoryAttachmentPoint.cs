@@ -6,7 +6,7 @@ using Vintagestory.API.MathTools;
 namespace ImmersiveBackpacks.points;
 
 /// <summary>A backpack attachment point that accepts occupants by the mod's custom category attribute.</summary>
-public sealed class CategoryAttachmentPoint(
+public class CategoryAttachmentPoint(
     string code,
     string[]? categories,
     Cuboidf box,

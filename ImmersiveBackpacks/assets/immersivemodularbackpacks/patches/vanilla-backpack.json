@@ -39,7 +39,7 @@
 					{ "code": "lantern",           "categories": ["light", "shield"] },
 					{ "code": "toolstrap_top",     "categories": ["toolstrap", "bedroll"] },
 					{ "code": "toolstrap_left",    "categories": ["toolstrap"] },
-					{ "code": "toolstrap_right",   "categories": ["toolstrap"], "mirror": ["x"] }
+					{ "code": "toolstrap_right",   "categories": ["toolstrap"], "mirror": ["z"] }
 				]
 			}
 		},

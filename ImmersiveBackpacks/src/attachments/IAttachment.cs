@@ -93,6 +93,38 @@ public interface IAttachmentPoint
     void OnDetached();
 }
 
+/// <summary>Result of routing a host interaction to a child point.</summary>
+public enum AttachmentPointInteractionResult
+{
+    Pass,
+    Handled,
+    Changed
+}
+
+/// <summary>Host-provided access to the held stack and storage owned by one attachment point.</summary>
+public readonly record struct AttachmentPointInteractionContext(
+    IWorldAccessor World,
+    ItemSlot ActiveSlot,
+    ItemSlot ContentSlot);
+
+/// <summary>
+/// Optional interaction facet for a point whose content can be manipulated directly while its owner is hosted.
+/// The host only routes the point to its owned storage; the point defines the interaction semantics.
+/// </summary>
+public interface IAttachmentPointInteraction
+{
+    /// <summary>Whether the point can currently handle the supplied interaction.</summary>
+    bool IsInteractionActive(in AttachmentPointInteractionContext context);
+
+    /// <summary>Outline colour while active. Hosts must not call this for an inactive point.</summary>
+    Vec4f GetInteractionColor(in AttachmentPointInteractionContext context);
+
+    /// <summary>Interaction-help language code while active. Hosts must not call this for an inactive point.</summary>
+    string GetInteractionHelpCode(in AttachmentPointInteractionContext context);
+
+    AttachmentPointInteractionResult OnInteract(in AttachmentPointInteractionContext context);
+}
+
 /**
  * Abstraction over attachment host.
  */
