@@ -7,6 +7,7 @@ using Cake.Common.IO;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.Clean;
 using Cake.Common.Tools.DotNet.Publish;
+using Cake.Common.Tools.DotNet.Run;
 using Cake.Core;
 using Cake.Frosting;
 using Cake.Json;

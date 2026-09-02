@@ -31,6 +31,7 @@ foreach (var (mod, file) in targets)
 }
 
 // Every vanilla tool category must agree with its inventory tag too.
+int vanillaCount = 0;
 foreach (var group in patches.Where(p => ((string?)p["file"])?.StartsWith("game:itemtypes/tool/") == true)
              .GroupBy(p => (string)p["file"]!))
 {
@@ -39,6 +40,14 @@ foreach (var group in patches.Where(p => ((string?)p["file"])?.StartsWith("game:
     if (category is not ("twohanded" or "handtool")) continue;
     Assert(item["tags"]!.Values<string>().Contains(category), $"{group.Key}: tool category has no matching inventory tag.");
     Assert(item["tags"]!.Values<string>().Contains("existing"), $"{group.Key}: existing tags were removed.");
+    string assetPath = Path.Combine(Environment.GetEnvironmentVariable("VINTAGE_STORY") ?? "", "assets", "survival", group.Key[5..]);
+    if (!File.Exists(assetPath)) continue;
+    var original = JObject.Parse(File.ReadAllText(assetPath));
+    var patched = Apply(group.Key, original, []);
+    Assert(patched["tags"]?.Values<string>().Contains(category) == true, $"{group.Key}: upstream asset lacks the slot tag after patching.");
+    foreach (var tag in original["tags"]?.Values<string>() ?? [])
+        Assert(patched["tags"]!.Values<string>().Contains(tag), $"{group.Key}: upstream tag {tag} was removed.");
+    vanillaCount++;
 }
 
 int upstreamCount = 0;
@@ -62,7 +71,7 @@ if (args.Length > 0)
     }
     Assert(upstreamCount > 0, "No supported mod assets found in the supplied directory.");
 }
-Console.WriteLine($"Compatibility asset checks passed: {targets.Length} mod/asset combinations, vanilla tools, {upstreamCount} upstream assets.");
+Console.WriteLine($"Compatibility asset checks passed: {targets.Length} mod/asset combinations, {vanillaCount} vanilla assets, {upstreamCount} upstream mod assets.");
 
 void Check(string file, string mod, JObject original)
 {
