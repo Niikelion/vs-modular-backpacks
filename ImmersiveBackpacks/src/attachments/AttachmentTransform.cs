@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using Newtonsoft.Json.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -12,7 +13,7 @@ namespace ImmersiveModularBackpacks.Attachments;
 /// The final transform an addon renders with is the point's transform composed with the item's local override.
 ///
 /// Every configured transform uses Vintage Story's <see cref="ModelTransform"/> JSON shape: translation and
-/// rotation objects plus scale. Per item, the override is split into a context-specific part
+/// rotation and origin objects plus scale. Per item, the override is split into a context-specific part
 /// (<c>placed</c>/<c>worn</c>, nested under <c>immersiveBackpackAttachment</c>) and a shared transform at the top-level
 /// <c>immersiveAttachedTransform</c> attribute that applies in every context (handy for an attached shape that
 /// needs the same scale/rotation whether the bag is placed or worn). See <see cref="ForItem"/>.
@@ -26,6 +27,9 @@ public class AttachmentTransform
     public float Scale = 1f;
     public float[] Offset = [0f, 0f, 0f];
     public float[] Rotation = [0f, 0f, 0f];
+
+    /// <summary>Rotation/scale pivot in this transform's local, anchor-relative block units.</summary>
+    public float[] Origin = [0f, 0f, 0f];
 
     public static readonly AttachmentTransform Identity = new();
 
@@ -80,9 +84,9 @@ public class AttachmentTransform
     /// resolves <c>scale</c> against <c>scaleXyz</c> as a bonus; reading the keys by hand silently returned zeros
     /// for the in-memory form, which would collapse an addon the moment it was tuned.
     ///
-    /// <c>origin</c> is read and discarded: an addon is anchored at its attachment point's pivot, so an origin
-    /// here would have nothing to mean. Only one scale axis is kept because the point and item transforms are
-    /// combined by multiplication, and a non-uniform addon scale has never been supported.
+    /// An explicit <c>origin</c> pivots rotation and scale in the transform's local frame. Omission keeps the
+    /// legacy zero pivot, not ModelTransform's default cube centre. Translation retains its local-offset order.
+    /// Only uniform scale is supported.
     /// </summary>
     public static AttachmentTransform FromModelTransform(JsonObject? obj)
     {
@@ -93,11 +97,15 @@ public class AttachmentTransform
         var m = obj.AsObject<ModelTransform>()?.EnsureDefaultValues();
         if (m == null) return new();
 
+        bool hasOrigin = obj.Token is JObject json
+            && json.GetValue("origin", StringComparison.OrdinalIgnoreCase) is { Type: not JTokenType.Null };
+
         return new()
         {
             Scale = m.ScaleXYZ.X,
             Offset = [m.Translation.X, m.Translation.Y, m.Translation.Z],
-            Rotation = [m.Rotation.X, m.Rotation.Y, m.Rotation.Z]
+            Rotation = [m.Rotation.X, m.Rotation.Y, m.Rotation.Z],
+            Origin = hasOrigin ? [m.Origin.X, m.Origin.Y, m.Origin.Z] : [0f, 0f, 0f]
         };
     }
 
@@ -118,7 +126,8 @@ public class AttachmentTransform
         // Uniform scales stay uniform under composition. Normalize the rotation basis before extracting Euler
         // angles, then move the composed translation back into our local-offset representation (R * S * T).
         float scale = MathF.Sqrt(matrix[0] * matrix[0] + matrix[1] * matrix[1] + matrix[2] * matrix[2]);
-        if (scale <= 1e-8f) return new() { Scale = 0f };
+        if (scale <= 1e-8f)
+            return new() { Scale = 0f, Origin = [matrix[12], matrix[13], matrix[14]] };
 
         float[] rotationMatrix = (float[])matrix.Clone();
         for (int column = 0; column < 3; column++)
@@ -145,12 +154,16 @@ public class AttachmentTransform
         const float d2R = MathF.PI / 180f;
         float[] matrix = Mat4f.Create();
         Mat4f.Identity(matrix);
+        Mat4f.Translate(matrix, transform.Origin[0], transform.Origin[1], transform.Origin[2]);
         Mat4f.RotateByXYZ(matrix,
             transform.Rotation[0] * d2R,
             transform.Rotation[1] * d2R,
             transform.Rotation[2] * d2R);
         Mat4f.Scale(matrix, transform.Scale, transform.Scale, transform.Scale);
-        Mat4f.Translate(matrix, transform.Offset[0], transform.Offset[1], transform.Offset[2]);
+        Mat4f.Translate(matrix,
+            transform.Offset[0] - transform.Origin[0],
+            transform.Offset[1] - transform.Origin[1],
+            transform.Offset[2] - transform.Origin[2]);
         return matrix;
     }
 
@@ -179,26 +192,30 @@ public class AttachmentTransform
     {
         float[] offset = (float[])Offset.Clone();
         float[] rotation = (float[])Rotation.Clone();
+        float[] origin = (float[])Origin.Clone();
 
         if ((mirror & AttachmentMirror.X) != 0)
         {
             offset[0] = -offset[0];
+            origin[0] = -origin[0];
             rotation[1] = -rotation[1];
             rotation[2] = -rotation[2];
         }
         if ((mirror & AttachmentMirror.Y) != 0)
         {
             offset[1] = -offset[1];
+            origin[1] = -origin[1];
             rotation[0] = -rotation[0];
             rotation[2] = -rotation[2];
         }
         if ((mirror & AttachmentMirror.Z) != 0)
         {
             offset[2] = -offset[2];
+            origin[2] = -origin[2];
             rotation[0] = -rotation[0];
             rotation[1] = -rotation[1];
         }
 
-        return new() { Scale = Scale, Offset = offset, Rotation = rotation };
+        return new() { Scale = Scale, Offset = offset, Rotation = rotation, Origin = origin };
     }
 }

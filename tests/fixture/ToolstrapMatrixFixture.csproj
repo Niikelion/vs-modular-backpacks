@@ -7,6 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="VintagestoryAPI" HintPath="$(VINTAGE_STORY)\VintagestoryAPI.dll" Private="false" />
+    <Reference Include="VSEssentials" HintPath="$(VINTAGE_STORY)\Mods\VSEssentials.dll" Private="false" />
+    <Reference Include="VSSurvivalMod" HintPath="$(VINTAGE_STORY)\Mods\VSSurvivalMod.dll" Private="false" />
+    <Reference Include="ImmersiveModularBackpacks" HintPath="..\..\ImmersiveBackpacks\bin\Debug\Mods\immersivemodularbackpacks\ImmersiveModularBackpacks.dll" Private="false" />
     <Reference Include="VSMCP" HintPath="$(VsmcpRoot)\VSMCP\bin\Debug\Mods\mod\VSMCP.dll" Private="false" />
   </ItemGroup>
   <ItemGroup>

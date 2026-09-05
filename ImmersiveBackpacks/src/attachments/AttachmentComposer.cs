@@ -196,12 +196,14 @@ public static class AttachmentComposer
         var tf = point.Transform.CombinedWith(itemTransform);
         float s = tf.Scale;
         return matrix.Identity()
-            .Translate(point.Origin.X, point.Origin.Y, point.Origin.Z)
+            .Translate(point.Origin.X + tf.Origin[0], point.Origin.Y + tf.Origin[1], point.Origin.Z + tf.Origin[2])
             .RotateX(tf.Rotation[0] * D2R)
             .RotateY(tf.Rotation[1] * D2R)
             .RotateZ(tf.Rotation[2] * D2R)
             .Scale(s, s, s)
-            .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z);
+            .Translate(tf.Offset[0] - tf.Origin[0] - origin.X,
+                tf.Offset[1] - tf.Origin[1] - origin.Y,
+                tf.Offset[2] - tf.Origin[2] - origin.Z);
     }
 
     // ---- shape helpers (lifted from ItemImmersiveBag; kept behaviour-identical) ----
@@ -306,9 +308,9 @@ public static class AttachmentComposer
         // so the addon's origin (not its geometry centre) sits at the slot, matching the mesh path.
         double[] shift =
         {
-            addonOrigin[0] - tf.Offset[0] * 16.0,
-            addonOrigin[1] - tf.Offset[1] * 16.0,
-            addonOrigin[2] - tf.Offset[2] * 16.0
+            addonOrigin[0] + (tf.Origin[0] - tf.Offset[0]) * 16.0,
+            addonOrigin[1] + (tf.Origin[1] - tf.Offset[1]) * 16.0,
+            addonOrigin[2] + (tf.Origin[2] - tf.Offset[2]) * 16.0
         };
         foreach (var el in addonElements)
         {
@@ -319,12 +321,18 @@ public static class AttachmentComposer
         }
 
         double scale = tf.Scale;
+        double[] pivot =
+        [
+            slotOrigin[0] + tf.Origin[0] * 16.0,
+            slotOrigin[1] + tf.Origin[1] * 16.0,
+            slotOrigin[2] + tf.Origin[2] * 16.0
+        ];
         var wrapper = new ShapeElement
         {
             Name = "addon",
-            From = (double[])slotOrigin.Clone(),
-            To = (double[])slotOrigin.Clone(),
-            RotationOrigin = (double[])slotOrigin.Clone(),
+            From = (double[])pivot.Clone(),
+            To = (double[])pivot.Clone(),
+            RotationOrigin = pivot,
             RotationX = tf.Rotation[0],
             RotationY = tf.Rotation[1],
             RotationZ = tf.Rotation[2],

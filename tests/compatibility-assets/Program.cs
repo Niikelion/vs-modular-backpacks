@@ -9,9 +9,24 @@ var patches = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "patches
 var strap = JObject.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "toolstrap.json")));
 string requiredTag = strap["behaviors"]!.Single(b => (string?)b["name"] == "HeldBag")!["properties"]!["tags"]![0]!.Value<string>()!;
 string requiredCategory = strap["attributes"]!["immersiveBackpack"]!["attachmentPoints"]![0]!["categories"]![0]!.Value<string>()!;
-string[] stickNames = ["walkingstick", "walkingstick-cowskull", "walkingstick-crude", "walkingstick-fine", "walkingstick-lantern", "walkingstick-reinforced"];
-var targets = stickNames.Select(name => (mod: "walkingsticklite", file: $"walkingstick:itemtypes/tool/walkingsticks/{name}.json"))
-    .Concat(stickNames.Select(name => (mod: "walkingstick", file: $"walkingstick:itemtypes/tool/walkingsticks/{name}.json")))
+string[] liteStickNames = ["walkingstick", "walkingstick-cowskull", "walkingstick-crude", "walkingstick-fine", "walkingstick-lantern", "walkingstick-reinforced"];
+string[] fullStickNames = [
+    .. liteStickNames,
+    "walkingstick-architect",
+    "walkingstick-blackguard",
+    "walkingstick-blackthorn",
+    "walkingstick-forlorn",
+    "walkingstick-gas",
+    "walkingstick-gun-sheathed",
+    "walkingstick-jonas",
+    "walkingstick-pathfinder",
+    "walkingstick-sheathed",
+    "walkingstick-shepherds",
+    "walkingstick-sling",
+    "walkingstick-witch"
+];
+var targets = liteStickNames.Select(name => (mod: "walkingsticklite", file: $"walkingstick:itemtypes/tool/walkingsticks/{name}.json"))
+    .Concat(fullStickNames.Select(name => (mod: "walkingstick", file: $"walkingstick:itemtypes/tool/walkingsticks/{name}.json")))
     .Concat(new[] { "dolabra-axe", "dolabra-pick", "dolabra-blackbronze-axe", "dolabra-blackbronze-pick", "dolabra-steel-axe", "dolabra-steel-pick" }
         .Select(name => (mod: "dolabra", file: $"dolabra:itemtypes/tool/dolabra/{name}.json")))
     .Append((mod: "soldierspycraftworks", file: "soldierspycraftworks:itemtypes/warpick.json")).ToArray();

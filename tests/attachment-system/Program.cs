@@ -43,6 +43,7 @@ static void AssertEquivalent(float[] expected, float[] actual, string message)
 SaveCompatibilityTests.Run();
 BackpackAssetTests.Run();
 AttachmentMeshTests.Run();
+AttachmentOriginTests.Run();
 
 var sparseShape = new Shape
 {

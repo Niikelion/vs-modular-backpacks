@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, readdirSync, statSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,6 +25,9 @@ const fixtureProject = path.join(testsRoot, "fixture", "ToolstrapMatrixFixture.c
 run("dotnet", ["build", fixtureProject, "-c", "Debug"], repoRoot);
 
 const fixtureMods = path.join(testsRoot, "fixture", "bin", "Debug", "Mods");
+const builtModPath = process.env.IB_MOD_PATH
+  ?? path.join(repoRoot, "ImmersiveBackpacks", "bin", "Debug", "Mods", "immersivemodularbackpacks");
+const stagedModPath = path.join(fixtureMods, "matrix-immersive-backpacks");
 const dolabraPath = process.env.IB_MATRIX_DOLABRA_PATH
   ?? path.join(repoRoot, ".compat-test", "mods", "Infantry-dolabra_2.0.2.zip");
 const toolsmithPath = process.env.IB_MATRIX_TOOLSMITH_PATH
@@ -32,15 +35,14 @@ const toolsmithPath = process.env.IB_MATRIX_TOOLSMITH_PATH
 const soldierSpyCraftworksPath = process.env.IB_MATRIX_SOLDIERSPY_CRAFTWORKS_PATH
   ?? path.join(repoRoot, ".compat-test", "mods", "SoldierSpy-Craftworks-1.4.1.zip");
 const walkingSticksPath = process.env.IB_MATRIX_WALKING_STICKS_PATH
-  ?? newestMatchingFile(
-    path.join(process.env.APPDATA ?? "", "VintagestoryData", "ModsByServer"),
-    /^adventurers-walking-stick-lite.*\.zip$/i,
-  );
+  ?? path.join(repoRoot, ".compat-test", "mods", "adventurers-walking-stick-net10_3.0.9.zip");
 
 stageMod(dolabraPath, path.join(fixtureMods, "matrix-dolabra.zip"), "IB_MATRIX_DOLABRA_PATH");
 stageMod(toolsmithPath, path.join(fixtureMods, "matrix-toolsmith.zip"), "IB_MATRIX_TOOLSMITH_PATH");
 stageMod(soldierSpyCraftworksPath, path.join(fixtureMods, "matrix-soldierspy-craftworks.zip"), "IB_MATRIX_SOLDIERSPY_CRAFTWORKS_PATH");
 stageMod(walkingSticksPath, path.join(fixtureMods, "matrix-walking-sticks.zip"), "IB_MATRIX_WALKING_STICKS_PATH");
+stageFolderMod(builtModPath, stagedModPath, "IB_MOD_PATH");
+process.env.IB_MOD_PATH = fixtureMods;
 
 run(process.execPath, [path.join(testsRoot, "node_modules", "typescript", "bin", "tsc")], testsRoot);
 run(process.execPath, [path.join(testsRoot, "dist", "toolstrap-matrix.js")], testsRoot);
@@ -58,19 +60,15 @@ function stageMod(source, destination, variableName) {
   copyFileSync(source, destination);
 }
 
-function newestMatchingFile(root, pattern) {
-  if (!root || !existsSync(root)) return undefined;
-
-  const matches = [];
-  const pending = [root];
-  while (pending.length > 0) {
-    const directory = pending.pop();
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const fullPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) pending.push(fullPath);
-      else if (entry.isFile() && pattern.test(entry.name)) matches.push(fullPath);
-    }
+function stageFolderMod(source, destination, variableName) {
+  if (!source || !existsSync(source)) {
+    throw new Error(`Built mod folder not found. Set ${variableName}.`);
   }
 
-  return matches.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+  rmSync(destination, { recursive: true, force: true });
+  mkdirSync(destination, { recursive: true });
+  for (const entry of readdirSync(source, { withFileTypes: true })) {
+    if (entry.name === "publish") continue;
+    cpSync(path.join(source, entry.name), path.join(destination, entry.name), { recursive: true });
+  }
 }
