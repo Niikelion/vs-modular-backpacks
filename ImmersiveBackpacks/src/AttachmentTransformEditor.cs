@@ -1,3 +1,4 @@
+using ImmersiveModularBackpacks.Attachments;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;

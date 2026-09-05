@@ -1,44 +1,842 @@
 [
 	{
-		"op": "add",
-		"path": "/attributes/immersiveAttachedTransform",
-		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
 		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick.json",
-		"dependsOn": [ { "modid": "walkingsticklite" } ]
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
 	},
 	{
-		"op": "add",
-		"path": "/attributes/immersiveAttachedTransform",
-		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick.json",
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
 		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-cowskull.json",
-		"dependsOn": [ { "modid": "walkingsticklite" } ]
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
 	},
 	{
-		"op": "add",
-		"path": "/attributes/immersiveAttachedTransform",
-		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-cowskull.json",
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
 		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-crude.json",
-		"dependsOn": [ { "modid": "walkingsticklite" } ]
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
 	},
 	{
-		"op": "add",
-		"path": "/attributes/immersiveAttachedTransform",
-		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-crude.json",
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
 		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-fine.json",
-		"dependsOn": [ { "modid": "walkingsticklite" } ]
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
 	},
 	{
-		"op": "add",
-		"path": "/attributes/immersiveAttachedTransform",
-		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-fine.json",
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
 		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-lantern.json",
-		"dependsOn": [ { "modid": "walkingsticklite" } ]
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
 	},
 	{
-		"op": "add",
-		"path": "/attributes/immersiveAttachedTransform",
-		"value": { "translation": { "x": 0.6, "y": 0, "z": 0 } },
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-lantern.json",
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
 		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-reinforced.json",
-		"dependsOn": [ { "modid": "walkingsticklite" } ]
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-reinforced.json",
+		"dependsOn": [
+			{
+				"modid": "walkingsticklite"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-cowskull.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-cowskull.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-crude.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-crude.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-fine.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-fine.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-lantern.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-lantern.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-reinforced.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-reinforced.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-architect.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-architect.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-blackguard.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-blackguard.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-blackthorn.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-blackthorn.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-forlorn.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-forlorn.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-gas.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-gas.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-gun-sheathed.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-gun-sheathed.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-jonas.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-jonas.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-pathfinder.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-pathfinder.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-sheathed.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-sheathed.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-shepherds.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-shepherds.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-sling.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-sling.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/attributes",
+		"value": {
+			"immersiveBackpackAttachment": {
+				"category": "twohanded"
+			},
+			"immersiveAttachedTransform": {
+				"translation": {
+					"x": 0.6,
+					"y": 0,
+					"z": 0
+				}
+			}
+		},
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-witch.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
+	},
+	{
+		"op": "addmerge",
+		"path": "/tags",
+		"value": [
+			"twohanded"
+		],
+		"file": "walkingstick:itemtypes/tool/walkingsticks/walkingstick-witch.json",
+		"dependsOn": [
+			{
+				"modid": "walkingstick"
+			}
+		]
 	}
 ]

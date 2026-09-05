@@ -13,7 +13,9 @@ import { openWorld, type VsWorld } from "vsmcp-server/testkit";
 import { MOD_PATHS, DATA_PATH, attachedAt, cargoSlots, giveToHand, pointAt } from "./support/bag.js";
 
 const BACKPACK = "game:backpack-normal";
+const STURDY_BACKPACK = "game:backpack-sturdy";
 const POUCH = "immersivemodularbackpacks:pouch-normal";
+const BEDROLL = "game:bed-hay-head-north";
 
 let world: VsWorld;
 
@@ -26,14 +28,18 @@ after(async () => {
 }, { timeout: 60_000 });
 
 /** Place a bag on the arena floor and return where it landed. */
-async function placeBag(arena: Awaited<ReturnType<VsWorld["arena"]>>) {
+async function placeBag(
+  arena: Awaited<ReturnType<VsWorld["arena"]>>,
+  bag = BACKPACK,
+  placed = "backpack-placed-normal",
+) {
   const ground = arena.at(2, 0, 0);
   const bagPos = arena.at(2, 1, 0);
 
-  await giveToHand(world, BACKPACK);
+  await giveToHand(world, bag);
   await world.look(arena.topOf(ground));
   await world.use({ shift: true });
-  await world.waitForBlock(bagPos, "backpack-placed-normal");
+  await world.waitForBlock(bagPos, placed);
 
   return bagPos;
 }
@@ -110,5 +116,28 @@ describe("attaching addons to a placed backpack", () => {
       return slots > baseline ? slots : false;
     });
     assert.equal(grown, baseline + 3, "pouch-normal contributes 3 slots");
+  });
+
+  test("a member box attaches and detaches a spanning virtual addon", async () => {
+    const arena = await world.arena();
+    const bagPos = await placeBag(arena, STURDY_BACKPACK, "backpack-placed-sturdy");
+
+    await giveToHand(world, BEDROLL);
+    await aimAtPoint(bagPos, "lower_front_left");
+    await world.use({ shift: true });
+
+    const attached = await world.waitFor("the bedroll to attach to front_span", async () => {
+      const code = await attachedAt(world, bagPos, "front_span");
+      return code?.includes("bed-hay") ? code : false;
+    });
+    assert.match(attached, /bed-hay/);
+    assert.equal(await attachedAt(world, bagPos, "lower_front_left"), null);
+    assert.equal(await attachedAt(world, bagPos, "lower_front_right"), null);
+
+    await aimAtPoint(bagPos, "lower_front_right");
+    await world.use({ shift: true });
+    await world.waitFor("the member box to detach front_span", async () =>
+      (await attachedAt(world, bagPos, "front_span")) === null,
+    );
   });
 });

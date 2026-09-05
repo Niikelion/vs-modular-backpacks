@@ -1,4 +1,4 @@
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.items;
 using PlayerModelLib;
 using Vintagestory.API.Client;

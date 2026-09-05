@@ -27,13 +27,18 @@
 				{ "title": "immersivemodularbackpacks:handbook-addon-title", "text": "immersivemodularbackpacks:handbook-addon-toolstrap-text" }
 			]
 		},
-		"backpack": { "quantitySlots": 1, "storageFlags": 189, "slotBgColor": "#ffddaa" },
+		"backpack": { "quantitySlots": 1, "storageFlags": 189, "slotBgColor": "#b3975b" },
 		"immersiveBackpack": {
 			"attachmentPoints": [
-				{ "code": "tool_0", "categories": [ "twohanded" ] }
+				{ "code": "tool_0", "categories": [ "twohanded" ], "interactionColor": "#b3975b" }
 			]
 		},
-		"immersiveBackpackAttachment": { "category": "toolstrap" },
+		"immersiveBackpackAttachment": {
+			"category": "toolstrap",
+			"toolTransformByPointTag": {
+				"right": { "rotation": { "x": 180 } }
+			}
+		},
 		"immersiveAttachedTransform": { "scale": 0.5 }
 	}
 }

@@ -3,14 +3,8 @@ import os from "node:os";
 import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { openWorld, type VsWorld, type Vec3 } from "vsmcp-server/testkit";
-import { MOD_PATHS, attachedAt, cargoSlots, giveToHand, pointAt } from "./support/bag.js";
-
-interface MatrixItem {
-  group: string;
-  code: string;
-  label: string;
-  preset?: string;
-}
+import { MOD_PATHS, attachedAt, cargoSlots } from "./support/bag.js";
+import { matrixHtml, type MatrixItem, type MatrixEntry, type SlotAcceptance } from "./support/toolstrap-matrix-report.js";
 
 // One representative per distinct model shape. Material-only texture variants are intentionally omitted.
 const ITEMS: MatrixItem[] = [
@@ -59,6 +53,18 @@ const ITEMS: MatrixItem[] = [
   { group: "Walking stick", code: "walkingstick:walkingstick-fine", label: "Walking stick — fine" },
   { group: "Walking stick", code: "walkingstick:walkingstick-lantern-copper", label: "Walking stick — lantern" },
   { group: "Walking stick", code: "walkingstick:walkingstick-reinforced", label: "Walking stick — reinforced" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-architect", label: "Walking stick — architect" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-blackguard", label: "Walking stick — blackguard spearstaff" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-blackthorn", label: "Walking stick — blackthorn" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-forlorn", label: "Walking stick — forlorn spearstaff" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-gas", label: "Walking stick — gas lamp" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-gun-sheathed", label: "Walking stick — hidden gearlock" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-jonas", label: "Walking stick — Jonas ash-spitter" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-pathfinder", label: "Walking stick — pathfinder" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-sheathed", label: "Walking stick — hidden blade" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-shepherds", label: "Walking stick — shepherd's axe" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-sling", label: "Walking stick — staff sling" },
+  { group: "Walking stick", code: "walkingstick:walkingstick-witch", label: "Walking stick — witch" },
   { group: "SoldierSpy Craftworks", code: "soldierspycraftworks:warpick", label: "SoldierSpy — Blackguard Warpick" },
 ];
 
@@ -89,24 +95,32 @@ try {
   if (toolSlot < 0) throw new Error("Toolstrap did not contribute a cargo slot.");
 
   // Close three-quarter view of the placed bag keeps the slot anchor and long tools readable.
-  await world.teleport({ x: bagPos.x - 0.5, y: bagPos.y, z: bagPos.z - 0.5 });
+  // Camera sits half a block below the bag base so the bag reads higher in frame.
+  await world.teleport({ x: bagPos.x - 0.5, y: bagPos.y - 0.5, z: bagPos.z - 0.5 });
   const focus = { x: bagPos.x + 0.5, y: bagPos.y + 0.62, z: bagPos.z + 0.5 };
   await world.look(focus);
+  await world.act("hotkey", { code: "togglehud" }); // strip HUD/hotbar/crosshair so shots show only the bag
   await world.wait(320); // let the automatic welcome/chat overlay fade before the first frame
 
-  const manifest: Array<MatrixItem & { file: string }> = [];
+  const manifest: MatrixEntry[] = [];
   for (let i = 0; i < ITEMS.length; i++) {
     const item = ITEMS[i];
-    const result = await world.act<{ ok: boolean; error?: string; code?: string }>("ib_matrix_set_tool", {
+    const result = await world.act<SlotAcceptance & { ok: boolean; error?: string; code?: string }>("ib_matrix_set_tool", {
       ...bagPos,
       slot: toolSlot,
       code: item.code,
+      preset: item.preset,
     });
     if (!result.ok) throw new Error(`${item.code}: ${result.error}`);
 
-    await world.waitFor(`${item.code} to occupy the toolstrap slot`, async () => {
+    if (typeof result.accepted !== "boolean" || typeof result.available !== "boolean" || !result.reason)
+      throw new Error("Matrix fixture did not report slot acceptance. Rebuild the fixture before generating the matrix.");
+
+    await world.waitFor(`${item.code} slot acceptance to synchronize`, async () => {
       const state = await world!.inspectBlock(bagPos);
-      return state.container?.slots.find((slot) => slot.slot === toolSlot)?.stack?.code === item.code;
+      if (!state.container) return false;
+      const stack = state.container.slots.find((slot) => slot.slot === toolSlot)?.stack;
+      return result.accepted ? stack?.code === item.code : !stack;
     });
     await world.look(focus);
     await world.wait(6);
@@ -114,13 +128,16 @@ try {
     const shot = await world.screenshot();
     const file = `${String(i + 1).padStart(2, "0")}-${slug(item.label)}.png`;
     await copyFile(shot.path, path.join(outputDir, file));
-    manifest.push({ ...item, file });
-    console.log(`[${i + 1}/${ITEMS.length}] ${item.label}`);
+    manifest.push({ ...item, file, accepted: result.accepted, available: result.available,
+      inventoryAccepted: result.inventoryAccepted, attachmentAccepted: result.attachmentAccepted,
+      moved: result.moved, reason: result.reason });
+    console.log(`[${i + 1}/${ITEMS.length}] ${result.accepted ? "PASS" : "FAIL"} ${item.label}: ${result.reason}`);
   }
 
   await writeFile(path.join(outputDir, "manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
-  await writeFile(path.join(outputDir, "index.html"), html(manifest));
+  await writeFile(path.join(outputDir, "index.html"), matrixHtml(manifest));
   console.log(`\nMatrix: ${path.join(outputDir, "index.html")}`);
+  if (manifest.some(item => !item.accepted)) process.exitCode = 1;
 } finally {
   await world?.close();
 }
@@ -133,16 +150,11 @@ async function placeConfiguredBag(
   const bagPos = arena.at(2, 2, 0);
 
   await activeWorld.place("game:rock-granite", pedestal);
-
-  await giveToHand(activeWorld, "game:backpack-normal");
-  await activeWorld.look(arena.topOf(pedestal));
-  await activeWorld.use({ shift: true });
+  await activeWorld.place("immersivemodularbackpacks:backpack-placed-normal", bagPos);
   await activeWorld.waitForBlock(bagPos, "backpack-placed-normal");
 
-  await giveToHand(activeWorld, "immersivemodularbackpacks:toolstrap");
-  const point = await pointAt(activeWorld, bagPos, "left_strap");
-  await activeWorld.look(point.aim);
-  await activeWorld.use({ shift: true });
+  const attachResult = await activeWorld.act<{ ok: boolean; error?: string }>("ib_matrix_attach_toolstrap", { ...bagPos });
+  if (!attachResult.ok) throw new Error(`Toolstrap setup failed: ${attachResult.error}`);
   await activeWorld.waitFor("the toolstrap to attach", async () =>
     (await attachedAt(activeWorld, bagPos, "left_strap"))?.includes("toolstrap") ?? false,
   );
@@ -153,43 +165,4 @@ async function placeConfiguredBag(
 
 function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]!);
-}
-
-function html(items: Array<MatrixItem & { file: string }>): string {
-  const cards = items.map((item) => `
-    <figure>
-      <img src="${escapeHtml(item.file)}" alt="${escapeHtml(item.label)}">
-      <figcaption><strong>${escapeHtml(item.label)}</strong><code>${escapeHtml(item.code)}</code></figcaption>
-    </figure>`).join("");
-
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Toolstrap offset matrix</title>
-  <style>
-    :root { color-scheme: dark; font: 14px system-ui, sans-serif; background: #171717; color: #eee; }
-    body { margin: 24px; }
-    h1 { margin: 0 0 6px; }
-    p { margin: 0 0 20px; color: #aaa; }
-    main { display: grid; grid-template-columns: repeat(auto-fit, minmax(630px, 1fr)); gap: 16px; }
-    figure { margin: 0; overflow: hidden; border: 1px solid #3b3b3b; border-radius: 8px; background: #222; }
-    img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
-    figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; }
-    code { color: #aaa; }
-  </style>
-</head>
-<body>
-  <h1>Toolstrap offset matrix</h1>
-  <p>${items.length} geometry-distinct two-handed models generated through VSMCP.</p>
-  <main>${cards}
-  </main>
-</body>
-</html>
-`;
 }

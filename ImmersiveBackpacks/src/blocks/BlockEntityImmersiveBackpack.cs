@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.inventory;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -11,6 +12,14 @@ using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace ImmersiveBackpacks.blocks;
+
+internal readonly record struct AttachmentInteractionTarget(
+    int OwnerPointIndex,
+    int NestedPointIndex,
+    string PointCode,
+    int CargoSlotIndex,
+    Cuboidf Box,
+    IAttachmentPointInteraction Interaction);
 
 public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttachmentHost
 {
@@ -74,14 +83,18 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     // Called by BackpackPlacementBehavior when the block is freshly placed.
     public void InitFromItemStack(ItemStack stack)
+        => InitFromItemStack(stack, initializeInventory: true);
+
+    internal void InitFromItemStack(ItemStack stack, bool initializeInventory)
     {
         BackpackItemCode = stack.Collectible.Code;
         LoadAttachmentConfig(Api, stack.Collectible);
         AttachedItems = new ItemStack[AttachmentPoints.Length];
 
-        var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
+        var addonsTree = BackpackSaveData.GetAddons(stack.Attributes);
         if (addonsTree != null)
         {
+            WarnOrphanedAddons(addonsTree, Api);
             for (int i = 0; i < AttachmentPoints.Length; i++)
             {
                 var s = addonsTree.GetItemstack(AttachmentPoints[i].Code);
@@ -91,9 +104,9 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             }
         }
 
-        cargoInv = NewCargoInv(Layout());
+        cargoInv = NewCargoInv(Layout(), initializeInventory);
 
-        var slotsTree = stack.Attributes?.GetTreeAttribute("backpack")?.GetTreeAttribute("slots");
+        var slotsTree = BackpackSaveData.GetHeldSlots(stack.Attributes);
         if (slotsTree != null)
         {
             for (int i = 0; i < cargoInv.Count; i++)
@@ -111,7 +124,12 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     public override bool OnPlayerRightClick(IPlayer byPlayer, BlockSelection blockSel)
     {
-        int pointIndex = blockSel.SelectionBoxIndex - 1;
+        int bodyBoxCount = Block.SelectionBoxes?.Length ?? 0;
+        bool nestedTarget = TryGetInteractionTarget(
+            blockSel.SelectionBoxIndex, bodyBoxCount, out var interactionTarget);
+        int pointIndex = nestedTarget
+            ? interactionTarget.OwnerPointIndex
+            : PointIndexForSelectionBox(blockSel.SelectionBoxIndex, bodyBoxCount);
 
         // Shift + right-click is our attach/detach gesture (box 0 is the body, boxes 1+ are the points). Always
         // consume it so a held placeable addon can't place itself against the bag; only a point box attaches.
@@ -131,6 +149,24 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             return true;
         }
 
+        // Nested interaction points claim their own hitboxes even while inactive, preventing the click from
+        // falling through to backpack pickup. Colour, help, and mutation are active-only concerns.
+        if (nestedTarget)
+        {
+            if (Api.Side == EnumAppSide.Server)
+                RouteAttachmentInteraction(interactionTarget, byPlayer);
+            return true;
+        }
+
+        // A plain click on a cargo-backed container attachment manipulates its visible contents. Shift remains
+        // reserved for removing the attachment itself, while clicking the backpack body still picks it up.
+        if (pointIndex >= 0 && HasInteractiveAttachmentContentAt(pointIndex))
+        {
+            if (Api.Side == EnumAppSide.Server)
+                RouteAttachmentInteraction(pointIndex, byPlayer);
+            return true;
+        }
+
         if (Api.Side == EnumAppSide.Server)
             PickUp(byPlayer);
         return true;
@@ -147,53 +183,98 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
 
     private void OnPlayerInteractWithPoint(int pointIndex, IPlayer byPlayer)
     {
-        var point = AttachmentPoints[pointIndex];
         var activeSlot = byPlayer.InventoryManager.ActiveHotbarSlot;
+        int occupiedPoint = AttachmentPointRouting.OccupiedPointAt(AttachmentPoints, AttachedItems, pointIndex);
+        if (occupiedPoint >= 0)
+        {
+            Detach(occupiedPoint, byPlayer);
+            return;
+        }
+
+        if (activeSlot.Empty) return;
+        var candidate = AttachmentFactory.For(activeSlot.Itemstack, Api.World);
+        int targetPoint = AttachmentPointRouting.AttachTargetAt(
+            AttachmentPoints, AttachedItems, pointIndex, candidate);
+        if (targetPoint >= 0) Attach(targetPoint, activeSlot, byPlayer);
+    }
+
+    private bool RouteAttachmentInteraction(int pointIndex, IPlayer byPlayer)
+    {
+        int occupiedPoint = AttachmentPointRouting.OccupiedPointAt(AttachmentPoints, AttachedItems, pointIndex);
+        if (occupiedPoint < 0) return false;
+
+        var node = NodeAt(occupiedPoint);
+        var (offset, count) = BackpackSlotLayout.AddonRanges(GetBaseSlots(), AttachedItems)[occupiedPoint];
+        if (node == null) return false;
+
+        bool offered = false;
+        int pointCount = Math.Min(node.Points.Count, count);
+        for (int i = 0; i < pointCount; i++)
+        {
+            if (node.Points[i] is not IAttachmentPointInteraction interaction) continue;
+            offered = true;
+            var context = new AttachmentPointInteractionContext(
+                Api.World, byPlayer.InventoryManager.ActiveHotbarSlot, cargoInv[offset + i]);
+            if (!interaction.IsInteractionActive(context)) continue;
+            var result = interaction.OnInteract(context);
+            if (result == AttachmentPointInteractionResult.Pass) continue;
+            if (result == AttachmentPointInteractionResult.Changed) OnAttachmentContentChanged();
+            return true;
+        }
+
+        // An interactable attachment consumes clicks even when empty, full, or given an incompatible item.
+        return offered;
+    }
+
+    private bool RouteAttachmentInteraction(AttachmentInteractionTarget target, IPlayer byPlayer)
+    {
+        var context = InteractionContext(target, byPlayer.InventoryManager.ActiveHotbarSlot);
+        if (!target.Interaction.IsInteractionActive(context)) return true;
+
+        var result = target.Interaction.OnInteract(context);
+        if (result == AttachmentPointInteractionResult.Changed) OnAttachmentContentChanged();
+        return result != AttachmentPointInteractionResult.Pass;
+    }
+
+    private void Attach(int pointIndex, ItemSlot activeSlot, IPlayer byPlayer)
+    {
         var oldAttached = (ItemStack[])AttachedItems.Clone();
+        var point = AttachmentPoints[pointIndex];
+        var addon = activeSlot.Itemstack.Clone();
+        addon.StackSize = 1;
+        AttachedItems[pointIndex] = addon;
+        activeSlot.TakeOut(1);
+        activeSlot.MarkDirty();
 
-        if (AttachedItems[pointIndex] == null)
-        {
-            if (activeSlot.Empty) return;
-            if (!CanAcceptInPoint(point, activeSlot.Itemstack)) return;
+        RebuildCargo(oldAttached, byPlayer);
+        LoadAddonIntoCargo(addon, point.Code);
 
-            var addon = activeSlot.Itemstack.Clone();
-            addon.StackSize = 1;
-            AttachedItems[pointIndex] = addon;
-            activeSlot.TakeOut(1);
-            activeSlot.MarkDirty();
-
-            // Base + other addons keep their cargo (RebuildCargo), then this bag's own contents flow into
-            // the slots it just added.
-            RebuildCargo(oldAttached, byPlayer);
-            LoadAddonIntoCargo(addon, point.Code);
-
-            // Live-host lifecycle: fire once at the real attach, after cargo is in place so the node sees its
-            // owned tools. Nodes are otherwise rebuilt per render, so this is their only attach signal.
-            NodeAt(pointIndex)?.OnAttached(this);
-        }
-        else
-        {
-            var addon = AttachedItems[pointIndex];
-
-            // Notify the node it is leaving the host before its cargo/layout is torn down below.
-            NodeAt(pointIndex)?.OnDetached();
-
-            // A bag addon carries its cargo back inside itself. Non-bag addons (the lantern) contribute no
-            // slots, so this is a no-op for them; the guard just avoids writing an empty bag tree onto them.
-            if (addon.Collectible?.GetCollectibleInterface<IHeldBag>() != null)
-                StoreCargoIntoAddon(addon, point.Code);
-
-            Expel(addon, byPlayer);
-            AttachedItems[pointIndex] = null;
-
-            RebuildCargo(oldAttached, byPlayer);
-        }
-
+        var node = NodeAt(pointIndex);
+        node?.OnAttached(this);
+        if (node != null) point.OnAttached(node, this);
         OnAttachmentContentChanged();
     }
 
-    // The single coarse re-derive after an attachment's content changes (attach/detach today; a nested
-    // toolstrap's tool swap once that lands): re-light, re-mesh, persist + sync. The design's IAttachmentHost
+    private void Detach(int pointIndex, IPlayer byPlayer)
+    {
+        var oldAttached = (ItemStack[])AttachedItems.Clone();
+        var point = AttachmentPoints[pointIndex];
+        var addon = AttachedItems[pointIndex];
+        var node = NodeAt(pointIndex);
+        point.OnDetached();
+        node?.OnDetached();
+
+        if (addon.Collectible?.GetCollectibleInterface<IHeldBag>() != null)
+            StoreCargoIntoAddon(addon, point.Code);
+
+        Expel(addon, byPlayer);
+        AttachedItems[pointIndex] = null;
+        RebuildCargo(oldAttached, byPlayer);
+        OnAttachmentContentChanged();
+    }
+
+    // The single coarse re-derive after an attachment's content changes (attach/detach or nested content):
+    // re-light, re-mesh, persist + sync. The design's IAttachmentHost
     // push routes here too. Re-lighting and MarkDirty run on both sides; the renderer exists only client-side
     // (server relights + syncs, the sync re-marks the client renderer via FromTreeAttributes anyway).
     private void OnAttachmentContentChanged()
@@ -242,7 +323,8 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             s.ResolveBlockOrItem(Api.World);
             cargoInv[indices[k]].Itemstack = s;
         }
-        addon.Attributes.GetTreeAttribute("backpack")?.RemoveAttribute("slots");
+        addon.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey)
+            ?.RemoveAttribute(BackpackSaveData.SlotsKey);
     }
 
     // Move the cargo from a bag's owned slots back inside the bag stack (vanilla IHeldBag layout) and clear
@@ -257,31 +339,31 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             cargoInv[indices[k]].Itemstack = null;
         }
 
-        var backpack = addon.Attributes.GetTreeAttribute("backpack");
+        var backpack = addon.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
         if (backpack == null)
         {
             backpack = new TreeAttribute();
-            addon.Attributes["backpack"] = backpack;
+            addon.Attributes[BackpackSaveData.BackpackKey] = backpack;
         }
-        backpack["slots"] = slots;
+        backpack[BackpackSaveData.SlotsKey] = slots;
     }
 
     // The vanilla IHeldBag content tree on a bag stack: backpack -> slots -> slot-{i}.
     private static ITreeAttribute AddonSlotsTree(ItemStack addon, bool create)
     {
-        var backpack = addon.Attributes.GetTreeAttribute("backpack");
+        var backpack = addon.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
         if (backpack == null)
         {
             if (!create) return null;
             backpack = new TreeAttribute();
-            addon.Attributes["backpack"] = backpack;
+            addon.Attributes[BackpackSaveData.BackpackKey] = backpack;
         }
-        var slots = backpack.GetTreeAttribute("slots");
+        var slots = backpack.GetTreeAttribute(BackpackSaveData.SlotsKey);
         if (slots == null)
         {
             if (!create) return null;
             slots = new TreeAttribute();
-            backpack["slots"] = slots;
+            backpack[BackpackSaveData.SlotsKey] = slots;
         }
         return slots;
     }
@@ -294,13 +376,101 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     public bool CanAccept(int pointIndex, ItemStack stack)
     {
         if (stack == null) return false;
-        if (pointIndex < 0 || pointIndex >= AttachmentPoints.Length) return false;
-        if (AttachedItems[pointIndex] != null) return false;
-        return CanAcceptInPoint(AttachmentPoints[pointIndex], stack);
+        var candidate = AttachmentFactory.For(stack, Api.World);
+        return AttachmentPointRouting.AttachTargetAt(
+            AttachmentPoints, AttachedItems, pointIndex, candidate) >= 0;
     }
 
-    private bool CanAcceptInPoint(CategoryAttachmentPoint point, ItemStack stack)
-        => point.Accepts(AttachmentFactory.For(stack, Api.World));
+    public int PointIndexForSelectionBox(int selectionBoxIndex, int bodyBoxCount)
+        => AttachmentPointRouting.PointForSelectionBox(AttachmentPoints, selectionBoxIndex, bodyBoxCount);
+
+    internal IReadOnlyList<AttachmentInteractionTarget> InteractionTargets()
+    {
+        if (Api == null || cargoInv == null) return [];
+
+        var targets = new List<AttachmentInteractionTarget>();
+        var ranges = BackpackSlotLayout.AddonRanges(GetBaseSlots(), AttachedItems);
+        for (int ownerIndex = 0; ownerIndex < AttachedItems.Length; ownerIndex++)
+        {
+            var node = NodeAt(ownerIndex);
+            if (node == null) continue;
+
+            var (offset, count) = ranges[ownerIndex];
+            int pointCount = Math.Min(node.Points.Count, count);
+            for (int nestedIndex = 0; nestedIndex < pointCount; nestedIndex++)
+            {
+                var point = node.Points[nestedIndex];
+                if (point.IsVirtual || point is not IAttachmentPointInteraction interaction) continue;
+                targets.Add(new(
+                    ownerIndex,
+                    nestedIndex,
+                    point.Code,
+                    offset + nestedIndex,
+                    AttachmentComposer.TransformChildBox(AttachmentPoints[ownerIndex], node, point.Box),
+                    interaction));
+            }
+        }
+        return targets;
+    }
+
+    internal bool TryGetInteractionTarget(int selectionBoxIndex, int bodyBoxCount,
+        out AttachmentInteractionTarget target)
+    {
+        int interactionIndex = selectionBoxIndex - bodyBoxCount;
+        foreach (var point in AttachmentPoints)
+            if (!point.IsVirtual) interactionIndex--;
+
+        var targets = InteractionTargets();
+        if (interactionIndex >= 0 && interactionIndex < targets.Count)
+        {
+            target = targets[interactionIndex];
+            return true;
+        }
+
+        target = default;
+        return false;
+    }
+
+    internal bool TryGetActiveInteractionAtPoint(int realPointIndex, ItemSlot activeSlot,
+        out AttachmentInteractionTarget target)
+    {
+        int ownerIndex = AttachmentPointRouting.OccupiedPointAt(
+            AttachmentPoints, AttachedItems, realPointIndex);
+        foreach (var candidate in InteractionTargets())
+        {
+            if (candidate.OwnerPointIndex != ownerIndex) continue;
+            var context = InteractionContext(candidate, activeSlot);
+            if (!candidate.Interaction.IsInteractionActive(context)) continue;
+            target = candidate;
+            return true;
+        }
+
+        target = default;
+        return false;
+    }
+
+    internal AttachmentPointInteractionContext InteractionContext(
+        AttachmentInteractionTarget target, ItemSlot activeSlot)
+        => new(Api.World, activeSlot, cargoInv[target.CargoSlotIndex]);
+
+    public int OccupiedPointAt(int realPointIndex)
+        => AttachmentPointRouting.OccupiedPointAt(AttachmentPoints, AttachedItems, realPointIndex);
+
+    public IReadOnlyList<IAttachmentPoint> AvailablePointsAt(int realPointIndex)
+        => AttachmentPointRouting.AvailablePointsAt(AttachmentPoints, AttachedItems, realPointIndex);
+
+    public bool HasInteractiveAttachmentContentAt(int realPointIndex)
+    {
+        int occupiedPoint = AttachmentPointRouting.OccupiedPointAt(AttachmentPoints, AttachedItems, realPointIndex);
+        if (occupiedPoint < 0) return false;
+        int count = BackpackSlotLayout.AddonRanges(GetBaseSlots(), AttachedItems)[occupiedPoint].count;
+        var node = NodeAt(occupiedPoint);
+        if (node == null) return false;
+        int pointCount = Math.Min(node.Points.Count, count);
+        for (int i = 0; i < pointCount; i++)
+            if (node.Points[i] is IAttachmentPointInteraction) return true;
+        return false;
+    }
 
     private void OpenCargoDialog(IPlayer byPlayer)
     {
@@ -327,15 +497,14 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
                 if (AttachedItems[i] == null) continue;
                 addonsTree.SetItemstack(AttachmentPoints[i].Code, AttachedItems[i]);
             }
-            stack.Attributes["placed_addons"] = addonsTree;
+            BackpackSaveData.SetAddons(stack.Attributes, addonsTree);
         }
 
         // Vanilla IHeldBag layout (backpack -> slots -> slot-{i}) so the worn bag reads the same cargo.
         var slotsTree = new TreeAttribute();
         for (int i = 0; i < cargoInv.Count; i++)
             slotsTree["slot-" + i] = new ItemstackAttribute(cargoInv[i].Itemstack);
-        var backpackTree = new TreeAttribute { ["slots"] = slotsTree };
-        stack.Attributes["backpack"] = backpackTree;
+        BackpackSaveData.SetHeldSlots(stack.Attributes, slotsTree);
 
         return stack;
     }
@@ -345,7 +514,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     private BackpackSlotLayout.SlotSpec[] Layout()
         => BackpackSlotLayout.Build(BagAttributes(), GetBaseSlots(), AttachedItems);
 
-    private InventoryGeneric NewCargoInv(BackpackSlotLayout.SlotSpec[] layout)
+    private InventoryGeneric NewCargoInv(BackpackSlotLayout.SlotSpec[] layout, bool initialize = true)
     {
         cargoLayout = layout;
         int size = Math.Max(1, layout.Length);
@@ -354,12 +523,12 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
                 ? BackpackSlotLayout.CreateDialogSlot(slotInv, layout[slotId])
                 : new(slotInv));
 
-        if (Api != null)
+        if (initialize && Api != null)
             inv.LateInitialize(InventoryClassName + "-" + Pos.X + "/" + Pos.Y + "/" + Pos.Z, Api);
 
         // A toolstrap renders the tools in the cargo slots it owns, so a cargo edit can change the model. Mark
         // the renderer dirty (client-only; renderer is null server-side) — its reconcile keys on each addon's
-        // ContentHash, so only the addon whose cargo changed re-meshes, not all of them. On the server, also
+        // RenderKey, so only the addon whose cargo changed re-meshes, not all of them. On the server, also
         // push the BE state so a cargo edit by ANY player (e.g. a remote client's dialog) reaches other clients
         // - without this the rendered tools and other clients' view stay stale until they reopen the dialog.
         inv.SlotModified += _ =>
@@ -381,14 +550,15 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
     /// <summary>
     /// The unified-cargo stacks the addon at the given attachment point owns, in slot order — a toolstrap's
     /// rendered tools. Null when the point has no addon or the addon contributes no slots. The placed renderer
-    /// hands this to <c>AttachmentFactory.For</c> so the toolstrap composes its tools.
+    /// projects this through the addon's <c>IHeldBag</c> contract so the toolstrap composes its tools.
     /// </summary>
     // The live-host attachment node for the addon at a point (its owned cargo composed in), or null if empty.
     private IAttachment NodeAt(int pointIndex)
     {
         if (pointIndex < 0 || pointIndex >= AttachedItems.Length) return null;
         var addon = AttachedItems[pointIndex];
-        return addon == null ? null : AttachmentFactory.For(addon, Api.World, OwnedCargo(pointIndex));
+        return addon == null ? null : BackpackAttachmentFactory.For(
+            addon, Api.World, OwnedCargo(pointIndex), AttachmentPoints[pointIndex]);
     }
 
     public IReadOnlyList<ItemStack> OwnedCargo(int pointIndex)
@@ -474,48 +644,11 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             return;
         }
 
-        // Slots authored as slot_<code> markers in the bag's item shape (16-unit) take precedence: the box
-        // becomes the [0,1] hitbox and the marker's composed rotation is the placed orientation. The patch
-        // "hitbox"/"placed" are the fallback for unported bags. Use the passed api (during FromTreeAttributes
-        // the BE's own Api is not set yet, so callers pass worldForResolving.Api).
+        // Use the passed api: during FromTreeAttributes the BE's own Api is not set yet.
         string shapeBase = (coll as Item)?.Shape?.Base?.ToString() ?? (coll as Block)?.Shape?.Base?.ToString();
-        var shapeSlots = api != null
-            ? AttachmentMesh.ReadSlots(api, shapeBase, coll.Code.Domain)
-            : new();
-
-        var raw = pointsJson.AsArray();
         var points = new List<CategoryAttachmentPoint>();
-        foreach (var entry in raw)
-        {
-            var code = entry["code"].AsString();
-            var cats = entry["categories"].AsArray<string>() ?? [];
-
-            Cuboidf hitbox;
-            AttachmentTransform transform;
-            Vec3f origin;
-            if (code != null && shapeSlots.TryGetValue(code, out var marker))
-            {
-                // Geometry comes entirely from the slot marker: box -> [0,1] hitbox, composed rotation ->
-                // the placed orientation, pivot -> the placement anchor. The addon's own attachedTransform
-                // (scale etc.) is folded in later.
-                var b = marker.Box;
-                hitbox = new(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-                transform = AttachmentTransform.FromRotation(marker.Rotation);
-                origin = new(marker.Origin.X / 16f, marker.Origin.Y / 16f, marker.Origin.Z / 16f);
-            }
-            else
-            {
-                // No marker: fall back to a patch-defined hitbox/placed (legacy/unported bags); anchor at the
-                // hitbox center.
-                float[] hb = entry["hitbox"].AsArray<float>();
-                if (hb == null || hb.Length < 6) continue;
-                hitbox = new(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
-                transform = AttachmentTransform.FromJson(entry["placed"]);
-                origin = new((hb[0] + hb[3]) / 2f, (hb[1] + hb[4]) / 2f, (hb[2] + hb[5]) / 2f);
-            }
-
-            points.Add(new(code, cats, hitbox, transform, origin));
-        }
+        foreach (var slot in SlotDataLoader.Load(api, coll, pointsJson, shapeBase))
+            points.Add(new CategoryAttachmentPoint(slot));
         AttachmentPoints = [.. points];
     }
 
@@ -532,7 +665,7 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             if (AttachedItems[i] == null) continue;
             addonsTree.SetItemstack(AttachmentPoints[i].Code, AttachedItems[i]);
         }
-        tree["placed_addons"] = addonsTree;
+        BackpackSaveData.SetAddons(tree, addonsTree);
     }
 
     public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
@@ -542,10 +675,11 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
         var item = worldForResolving.GetItem(BackpackItemCode);
         if (item != null) LoadAttachmentConfig(worldForResolving.Api, item);
 
-        var addonsTree = tree.GetTreeAttribute("placed_addons");
+        var addonsTree = BackpackSaveData.GetAddons(tree);
         AttachedItems = new ItemStack[AttachmentPoints.Length];
         if (addonsTree != null)
         {
+            WarnOrphanedAddons(addonsTree, worldForResolving.Api);
             for (int i = 0; i < AttachmentPoints.Length; i++)
             {
                 var s = addonsTree.GetItemstack(AttachmentPoints[i].Code);
@@ -578,6 +712,16 @@ public class BlockEntityImmersiveBackpack : BlockEntityOpenableContainer, IAttac
             // updates the open UI live instead of requiring the player to close and reopen it.
             if (layoutChanged) RebindOpenDialog();
         }
+    }
+
+    private void WarnOrphanedAddons(ITreeAttribute addons, ICoreAPI api)
+    {
+        var known = new HashSet<string>();
+        foreach (var point in AttachmentPoints) known.Add(point.Code);
+        foreach (var entry in addons)
+            if (!known.Contains(entry.Key) && entry.Value is ItemstackAttribute { value: not null })
+                api?.Logger.Warning("Dropping orphaned attachment {0} from point {1} on {2}.",
+                    entry.Value, entry.Key, BackpackItemCode);
     }
 
     // Reopen the cargo dialog against the current inventory when one is open and the slot layout just changed.

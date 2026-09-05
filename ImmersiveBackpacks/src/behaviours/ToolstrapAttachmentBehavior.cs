@@ -1,28 +1,43 @@
+#nullable enable
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Common;
-using Vintagestory.API.MathTools;
 
 namespace ImmersiveBackpacks.behaviours;
 
 /// <summary>
 /// Marks a collectible as a toolstrap: builds a container node whose tool points are the <c>slot_tool_&lt;n&gt;</c>
-/// markers in its strap shape and whose children are the host cargo it owns (the tools live in the bag's cargo,
-/// not the strap stack). Registered via JSON <c>behaviors</c>, so the factory needs no toolstrap knowledge.
+/// markers in its strap shape and whose children are read through its <c>IHeldBag</c> state. Backpack hosts
+/// hydrate that state on a transient stack before construction.
 /// </summary>
 public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : CollectibleBehavior(collObj), IAttachmentBuilder
 {
-    public IAttachment Build(ItemStack stack, IWorldAccessor world, IReadOnlyList<ItemStack> ownedCargo = null)
-        => new ToolstrapAttachment(stack, ownedCargo, world);
+    public IAttachment Build(ItemStack stack, IWorldAccessor world)
+        => new ToolstrapAttachment(stack, world);
 
-    private sealed class ToolstrapAttachment(ItemStack stack, IReadOnlyList<ItemStack> tools, IWorldAccessor world)
-        : AttachmentBase(stack)
+    private sealed class ToolstrapAttachment(ItemStack stack, IWorldAccessor world)
+        : AttachmentBase(stack), IAttachmentPointContextReceiver
     {
-        private readonly IReadOnlyList<ItemStack> tools = tools ?? [];
+        private readonly IReadOnlyList<ItemStack?> tools = ReadTools(stack, world);
+        private IReadOnlyList<string> parentPointTags = [];
+        private IReadOnlyList<IAttachmentPoint>? toolPoints;
 
-        public override IReadOnlyList<IAttachmentPoint> Points => field ??= BuildToolPoints();
+        public override IReadOnlyList<IAttachmentPoint> Points => toolPoints ??= BuildToolPoints();
 
-        public override IAttachment GetAttached(string pointCode)
+        public void SetAttachmentPointContext(IAttachmentPoint point)
+        {
+            parentPointTags = point is ITaggedAttachmentPoint tagged ? tagged.Tags : [];
+            toolPoints = null;
+        }
+
+        protected override void AppendOwnRenderState(ref AttachmentRenderKeyBuilder key)
+        {
+            base.AppendOwnRenderState(ref key);
+            foreach (string tag in parentPointTags) key.Add(tag);
+        }
+
+        public override IAttachment? GetAttached(string pointCode)
         {
             int i = ParseIndex(pointCode);
             if (i < 0 || i >= tools.Count) return null;
@@ -31,6 +46,9 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             s.ResolveBlockOrItem(world);
             return AttachmentFactory.For(s, world);
         }
+
+        private static IReadOnlyList<ItemStack?> ReadTools(ItemStack source, IWorldAccessor sourceWorld)
+            => source.Collectible?.GetCollectibleInterface<IHeldBag>()?.GetContents(source, sourceWorld) ?? [];
 
         // Points come from the strap's own immersiveBackpack.attachmentPoints, the same config a backpack
         // declares: each entry names a point and the categories it accepts. Geometry still comes from the
@@ -41,24 +59,18 @@ public class ToolstrapAttachmentBehavior(CollectibleObject collObj) : Collectibl
             var declared = coll.Attributes?["immersiveBackpack"]["attachmentPoints"];
             if (declared is not { Exists: true }) return [];
 
-            // Same base shape the composer tesselates, so marker codes line up with the rendered mesh.
-            var cs = AttachmentMesh.AttachedShapeComposite(coll)
-                ?? (coll as Item)?.Shape ?? (coll as Block)?.Shape;
-            var markers = AttachmentMesh.ReadSlots(world.Api, cs?.Base?.ToString(), coll.Code.Domain);
-
             // Shared sizing applied to each tool slot in both render contexts.
-            var toolTf = AttachmentTransform.FromJson(coll.Attributes?["immersiveBackpackAttachment"]["toolTransform"]);
+            var toolTf = AttachmentTransform.FromModelTransform(
+                coll.Attributes?["immersiveBackpackAttachment"]["toolTransform"]);
+            var transformsByTag = coll.Attributes?["immersiveBackpackAttachment"]["toolTransformByPointTag"];
+            foreach (string tag in parentPointTags)
+                toolTf = toolTf.CombinedWith(
+                    AttachmentTransform.FromModelTransform(transformsByTag?[tag]));
 
             var list = new List<IAttachmentPoint>();
-            foreach (var pt in declared.AsArray() ?? [])
-            {
-                string code = pt["code"].AsString();
-                if (code == null || !markers.TryGetValue(code, out var marker) || marker.Box == null) continue;
-
-                var b = marker.Box;
-                var box = new Cuboidf(b.X1 / 16f, b.Y1 / 16f, b.Z1 / 16f, b.X2 / 16f, b.Y2 / 16f, b.Z2 / 16f);
-                list.Add(new CategoryAttachmentPoint(code, pt["categories"].AsArray<string>(), box, toolTf));
-            }
+            foreach (var slot in SlotDataLoader.Load(world.Api, coll, declared,
+                         additionalTransform: toolTf))
+                list.Add(new ToolStorageAttachmentPoint(slot));
             return list;
         }
 
