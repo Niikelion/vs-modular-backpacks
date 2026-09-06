@@ -1,9 +1,19 @@
+#nullable enable
 using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
+
+[System.Flags]
+public enum AttachmentMirror
+{
+    None = 0,
+    X = 1,
+    Y = 2,
+    Z = 4
+}
 
 /**
  * <summary>
@@ -11,7 +21,7 @@ namespace ImmersiveBackpacks.attachments;
  * strap, a strap on a bag, a bag on an entity. Capabilities are optional facets: graphics (GetShape, mandatory),
  * nesting (Points), lifecycle (OnAttached/OnDetached, live hosts only). A node MUST be reconstructible from its
  * stack's tree state; live (BlockEntity/entity) hosts also get lifecycle and push invalidation, value (ItemStack)
- * hosts reconstruct per render and key caches on ContentHash. See [[attachment-system-design]].
+ * hosts reconstruct per render and key caches on RenderKey. See [[attachment-system-design]].
  * </summary>
  */
 public interface IAttachment
@@ -19,17 +29,17 @@ public interface IAttachment
     /// <summary>The stack this node represents; its attribute tree is the node's persisted state.</summary>
     ItemStack Stack { get; }
 
-    /// <summary>Content fingerprint render caches key on, folding this node's stack and its children recursively.</summary>
-    int ContentHash { get; }
+    /// <summary>64-bit render-state key, folding this node's stack and its children recursively.</summary>
+    ulong RenderKey { get; }
 
-    /// <summary>This node's render geometry in its own local space, children composed at their points (textures unresolved). Null opts the node out of worn rendering.</summary>
-    Shape GetShape(ICoreAPI api);
+    /// <summary>This node renders geometry in its own local space, children are composed at their points (textures unresolved). Null opts the node out of worn rendering.</summary>
+    Shape? GetShape(ICoreAPI api);
 
     /// <summary>Points this node exposes for children (empty = leaf).</summary>
     IReadOnlyList<IAttachmentPoint> Points { get; }
 
     /// <summary>The child occupying a point, or null. Read-only view over tree state.</summary>
-    IAttachment GetAttached(string pointCode);
+    IAttachment? GetAttached(string pointCode);
 
     /// <summary>Live-host attach; store the host to push invalidation. Not called on value (ItemStack) hosts.</summary>
     void OnAttached(IAttachmentHost host);
@@ -60,17 +70,59 @@ public interface IAttachmentPoint
 {
     string Code { get; }
 
+    bool IsVirtual { get; }
+
+    IReadOnlyList<string> MemberCodes { get; }
+
     /// <summary>Whether this point accepts the given attachment (category match, or a custom rule).</summary>
     bool Accepts(IAttachment attachment);
 
-    /// <summary>Marker AABB in raw 16-unit shape space (from the owner shape's <c>slot_&lt;code&gt;</c>). Also the placed selection box.</summary>
+    /// <summary>Marker AABB in raw 16-unit shape space (from the owner shape's <c>slot_&lt;code&gt;</c>). Also, the placed selection box.</summary>
     Cuboidf Box { get; }
 
-    /// <summary>Placement anchor for the occupant. Defaults to the box centre when the point has nothing better.</summary>
+    /// <summary>Placement anchor for the occupant. Defaults to the box center when the point has nothing better.</summary>
     Vec3f Origin { get; }
 
     /// <summary>Transform applied to the occupant, in both the placed/held (mesh) and worn/entity (shape) contexts.</summary>
     AttachmentTransform Transform { get; }
+
+    AttachmentMirror Mirror { get; }
+
+    void OnAttached(IAttachment child, IAttachmentHost host);
+
+    void OnDetached();
+}
+
+/// <summary>Result of routing a host interaction to a child point.</summary>
+public enum AttachmentPointInteractionResult
+{
+    Pass,
+    Handled,
+    Changed
+}
+
+/// <summary>Host-provided access to the held stack and storage owned by one attachment point.</summary>
+public readonly record struct AttachmentPointInteractionContext(
+    IWorldAccessor World,
+    ItemSlot ActiveSlot,
+    ItemSlot ContentSlot);
+
+/// <summary>
+/// Optional interaction facet for a point whose content can be manipulated directly while its owner is hosted.
+/// The host only routes the point to its owned storage; the point defines the interaction semantics.
+/// </summary>
+public interface IAttachmentPointInteraction
+{
+    /// <summary>Whether the point can currently handle the supplied interaction.</summary>
+    bool IsInteractionActive(in AttachmentPointInteractionContext context);
+
+    /// <summary>Outline colour while active. Hosts must not call this for an inactive point.</summary>
+    Vec4f GetInteractionColor(in AttachmentPointInteractionContext context);
+
+    /// <summary>Interaction-help language code while active. Hosts must not call this for an inactive point.</summary>
+    string GetInteractionHelpCode(in AttachmentPointInteractionContext context);
+
+    AttachmentPointInteractionResult OnInteract(in AttachmentPointInteractionContext context);
 }
 
 /**

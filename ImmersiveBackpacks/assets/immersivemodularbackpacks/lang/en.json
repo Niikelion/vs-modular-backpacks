@@ -11,6 +11,8 @@
 	"immersivemodularbackpacks:open-cargo": "Open cargo",
 	"immersivemodularbackpacks:attach-item": "Attach item",
 	"immersivemodularbackpacks:remove-attachment": "Remove attachment",
+	"immersivemodularbackpacks:store-item": "Store item",
+	"immersivemodularbackpacks:take-item": "Take item",
 	"immersivemodularbackpacks:cargo-dialog-title": "Backpack Cargo",
 	"immersivemodularbackpacks:pouch-contents": "Pouch Contents",
 

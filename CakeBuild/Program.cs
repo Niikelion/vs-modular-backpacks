@@ -7,6 +7,7 @@ using Cake.Common.IO;
 using Cake.Common.Tools.DotNet;
 using Cake.Common.Tools.DotNet.Clean;
 using Cake.Common.Tools.DotNet.Publish;
+using Cake.Common.Tools.DotNet.Run;
 using Cake.Core;
 using Cake.Frosting;
 using Cake.Json;
@@ -188,6 +189,8 @@ public sealed class ValidateJsonTask : FrostingTask<BuildContext>
 
 [TaskName("Build")]
 [IsDependentOn(typeof(ValidateJsonTask))]
+[IsDependentOn(typeof(CompatibilityAssetTestsTask))]
+[IsDependentOn(typeof(CompatibilityTestsTask))]
 public sealed class BuildTask : FrostingTask<BuildContext>
 {
     public override void Run(BuildContext context)
@@ -204,6 +207,26 @@ public sealed class BuildTask : FrostingTask<BuildContext>
             {
                 Configuration = context.BuildConfiguration
             });
+    }
+}
+
+[TaskName("CompatibilityTests")]
+public sealed class CompatibilityTestsTask : FrostingTask<BuildContext>
+{
+    public override void Run(BuildContext context)
+    {
+        context.DotNetRun("../tests/attachment-system/AttachmentSystemTests.csproj",
+            new DotNetRunSettings { Configuration = context.BuildConfiguration });
+    }
+}
+
+[TaskName("CompatibilityAssetTests")]
+public sealed class CompatibilityAssetTestsTask : FrostingTask<BuildContext>
+{
+    public override void Run(BuildContext context)
+    {
+        context.DotNetRun("../tests/compatibility-assets/CompatibilityAssetTests.csproj",
+            new DotNetRunSettings { Configuration = context.BuildConfiguration });
     }
 }
 

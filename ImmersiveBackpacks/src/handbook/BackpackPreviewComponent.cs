@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Cairo;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.items;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -90,37 +90,24 @@ public class BackpackPreviewComponent : ItemstackComponentBase
         BuildPoints(capi, addonGroups);
     }
 
-    // One entry per attachment point, anchored on its slot_<code> marker when the shape has one
-    // (16-unit -> [0,1]), else on the point's own anchor.
+    // One entry per real point. Its candidates include available virtual points that span it.
     private void BuildPoints(ICoreClientAPI capi, ItemStack[][] addonGroups)
     {
         if (bagStack.Collectible is not ItemImmersiveBag bag) return;
 
         var node = bag.BagNodeFor(bagStack);
-        // The same shape the mesh composer reads its markers from, so the markers land where addons would.
-        var shape = AttachmentMesh.AttachedShapeComposite(bag) ?? bag.Shape;
-        var markers = AttachmentMesh.ReadSlots(capi, shape?.Base?.ToString(), bag.Code.Domain);
+        var occupants = new ItemStack[node.Points.Count];
+        for (int i = 0; i < node.Points.Count; i++)
+            occupants[i] = node.GetAttached(node.Points[i].Code)?.Stack;
 
-        foreach (var pt in node.Points)
+        for (int pointIndex = 0; pointIndex < node.Points.Count; pointIndex++)
         {
-            // The marker's box centre, not its pivot: the pivot sits on a box corner (where an addon is
-            // anchored), while the centre is what reads as "the slot" and is the better thing to aim at.
-            // The box comes along for the hover outline: it is what the point actually occupies, so drawing it
-            // says how big the addon's footprint is, not just where it lands.
-            Vec3f anchor;
-            Cuboidf box;
-            if (markers.TryGetValue(pt.Code, out var marker) && marker.Box != null)
-            {
-                box = new Cuboidf(marker.Box.X1 / 16f, marker.Box.Y1 / 16f, marker.Box.Z1 / 16f,
-                                  marker.Box.X2 / 16f, marker.Box.Y2 / 16f, marker.Box.Z2 / 16f);
-                anchor = new Vec3f((box.X1 + box.X2) / 2f, (box.Y1 + box.Y2) / 2f, (box.Z1 + box.Z2) / 2f);
-            }
-            else if (pt.Box != null)
-            {
-                box = pt.Box;
-                anchor = pt.Origin;
-            }
-            else continue;
+            var pt = node.Points[pointIndex];
+            if (pt.IsVirtual || pt.Box == null) continue;
+            var box = pt.Box;
+            var anchor = new Vec3f((box.X1 + box.X2) / 2f, (box.Y1 + box.Y2) / 2f,
+                (box.Z1 + box.Z2) / 2f);
+            var available = AttachmentPointRouting.AvailablePointsAt(node.Points, occupants, pointIndex);
 
             // Whole groups, not just their first stack: the cell then cycles that addon's variants the way the
             // handbook's own addon row does. A group's stacks only differ by variant, so testing one is enough.
@@ -128,7 +115,13 @@ public class BackpackPreviewComponent : ItemstackComponentBase
             foreach (var group in addonGroups ?? [])
             {
                 if (group.Length == 0) continue;
-                if (pt.Accepts(AttachmentFactory.For(group[0], capi.World))) accepted.Add(group);
+                var candidate = AttachmentFactory.For(group[0], capi.World);
+                foreach (var point in available)
+                    if (point.Accepts(candidate))
+                    {
+                        accepted.Add(group);
+                        break;
+                    }
             }
 
             points.Add(new Point { Anchor = anchor, Box = box, Candidates = accepted.ToArray() });

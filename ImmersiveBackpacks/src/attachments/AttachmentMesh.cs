@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
@@ -5,23 +6,22 @@ using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
-namespace ImmersiveBackpacks;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
-/// Shared addon-rendering helpers used by every place an attached addon is drawn: the placed block renderer
-/// (per-frame draws) and the held/GUI item mesh (baked into one MultiTextureMeshRef). Keeps a single
-/// definition of how an addon is tesselated, scaled and centred so placed and held bags look the same.
+/// Shared attachment-rendering helpers used by placed, held, and GUI render paths. Keeps a single definition
+/// of how an attachment is tessellated, scaled, and centred across hosts.
 /// </summary>
 public static class AttachmentMesh
 {
     /// <summary>
-    /// Tesselates an addon stack into its mesh. Blocks whose appearance depends on stack attributes (the
+    /// Tessellates an addon stack into its mesh. Blocks whose appearance depends on stack attributes (the
     /// lantern's metal/lining/glass) go through <see cref="IContainedMeshSource"/> so the attached variant
     /// renders, rather than <c>TesselateBlock</c> which always uses the block's default material.
     /// </summary>
-    public static MeshData Tesselate(ICoreClientAPI capi, ItemStack stack)
+    public static MeshData? Tessellate(ICoreClientAPI capi, ItemStack stack)
     {
-        if (stack?.Collectible == null) return null;
+        if (stack.Collectible == null) return null;
         int itemAtlas = capi.ItemTextureAtlas.AtlasTextures[0].TextureId;
         int blockAtlas = capi.BlockTextureAtlas.AtlasTextures[0].TextureId;
 
@@ -36,14 +36,15 @@ public static class AttachmentMesh
 
         if (attached != null)
         {
-            // A block's texture codes may be declared by either side: vanilla's bed declares none of its own and
+            // Either side may declare a block's texture codes: vanilla's bed declares none of its own and
             // leaves them to the shape, while Roll-up bed's shapes declare none and leave them to the block's
             // per-variant textures. ShapeTextureSource looks in its own dict first and falls back to the shape's,
             // so seeding it with the block's textures covers both. It inserts whatever it finds into the block atlas.
             var texSource = new ShapeTextureSource(capi, attached,
-                AttachedShapeComposite(stack.Collectible)?.Base?.ToString());
+                AttachedShapeComposite(stack.Collectible)?.Base?.ToString() ?? stack.Collectible.Code.ToString());
             if (stack.Block?.Textures != null)
                 foreach (var tex in stack.Block.Textures) texSource.textures[tex.Key] = tex.Value;
+            if (stack.Block == null) return null;
             capi.Tesselator.TesselateShape(stack.Block.Code.ToString(), attached, out var customMesh, texSource);
             return TagAtlas(customMesh, blockAtlas);
         }
@@ -65,6 +66,7 @@ public static class AttachmentMesh
             capi.Tesselator.TesselateItem(stack.Item, out var itemMesh);
             return TagAtlas(itemMesh, itemAtlas);
         }
+        if (stack.Block == null) return null;
         capi.Tesselator.TesselateBlock(stack.Block, out var blockMesh);
         return TagAtlas(blockMesh, blockAtlas);
     }
@@ -76,15 +78,15 @@ public static class AttachmentMesh
     /// held/GUI bag mesh has no per-atlas mapping, so the block-atlas lantern renders untextured in the
     /// inventory icon and hover tooltip (the placed-block path binds each atlas per-draw, so it was unaffected).
     /// </summary>
-    public static MeshData TagAtlas(MeshData mesh, int atlasTextureId)
+    public static MeshData? TagAtlas(MeshData? mesh, int atlasTextureId)
     {
         if (mesh == null) return null;
-        // Keep a per-face mapping the tesselator already produced (it handles multi-page atlases correctly);
-        // only synthesise one when it's absent, which is the case that leaves a merged mesh unable to bind
+        // Keep a per-face mapping the tesselator already produced (it handles multipage atlases correctly);
+        // only synthesize one when it's absent, which is the case that leaves a merged mesh unable to bind
         // this sub-mesh's atlas.
-        if (mesh.TextureIds is { Length: > 0 } && mesh.TextureIndices != null) return mesh;
-        int faces = mesh.VerticesCount / 4;                 // quad meshes: 4 verts per face
-        mesh.TextureIds = new[] { atlasTextureId };
+        if (mesh is { TextureIds.Length: > 0, TextureIndices: not null }) return mesh;
+        int faces = mesh.IndicesCount / mesh.IndicesPerFace;
+        mesh.TextureIds = [atlasTextureId];
         mesh.TextureIndices = new byte[faces];              // all 0 -> index 0 -> atlasTextureId
         mesh.TextureIndicesCount = faces;
         return mesh;
@@ -95,15 +97,15 @@ public static class AttachmentMesh
     /// <c>immersiveBackpackAttachment.attachedShape</c>, or null to fall back to the collectible's own
     /// display shape. Lets an addon look smaller/different when attached than on the ground or in the GUI.
     /// </summary>
-    public static CompositeShape AttachedShapeComposite(CollectibleObject collectible)
+    public static CompositeShape? AttachedShapeComposite(CollectibleObject? collectible)
     {
-        var attr = collectible?.Attributes?["immersiveBackpackAttachment"]?["attachedShape"];
-        if (attr == null || !attr.Exists) return null;
+        if (collectible?.Attributes?["immersiveBackpackAttachment"]["attachedShape"] is not { Exists: true } attr)
+            return null;
         var cs = attr.AsObject<CompositeShape>(null, collectible.Code.Domain);
         return string.IsNullOrEmpty(cs?.Base?.Path) ? null : cs;
     }
 
-    private static Shape ResolveAttachedShape(ICoreClientAPI capi, CollectibleObject collectible)
+    private static Shape? ResolveAttachedShape(ICoreClientAPI capi, CollectibleObject collectible)
     {
         var cs = AttachedShapeComposite(collectible);
         if (cs == null) return null;
@@ -117,29 +119,25 @@ public static class AttachmentMesh
     /// <see cref="Rotation"/> is the composed orientation as XYZ Euler degrees; <see cref="LocalSize"/> is
     /// the slot's own un-rotated box size (16-unit), used to fit an addon to the slot.
     /// </summary>
-    public readonly struct SlotMarker
+    public readonly struct SlotMarker(Cuboidf box, float[] rotation, float[] localSize, Vec3f origin)
     {
-        public readonly Cuboidf Box;
-        public readonly float[] Rotation;
-        public readonly float[] LocalSize;
+        public readonly Cuboidf Box = box;
+        public readonly float[] Rotation = rotation;
+        public readonly float[] LocalSize = localSize;
         // The slot's placement anchor: its pivot (rotationOrigin) resolved through the ancestor chain, in raw
-        // 16-unit space. This, not the box centre, is where an addon is anchored - so moving the pivot moves
+        // 16-unit space. This, not the box center, is where an addon is anchored - so moving the pivot moves
         // the anchor, and it doesn't depend on the box's extent.
-        public readonly Vec3f Origin;
-        public SlotMarker(Cuboidf box, float[] rotation, float[] localSize, Vec3f origin)
-        {
-            Box = box; Rotation = rotation; LocalSize = localSize; Origin = origin;
-        }
+        public readonly Vec3f Origin = origin;
     }
 
     /// <summary>
     /// Reads attachment-slot markers authored directly in a bag shape: face-less elements named
     /// <c>slot_&lt;code&gt;</c> (invisible in-game), at any nesting depth. Each slot is resolved through the
-    /// full transform chain of its ancestors (offsets, rotations and scales), exactly as VS composes
+    /// full transform chain of its ancestors (offsets, rotations, and scales), exactly as VS composes
     /// element transforms, so a slot inherits a rotated parent group correctly. Returns the composed box,
-    /// orientation and local size. Empty when the shape has no markers, so callers fall back.
+    /// orientation, and local size. Empty when the shape has no markers, so callers fall back.
     /// </summary>
-    public static Dictionary<string, SlotMarker> ReadSlots(ICoreAPI api, string shapeBasePath, string domain)
+    public static Dictionary<string, SlotMarker> ReadSlots(ICoreAPI api, string? shapeBasePath, string domain)
     {
         var result = new Dictionary<string, SlotMarker>();
         if (string.IsNullOrEmpty(shapeBasePath)) return result;
@@ -148,20 +146,20 @@ public static class AttachmentMesh
         var shape = Shape.TryGet(api, loc.ToString());
         if (shape?.Elements == null) return result;
 
-        var identity = Mat4f.Create();
+        float[] identity = Mat4f.Create();
         Mat4f.Identity(identity);
         foreach (var el in shape.Elements) CollectSlots(el, identity, result);
         return result;
     }
 
-    private static void CollectSlots(ShapeElement el, float[] parentMat, Dictionary<string, SlotMarker> result)
+    private static void CollectSlots(ShapeElement? el, float[] parentMat, Dictionary<string, SlotMarker> result)
     {
         if (el == null) return;
 
-        var world = Mat4f.Mul(Mat4f.Create(), parentMat, ElementMatrix(el));
+        float[] world = Mat4f.Mul(Mat4f.Create(), parentMat, ElementMatrix(el));
 
         if (el.Name != null && el.Name.StartsWith("slot_", StringComparison.OrdinalIgnoreCase)
-            && el.From is { Length: >= 3 } && el.To is { Length: >= 3 })
+                            && el is { From.Length: >= 3, To.Length: >= 3 })
         {
             // The slot's box vertices are local 0..size; transform all 8 corners and take their AABB.
             float sx = (float)(el.To[0] - el.From[0]);
@@ -171,7 +169,7 @@ public static class AttachmentMesh
             float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
             for (int i = 0; i < 8; i++)
             {
-                var v = Mat4f.MulWithVec4(world, (i & 1) == 0 ? 0 : sx, (i & 2) == 0 ? 0 : sy, (i & 4) == 0 ? 0 : sz, 1f);
+                float[] v = Mat4f.MulWithVec4(world, (i & 1) == 0 ? 0 : sx, (i & 2) == 0 ? 0 : sy, (i & 4) == 0 ? 0 : sz, 1f);
                 if (v[0] < minX) minX = v[0]; if (v[0] > maxX) maxX = v[0];
                 if (v[1] < minY) minY = v[1]; if (v[1] > maxY) maxY = v[1];
                 if (v[2] < minZ) minZ = v[2]; if (v[2] > maxZ) maxZ = v[2];
@@ -179,15 +177,15 @@ public static class AttachmentMesh
             var box = new Cuboidf(minX, minY, minZ, maxX, maxY, maxZ);
 
             // Anchor = the slot's pivot (rotationOrigin) through the ancestor chain, independent of the box
-            // extent. The element's own transform leaves its pivot fixed, so it's just parentMat * pivot.
-            // Defaults to the box centre when no rotationOrigin is authored.
+            // extent. The element's own transform leaves its pivot fixed, so it's just the parentMat * pivot.
+            // Defaults to the box center when no rotationOrigin is authored.
             float ox = el.RotationOrigin is { Length: >= 3 } ? (float)el.RotationOrigin[0] : (float)(el.From[0] + el.To[0]) / 2f;
             float oy = el.RotationOrigin is { Length: >= 3 } ? (float)el.RotationOrigin[1] : (float)(el.From[1] + el.To[1]) / 2f;
             float oz = el.RotationOrigin is { Length: >= 3 } ? (float)el.RotationOrigin[2] : (float)(el.From[2] + el.To[2]) / 2f;
-            var ow = Mat4f.MulWithVec4(parentMat, ox, oy, oz, 1f);
+            float[] ow = Mat4f.MulWithVec4(parentMat, ox, oy, oz, 1f);
 
-            result[el.Name.Substring("slot_".Length)] =
-                new SlotMarker(box, ExtractEuler(world), new[] { sx, sy, sz }, new Vec3f(ow[0], ow[1], ow[2]));
+            result[el.Name["slot_".Length..]] =
+                new SlotMarker(box, ExtractEuler(world), [sx, sy, sz], new(ow[0], ow[1], ow[2]));
         }
 
         if (el.Children != null)
@@ -216,7 +214,7 @@ public static class AttachmentMesh
     // Extracts XYZ Euler degrees from a (column-major) matrix whose rotation part was built by RotateByXYZ.
     private static float[] ExtractEuler(float[] m)
     {
-        float r2d = 180f / (float)Math.PI;
+        const float r2D = 180f / (float)Math.PI;
         float sy = m[8] < -1f ? -1f : (m[8] > 1f ? 1f : m[8]);
         float ay = (float)Math.Asin(sy);
         float ax, az;
@@ -230,16 +228,16 @@ public static class AttachmentMesh
             ax = (float)Math.Atan2(m[6], m[5]);
             az = 0f;
         }
-        return new[] { ax * r2d, ay * r2d, az * r2d };
+        return [ax * r2D, ay * r2D, az * r2D];
     }
 
-    /// <summary>Local-space centre and size of a tesselated addon mesh.</summary>
+    /// <summary>Local-space center and size of a tessellated addon mesh.</summary>
     public static (Vec3f center, Vec3f size) Bounds(MeshData mesh)
     {
         float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
         float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
 
-        var xyz = mesh.xyz;
+        float[] xyz = mesh.xyz;
         int n = mesh.VerticesCount * 3;
         for (int i = 0; i + 2 < n; i += 3)
         {
@@ -248,23 +246,23 @@ public static class AttachmentMesh
             if (x > maxX) maxX = x; if (y > maxY) maxY = y; if (z > maxZ) maxZ = z;
         }
 
-        if (minX > maxX) return (new Vec3f(0.5f, 0.5f, 0.5f), new Vec3f(1f, 1f, 1f));
+        if (minX > maxX) return (new(0.5f, 0.5f, 0.5f), new(1f, 1f, 1f));
         return (
-            new Vec3f((minX + maxX) / 2f, (minY + maxY) / 2f, (minZ + maxZ) / 2f),
-            new Vec3f(maxX - minX, maxY - minY, maxZ - minZ));
+            new((minX + maxX) / 2f, (minY + maxY) / 2f, (minZ + maxZ) / 2f),
+            new(maxX - minX, maxY - minY, maxZ - minZ));
     }
 
     /// <summary>
     /// The addon's model origin in block space — the fixed point on the addon that is placed AT the attachment
-    /// point's anchor, INSTEAD of the addon's geometry bounding-box centre. Being fixed (not derived from the
-    /// mesh) it is content-independent: adding tools to a toolstrap does not move the toolstrap, and asymmetric
-    /// models don't need the offset re-tuned per model. Defaults to the floor centre of the cube — (0.5,0,0.5)
+    /// point's anchor, INSTEAD of the addon's geometry bounding-box center. Being fixed (not derived from the
+    /// mesh), it is content-independent: adding tools to a toolstrap does not move the toolstrap, and asymmetric
+    /// models don't need the offset re-tuned per model. Defaults to the floor center of the cube — (0.5,0,0.5)
     /// = (8,0,8) in 16-unit space — so an addon sits horizontally centred with its base on the point. An addon
     /// authored around a different origin overrides it via <c>immersiveBackpackAttachment.origin</c> (block-space).
     /// </summary>
-    public static Vec3f ModelOrigin(CollectibleObject collectible)
+    public static Vec3f ModelOrigin(CollectibleObject? collectible)
     {
-        var arr = collectible?.Attributes?["immersiveBackpackAttachment"]?["origin"]?.AsArray<float>(null);
-        return arr is { Length: >= 3 } ? new Vec3f(arr[0], arr[1], arr[2]) : new Vec3f(0.5f, 0f, 0.5f);
+        float[]? arr = collectible?.Attributes?["immersiveBackpackAttachment"]["origin"].AsArray<float>();
+        return arr is { Length: >= 3 } ? new(arr[0], arr[1], arr[2]) : new Vec3f(0.5f, 0f, 0.5f);
     }
 }

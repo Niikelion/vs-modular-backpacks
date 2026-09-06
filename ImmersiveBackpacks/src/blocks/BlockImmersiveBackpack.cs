@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -26,12 +27,16 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
 
         float angle = be.MeshAngleRad;
         var body = SelectionBoxes ?? [];
-        var boxes = new Cuboidf[body.Length + be.AttachmentPoints.Length];
+        var interactionTargets = be.InteractionTargets();
+        var boxes = new List<Cuboidf>(body.Length + be.AttachmentPoints.Length + interactionTargets.Count);
         for (int i = 0; i < body.Length; i++)
-            boxes[i] = RotateBoxY(body[i], angle);
+            boxes.Add(RotateBoxY(body[i], angle));
         for (int i = 0; i < be.AttachmentPoints.Length; i++)
-            boxes[body.Length + i] = RotateBoxY(be.AttachmentPoints[i].Box, angle);
-        return boxes;
+            if (!be.AttachmentPoints[i].IsVirtual && be.AttachmentPoints[i].Box != null)
+                boxes.Add(RotateBoxY(be.AttachmentPoints[i].Box, angle));
+        foreach (var target in interactionTargets)
+            boxes.Add(RotateBoxY(target.Box, angle));
+        return boxes.ToArray();
     }
 
     // Rotates a hitbox about the block's vertical center axis to follow the placed orientation, then
@@ -75,6 +80,7 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     {
         var boxes = GetSelectionBoxes(api.World.BlockAccessor, blockSel.Position);
         if (boxes == null || boxes.Length == 0) return;
+        if (api.World.BlockAccessor.GetBlockEntity(blockSel.Position) is not BlockEntityImmersiveBackpack be) return;
 
         var capi = api as ICoreClientAPI;
         float thickness = capi != null && capi.Settings.Float.Exists("wireframethickness")
@@ -89,7 +95,25 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
 
         int idx = blockSel.SelectionBoxIndex;
         if (idx >= bodyCount && idx < boxes.Length)
-            renderBoxHandler(boxes[idx], width, SlotColor(capi, blockSel.Position, idx - bodyCount) ?? color);
+        {
+            if (be.TryGetInteractionTarget(idx, bodyCount, out var target))
+            {
+                var activeSlot = capi?.World?.Player?.InventoryManager?.ActiveHotbarSlot;
+                var interactionColor = color;
+                if (activeSlot != null)
+                {
+                    var context = be.InteractionContext(target, activeSlot);
+                    if (target.Interaction.IsInteractionActive(context))
+                        interactionColor = target.Interaction.GetInteractionColor(context);
+                }
+                renderBoxHandler(boxes[idx], width, interactionColor);
+            }
+            else
+            {
+                int pointIndex = be.PointIndexForSelectionBox(idx, bodyCount);
+                renderBoxHandler(boxes[idx], width, SlotColor(capi, blockSel.Position, pointIndex) ?? color);
+            }
+        }
     }
 
     // Muted, and close to the default outline's alpha: a tint on the wireframe, not a highlight.
@@ -150,20 +174,60 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
     public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection blockSel, IPlayer forPlayer)
     {
         var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityImmersiveBackpack;
+        int bodyCount = SelectionBoxes?.Length ?? 0;
+        AttachmentInteractionTarget nestedInteraction = default;
+        bool nestedTarget = be != null && be.TryGetInteractionTarget(
+            blockSel.SelectionBoxIndex, bodyCount, out nestedInteraction);
+        int pointIndex = nestedTarget
+            ? nestedInteraction.OwnerPointIndex
+            : be?.PointIndexForSelectionBox(blockSel.SelectionBoxIndex, bodyCount) ?? -1;
 
-        // Plain right-click picks the pack up; ctrl+right-click opens the cargo dialog.
-        var interactions = new List<WorldInteraction>
+        var interactions = new List<WorldInteraction>();
+        var activeSlot = forPlayer.InventoryManager.ActiveHotbarSlot;
+        AttachmentInteractionTarget activeInteraction = default;
+        bool interactionActive = false;
+        if (be != null && nestedTarget)
         {
-            new() { ActionLangCode = "immersivemodularbackpacks:pick-up", MouseButton = EnumMouseButton.Right },
-            new() { ActionLangCode = "immersivemodularbackpacks:open-cargo", MouseButton = EnumMouseButton.Right, HotKeyCode = "ctrl" }
-        };
+            var context = be.InteractionContext(nestedInteraction, activeSlot);
+            if (nestedInteraction.Interaction.IsInteractionActive(context))
+            {
+                activeInteraction = nestedInteraction;
+                interactionActive = true;
+            }
+        }
+        else if (be?.TryGetActiveInteractionAtPoint(pointIndex, activeSlot, out activeInteraction) == true)
+        {
+            interactionActive = true;
+        }
 
-        // On an attachment-point box (indices 1+; box 0 is the bag body), shift+right-click attaches/detaches.
-        int pointIndex = blockSel.SelectionBoxIndex - 1;
-        if (be == null || pointIndex < 0 || pointIndex >= be.AttachmentPoints.Length)
+        if (interactionActive)
+        {
+            var context = be.InteractionContext(activeInteraction, activeSlot);
+            interactions.Add(new()
+            {
+                ActionLangCode = activeInteraction.Interaction.GetInteractionHelpCode(context),
+                MouseButton = EnumMouseButton.Right
+            });
+        }
+        else if (!nestedTarget && !(be?.HasInteractiveAttachmentContentAt(pointIndex) ?? false))
+        {
+            interactions.Add(new()
+            {
+                ActionLangCode = "immersivemodularbackpacks:pick-up",
+                MouseButton = EnumMouseButton.Right
+            });
+        }
+
+        interactions.Add(new()
+        {
+            ActionLangCode = "immersivemodularbackpacks:open-cargo",
+            MouseButton = EnumMouseButton.Right,
+            HotKeyCode = "ctrl"
+        });
+
+        if (be == null || pointIndex < 0)
             return interactions.ToArray().Append(base.GetPlacedBlockInteractionHelp(world, blockSel, forPlayer));
-        var point = be.AttachmentPoints[pointIndex];
-        bool occupied = be.AttachedItems[pointIndex] != null;
+        bool occupied = be.OccupiedPointAt(pointIndex) >= 0;
         interactions.Add(new()
         {
             ActionLangCode = occupied
@@ -172,39 +236,39 @@ public class BlockImmersiveBackpack : Block, ICustomSelectionBoxRender
             MouseButton = EnumMouseButton.Right,
             HotKeyCode = "shift",
             // Empty point: cycle through every addon that can attach here so the options are discoverable.
-            Itemstacks = occupied ? null : AttachableStacks(point.Categories)
+            Itemstacks = occupied ? null : AttachableStacks(be.AvailablePointsAt(pointIndex))
         });
 
         return interactions.ToArray().Append(base.GetPlacedBlockInteractionHelp(world, blockSel, forPlayer));
     }
 
-    // Every addon stack whose declared category is accepted by the point, for the interaction-help cycle.
-    // Built once from the collectible registry and cached (the attachable set is fixed after the load).
-    private ItemStack[] AttachableStacks(string[] categories)
+    private ItemStack[] AttachableStacks(IReadOnlyList<IAttachmentPoint> points)
     {
-        if (categories == null || categories.Length == 0) return null;
+        if (points == null || points.Count == 0) return null;
 
-        var byCategory = ObjectCacheUtil.GetOrCreate(api, "immersivemodularbackpacks:attachablesByCategory", () =>
+        var candidates = ObjectCacheUtil.GetOrCreate(api, "immersivemodularbackpacks:attachableStacks", () =>
         {
-            var map = new Dictionary<string, List<ItemStack>>();
+            var all = new List<ItemStack>();
             foreach (var obj in api.World.Collectibles)
             {
-                var cats = AttachmentCategories.Of(obj);
-                if (cats.Length == 0) continue;
+                if (AttachmentCategories.Of(obj).Length == 0) continue;
                 var stacks = RepresentativeStacks(obj);
-                if (stacks == null) continue;
-                foreach (string cat in cats)
-                {
-                    if (!map.TryGetValue(cat, out var list)) map[cat] = list = [];
-                    list.AddRange(stacks);
-                }
+                if (stacks != null) all.AddRange(stacks);
             }
-            return map;
+            return all;
         });
 
         var stacks = new List<ItemStack>();
-        foreach (string cat in categories)
-            if (byCategory.TryGetValue(cat, out var list)) stacks.AddRange(list);
+        foreach (var stack in candidates)
+        {
+            var node = AttachmentFactory.For(stack, api.World);
+            foreach (var point in points)
+                if (point.Accepts(node))
+                {
+                    stacks.Add(stack);
+                    break;
+                }
+        }
         return stacks.Count > 0 ? stacks.ToArray() : null;
     }
 

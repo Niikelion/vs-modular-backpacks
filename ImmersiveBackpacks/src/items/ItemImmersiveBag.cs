@@ -1,6 +1,7 @@
 using System.Collections.Generic;
-using ImmersiveBackpacks.attachments;
+using ImmersiveModularBackpacks.Attachments;
 using ImmersiveBackpacks.inventory;
+using ImmersiveBackpacks.points;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -120,8 +121,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     public void Clear(ItemStack bagstack)
     {
-        var backpack = bagstack.Attributes.GetTreeAttribute("backpack");
-        if (backpack != null) backpack["slots"] = new TreeAttribute();
+        var backpack = bagstack.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
+        if (backpack != null) backpack[BackpackSaveData.SlotsKey] = new TreeAttribute();
     }
 
     public bool IsEmpty(ItemStack bagstack)
@@ -174,7 +175,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     {
         base.OnBeforeRender(capi, itemstack, target, ref renderinfo);
 
-        var addons = itemstack.Attributes?.GetTreeAttribute("placed_addons");
+        var addons = BackpackSaveData.GetAddons(itemstack.Attributes);
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
         if (addons == null || addons.Count == 0 || points is not { Exists: true }) return;
 
@@ -190,6 +191,11 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     private MultiTextureMeshRef BuildHeldMesh(ICoreClientAPI capi, ItemStack itemstack, bool mirror)
     {
+        // Keep the GUI mirror pivot tied to the unmodified backpack. Using the composed bounds here makes an
+        // asymmetric addon (especially a long tool) move the backpack whenever attachments change.
+        var baseMesh = mirror ? AttachmentMesh.Tessellate(capi, itemstack) : null;
+        float mirrorX = baseMesh != null ? AttachmentMesh.Bounds(baseMesh).center.X : 0.5f;
+
         // Base bag mesh + each addon composed at its marker, in item-model space ([0,1]). The shared composer
         // is the single source of this (the placed block and worn shape route through the same core).
         var body = AttachmentComposer.ComposeMesh(capi, BagNodeFor(itemstack));
@@ -200,9 +206,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         // side as the placed block (and the in-hand/ground renders, which use the unmirrored mesh).
         if (mirror)
         {
-            var (c, _) = AttachmentMesh.Bounds(body);
             var mat = new Matrixf();
-            mat.Identity().Translate(c.X, 0f, 0f).Scale(-1f, 1f, 1f).Translate(-c.X, 0f, 0f);
+            mat.Identity().Translate(mirrorX, 0f, 0f).Scale(-1f, 1f, 1f).Translate(-mirrorX, 0f, 0f);
             body.MatrixTransform(mat.Values);
         }
 
@@ -213,30 +218,22 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     // config, occupants read from placed_addons. A slot-bearing addon (a toolstrap) also gets the run of
     // unified cargo (backpack.slots) it owns, so its tools render — resolved here since only the bag knows the
     // layout. Point order matches BackpackSlotLayout, so the cargo ranges line up.
-    internal IAttachment BagNodeFor(ItemStack stack)
+    internal IAttachment BagNodeFor(ItemStack stack, string shapeBasePath = null, string context = "placed")
     {
         var pts = new List<IAttachmentPoint>();
         var orderedAddons = new List<ItemStack>();
-        var addonsTree = stack.Attributes?.GetTreeAttribute("placed_addons");
+        var addonsTree = BackpackSaveData.GetAddons(stack.Attributes);
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
-        if (points is { Exists: true })
-            foreach (var pt in points.AsArray() ?? [])
-            {
-                string code = pt["code"].AsString();
-                if (code == null) continue;
-                string[] cats = pt["categories"].AsArray<string>();
-                Cuboidf box = null;
-                float[] hb = pt["hitbox"].AsArray<float>();
-                if (hb is { Length: >= 6 })
-                    box = new(hb[0], hb[1], hb[2], hb[3], hb[4], hb[5]);
-                pts.Add(new CategoryAttachmentPoint(code, cats, box, AttachmentTransform.FromJson(pt["placed"])));
-                // Resolve before it feeds AddonRanges: an unresolved stack has a null Collectible, so
-                // AddonSlotCount reports 0 slots and a slot-bearing addon (toolstrap) would own no cargo
-                // range - its tools would silently drop out of the held/GUI mesh.
-                var addonStack = addonsTree?.GetItemstack(code);
-                addonStack?.ResolveBlockOrItem(api.World);
-                orderedAddons.Add(addonStack);
-            }
+        foreach (var slot in SlotDataLoader.Load(api, stack.Collectible, points, shapeBasePath, context))
+        {
+            pts.Add(new CategoryAttachmentPoint(slot));
+            // Resolve before it feeds AddonRanges: an unresolved stack has a null Collectible, so
+            // AddonSlotCount reports 0 slots and a slot-bearing addon (toolstrap) would own no cargo
+            // range - its tools would silently drop out of the held/GUI mesh.
+            var addonStack = addonsTree?.GetItemstack(slot.Code);
+            addonStack?.ResolveBlockOrItem(api.World);
+            orderedAddons.Add(addonStack);
+        }
 
         int baseSlots = Attributes?["backpack"]["quantitySlots"].AsInt() ?? 0;
         var ranges = BackpackSlotLayout.AddonRanges(baseSlots, orderedAddons);
@@ -299,7 +296,7 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
     private List<ItemStack> ReadAddons(ItemStack bagStack)
     {
         var result = new List<ItemStack>();
-        var tree = bagStack.Attributes?.GetTreeAttribute("placed_addons");
+        var tree = BackpackSaveData.GetAddons(bagStack.Attributes);
         var points = Attributes?["immersiveBackpack"]["attachmentPoints"];
         if (tree == null || points is not { Exists: true }) return result;
 
@@ -317,19 +314,19 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
 
     private static ITreeAttribute SlotsTree(ItemStack bagStack, bool create)
     {
-        var backpack = bagStack.Attributes.GetTreeAttribute("backpack");
+        var backpack = bagStack.Attributes.GetTreeAttribute(BackpackSaveData.BackpackKey);
         if (backpack == null)
         {
             if (!create) return null;
             backpack = new TreeAttribute();
-            bagStack.Attributes["backpack"] = backpack;
+            bagStack.Attributes[BackpackSaveData.BackpackKey] = backpack;
         }
-        var slots = backpack.GetTreeAttribute("slots");
+        var slots = backpack.GetTreeAttribute(BackpackSaveData.SlotsKey);
         if (slots == null)
         {
             if (!create) return null;
             slots = new TreeAttribute();
-            backpack["slots"] = slots;
+            backpack[BackpackSaveData.SlotsKey] = slots;
         }
         return slots;
     }
@@ -403,7 +400,8 @@ public class ItemImmersiveBag : Item, IAttachableToEntity, IWearableShapeSupplie
         var combined = AttachmentComposer.LoadShape(capi, attached?.Base?.ToString(), Code.Domain);
         if (combined?.Elements == null || combined.Elements.Length == 0) return combined;
 
-        AttachmentComposer.ComposeChildrenInto(capi, combined, BagNodeFor(stack));
+        AttachmentComposer.ComposeChildrenInto(capi, combined,
+            BagNodeFor(stack, attached?.Base?.ToString(), "worn"));
 
         // The caller does NOT step-parent-prepare IWearableShapeSupplier results, so do it here.
         combined.SubclassForStepParenting(texturePrefixCode);

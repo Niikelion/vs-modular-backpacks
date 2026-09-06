@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
@@ -5,7 +6,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// The single, host-agnostic composition core for the attachment tree. Every render path routes through here:
@@ -18,12 +19,10 @@ namespace ImmersiveBackpacks.attachments;
 ///     escape hatch lives: a child implementing <see cref="IAttachmentMeshSource"/> (the lantern) supplies its
 ///     authoritative mesh; everything else bakes/composes from its shape.
 ///
-/// A faithful generalisation of the bag's original inline composition, lifted to run over any
+/// A faithful generalization of the bag's original inline composition, lifted to run over any
 /// <see cref="IAttachment"/> node instead of a fixed point list. Every host routes through here —
-/// <c>ItemImmersiveBag</c> (worn + held/GUI) and the placed block renderer alike. Geometry
-/// still comes from the owner shape's <c>slot_&lt;code&gt;</c> markers (mesh path via
-/// <see cref="AttachmentMesh.ReadSlots"/>, worn path via the slot element found in the tree), so authored bag
-/// shapes keep working unchanged. See [[attachment-system-design]].
+/// <c>ItemImmersiveBag</c> (worn and held/GUI) and the placed block renderer alike. Point geometry is baked before
+/// composition, so both paths consume the same anchor and transform. See [[attachment-system-design]].
 /// </summary>
 public static class AttachmentComposer
 {
@@ -37,12 +36,13 @@ public static class AttachmentComposer
     /// must not, so this only wraps + attaches. Returns null-ish (empty) when the node has no usable shape,
     /// letting a node opt out of worn rendering.
     /// </summary>
-    public static Shape ComposeShape(ICoreAPI api, IAttachment node)
+    public static Shape? ComposeShape(ICoreAPI api, IAttachment node)
     {
-        Shape shape = StackShape(api, node.Stack);
+        var shape = StackShape(api, node.Stack);
         if (shape == null)
         {
             var coll = node.Stack.Collectible;
+            if (coll == null) return null;
             var baseComposite = AttachmentMesh.AttachedShapeComposite(coll) ?? GetDisplayShape(coll);
             shape = LoadShape(api, baseComposite?.Base?.ToString(), coll.Code.Domain);
             if (shape?.Elements == null || shape.Elements.Length == 0) return shape;
@@ -63,9 +63,9 @@ public static class AttachmentComposer
     /// Tried before the node's display shape; a provider returns null to defer. Textures are the provider's
     /// job, since it is the only one that knows what its shape references.
     /// </summary>
-    public static readonly List<System.Func<ICoreAPI, ItemStack, Shape>> StackShapeSources = [];
+    public static readonly List<System.Func<ICoreAPI, ItemStack, Shape?>> StackShapeSources = [];
 
-    private static Shape StackShape(ICoreAPI api, ItemStack stack)
+    private static Shape? StackShape(ICoreAPI api, ItemStack stack)
     {
         foreach (var source in StackShapeSources)
             if (source(api, stack) is { Elements.Length: > 0 } shape) return shape;
@@ -73,28 +73,26 @@ public static class AttachmentComposer
     }
 
     /// <summary>
-    /// Attaches a node's occupied children into an ALREADY-LOADED parent shape, under each child's
-    /// <c>slot_&lt;code&gt;</c> element (inheriting the full ancestor transform chain), textures merged and
-    /// per-child prefixed. Separated from <see cref="ComposeShape"/> so a host root that must build its base
+    /// Attaches a node's occupied children into an ALREADY-LOADED parent shape using each point's baked geometry,
+    /// with textures merged and per-child prefixed. Separated from <see cref="ComposeShape"/> so a host root that must build its base
     /// shape specially (the worn bag: its own <c>attachableToEntity.attachedShape</c> + step-parent prep) can
     /// reuse the exact same child-attaching logic without going through the node's own display shape.
     /// </summary>
     public static void ComposeChildrenInto(ICoreAPI api, Shape parentShape, IAttachment node)
     {
         var points = node.Points;
-        if (points == null || points.Count == 0 || parentShape?.Elements == null) return;
+        if (points.Count == 0 || parentShape?.Elements == null) return;
 
-        var slotElems = FindSlotElements(parentShape.Elements);
+        string? stepParent = RootStepParent(parentShape.Elements);
         int idx = 0;
         foreach (var pt in points)
         {
-            var child = node.GetAttached(pt.Code);
+            var child = AttachmentFactory.WithPointContext(node.GetAttached(pt.Code), pt);
             if (child == null) continue;
-            if (!slotElems.TryGetValue(pt.Code, out var s) || s.parent == null) continue;
 
             // Through the node's own GetShape (not ComposeShape directly) so a child can override how it renders;
             // the default delegates back here, bringing its own children.
-            Shape childShape = child.GetShape(api);
+            var childShape = child.GetShape(api);
             if (childShape?.Elements == null || childShape.Elements.Length == 0) continue;
 
             // Prefix the whole child subtree so its (already-composed) element/texture codes never collide with
@@ -104,24 +102,15 @@ public static class AttachmentComposer
             MergeInto(parentShape.Textures ??= new(), childShape.Textures);
             MergeInto(parentShape.TextureSizes ??= new(), childShape.TextureSizes);
 
-            var slot = s.slot;
-            // Anchor at the slot's pivot (rotationOrigin), not its box centre - matches the mesh path and
-            // is independent of the box extent. Defaults to box centre when no pivot is authored.
-            double[] slotOrigin = slot.RotationOrigin is { Length: >= 3 }
-                ? slot.RotationOrigin
-                : new[] { (slot.From[0] + slot.To[0]) / 2.0, (slot.From[1] + slot.To[1]) / 2.0, (slot.From[2] + slot.To[2]) / 2.0 };
-            var slotRot = new[] { (float)slot.RotationX, (float)slot.RotationY, (float)slot.RotationZ };
-            // Worn placement: the slot marker's own rotation, the point's own transform (identity for a bag's
-            // addon points; a toolstrap's tool scale for its tool points), then the child's shared
-            // transform. The parent chain supplies the rest.
-            var tf = AttachmentTransform.FromRotation(slotRot)
-                .CombinedWith(pt.Transform)
-                .CombinedWith(AttachmentTransform.Attached(child.Stack.Collectible));
+            var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "worn").Mirrored(pt.Mirror);
+            var tf = pt.Transform.CombinedWith(itemTransform);
             // Anchor by the child's fixed model origin (16-unit), not its geometry bounds - content-stable.
             var childOrigin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
-            var wrapper = WrapAddon(childShape.Elements, slotOrigin, tf,
-                new[] { childOrigin.X * 16.0, childOrigin.Y * 16.0, childOrigin.Z * 16.0 });
-            AttachUnder(s.parent, new[] { wrapper });
+            var wrapper = WrapAddon(childShape.Elements,
+                [pt.Origin.X * 16.0, pt.Origin.Y * 16.0, pt.Origin.Z * 16.0], tf,
+                [childOrigin.X * 16.0, childOrigin.Y * 16.0, childOrigin.Z * 16.0]);
+            wrapper.StepParentName = stepParent;
+            parentShape.Elements = Append(parentShape.Elements, wrapper);
         }
     }
 
@@ -130,74 +119,40 @@ public static class AttachmentComposer
     /// <summary>
     /// The mesh for a node in placed/held (item/block-atlas) space. Prefers the node's own authoritative mesh
     /// if it implements <see cref="IAttachmentMeshSource"/> (the lantern's variant/glass/glow), otherwise
-    /// composes its shape-derived base mesh with its children.
+    /// composes its shape-derived base mesh with its children. Returns an independently owned quad-layout mesh.
     /// </summary>
-    public static MeshData MeshFor(ICoreClientAPI capi, IAttachment node)
+    public static MeshData? MeshFor(ICoreClientAPI capi, IAttachment node)
     {
-        if (node is IAttachmentMeshSource ms)
-        {
-            var m = ms.GetMesh(capi);
-            if (m != null) return m;
-        }
-        return ComposeMesh(capi, node);
+        if (node is not IAttachmentMeshSource ms) return ComposeMesh(capi, node);
+        var m = ms.GetMesh(capi);
+        return m == null ? null : AttachmentMeshNormalizer.CloneForComposition(m);
     }
 
     /// <summary>
-    /// A node's base mesh (its own shape/stack, honouring an attached-specific shape) with each occupied
+    /// A node's base mesh (its own shape/stack, honoring an attached-specific shape) with each occupied
     /// child's <see cref="MeshFor"/> matrix-placed at its slot marker. Local item-model space ([0,1]); the
     /// host adapter applies the world/block or item ModelTransform on top. Mirror of <c>BuildHeldMesh</c>
-    /// minus the GUI mirror, generalised over child nodes.
+    /// minus the GUI mirror, generalized over child nodes.
     /// </summary>
-    public static MeshData ComposeMesh(ICoreClientAPI capi, IAttachment node)
+    public static MeshData? ComposeMesh(ICoreClientAPI capi, IAttachment node)
     {
-        var baseMesh = AttachmentMesh.Tesselate(capi, node.Stack);
+        var baseMesh = AttachmentMesh.Tessellate(capi, node.Stack);
         if (baseMesh == null) return null;
-        baseMesh = baseMesh.Clone();
+        baseMesh = AttachmentMeshNormalizer.CloneForComposition(baseMesh);
 
         var points = node.Points;
-        if (points == null || points.Count == 0) return baseMesh;
-
-        var coll = node.Stack.Collectible;
-        var baseComposite = AttachmentMesh.AttachedShapeComposite(coll) ?? GetDisplayShape(coll);
-        var markers = AttachmentMesh.ReadSlots(capi, baseComposite?.Base?.ToString(), coll.Code.Domain);
+        if (points.Count == 0) return baseMesh;
 
         var mat = new Matrixf();
         foreach (var pt in points)
         {
-            var child = node.GetAttached(pt.Code);
+            var child = AttachmentFactory.WithPointContext(node.GetAttached(pt.Code), pt);
             if (child == null) continue;
 
             var childMesh = MeshFor(capi, child);
             if (childMesh == null) continue;
-            childMesh = childMesh.Clone();
 
-            // Anchor the child by its fixed model origin (not its bounds centre) so a container child
-            // (a toolstrap) doesn't shift when its own children change, and asymmetric addons don't drift.
-            var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
-            var tf = pt.Transform.CombinedWith(AttachmentTransform.ForItem(child.Stack.Collectible, "placed"));
-
-            float cx, cy, cz;
-            if (markers.TryGetValue(pt.Code, out var marker))
-            {
-                // Anchor at the marker's pivot (origin), 16-unit -> [0,1].
-                cx = marker.Origin.X / 16f; cy = marker.Origin.Y / 16f; cz = marker.Origin.Z / 16f;
-                tf = AttachmentTransform.FromRotation(marker.Rotation).CombinedWith(tf);
-            }
-            else if (pt.Box != null)
-            {
-                // No shape marker: fall back to the point's own anchor (box centre unless it set one).
-                cx = pt.Origin.X; cy = pt.Origin.Y; cz = pt.Origin.Z;
-            }
-            else continue;   // no marker and no box: nowhere to place
-
-            float s = tf.Scale;
-            mat.Identity()
-                .Translate(cx, cy, cz)
-                .RotateX(tf.Rotation[0] * D2R)
-                .RotateY(tf.Rotation[1] * D2R)
-                .RotateZ(tf.Rotation[2] * D2R)
-                .Scale(s, s, s)
-                .Translate(tf.Offset[0] - origin.X, tf.Offset[1] - origin.Y, tf.Offset[2] - origin.Z);
+            ChildMatrix(mat, pt, child);
             childMesh.MatrixTransform(mat.Values);
 
             baseMesh.AddMeshData(childMesh);
@@ -205,11 +160,57 @@ public static class AttachmentComposer
         return baseMesh;
     }
 
+    /// <summary>
+    /// Transforms a box from a child attachment's local model space into its parent's model space using the
+    /// exact placed-render transform. Hosts use this for nested interaction-point hitboxes.
+    /// </summary>
+    public static Cuboidf TransformChildBox(IAttachmentPoint parentPoint, IAttachment child, Cuboidf childBox)
+    {
+        var matrix = ChildMatrix(new Matrixf(), parentPoint, child).Values;
+        float minX = float.MaxValue, minY = float.MaxValue, minZ = float.MaxValue;
+        float maxX = float.MinValue, maxY = float.MinValue, maxZ = float.MinValue;
+
+        float[] xs = [childBox.X1, childBox.X2];
+        float[] ys = [childBox.Y1, childBox.Y2];
+        float[] zs = [childBox.Z1, childBox.Z2];
+        foreach (float x in xs)
+        foreach (float y in ys)
+        foreach (float z in zs)
+        {
+            float tx = matrix[0] * x + matrix[4] * y + matrix[8] * z + matrix[12];
+            float ty = matrix[1] * x + matrix[5] * y + matrix[9] * z + matrix[13];
+            float tz = matrix[2] * x + matrix[6] * y + matrix[10] * z + matrix[14];
+            minX = MathF.Min(minX, tx); maxX = MathF.Max(maxX, tx);
+            minY = MathF.Min(minY, ty); maxY = MathF.Max(maxY, ty);
+            minZ = MathF.Min(minZ, tz); maxZ = MathF.Max(maxZ, tz);
+        }
+
+        return new(minX, minY, minZ, maxX, maxY, maxZ);
+    }
+
+    private static Matrixf ChildMatrix(Matrixf matrix, IAttachmentPoint point, IAttachment child)
+    {
+        // Anchor by the fixed model origin so container contents never move the container itself.
+        var origin = AttachmentMesh.ModelOrigin(child.Stack.Collectible);
+        var itemTransform = AttachmentTransform.ForItem(child.Stack.Collectible, "placed").Mirrored(point.Mirror);
+        var tf = point.Transform.CombinedWith(itemTransform);
+        float s = tf.Scale;
+        return matrix.Identity()
+            .Translate(point.Origin.X + tf.Origin[0], point.Origin.Y + tf.Origin[1], point.Origin.Z + tf.Origin[2])
+            .RotateX(tf.Rotation[0] * D2R)
+            .RotateY(tf.Rotation[1] * D2R)
+            .RotateZ(tf.Rotation[2] * D2R)
+            .Scale(s, s, s)
+            .Translate(tf.Offset[0] - tf.Origin[0] - origin.X,
+                tf.Offset[1] - tf.Origin[1] - origin.Y,
+                tf.Offset[2] - tf.Origin[2] - origin.Z);
+    }
+
     // ---- shape helpers (lifted from ItemImmersiveBag; kept behaviour-identical) ----
 
     /// <summary>Loads a fresh, independent shape from a composite base path (host adapters use it to build a
     /// root base shape before composing children in).</summary>
-    public static Shape LoadShape(ICoreAPI api, string basePath, string defaultDomain)
+    public static Shape? LoadShape(ICoreAPI api, string? basePath, string defaultDomain)
     {
         if (string.IsNullOrEmpty(basePath)) return null;
         var loc = AssetLocation.Create(basePath, defaultDomain)
@@ -217,7 +218,7 @@ public static class AttachmentComposer
         return Shape.TryGet(api, loc.ToString());
     }
 
-    private static CompositeShape GetDisplayShape(CollectibleObject collectible)
+    private static CompositeShape? GetDisplayShape(CollectibleObject collectible)
         => collectible switch
         {
             Item it => it.Shape,
@@ -250,7 +251,7 @@ public static class AttachmentComposer
             addonShape.Textures ??= new();
             try
             {
-                atta.CollectTextures(addonStack, addonShape, "", new Dictionary<string, CompositeTexture>());
+                atta.CollectTextures(addonStack, addonShape, "", new());
                 return;
             }
             catch (Exception)
@@ -264,7 +265,7 @@ public static class AttachmentComposer
 
     private static void MergeAddonTextures(CollectibleObject collectible, Shape addonShape)
     {
-        IDictionary<string, CompositeTexture> src = collectible switch
+        IDictionary<string, CompositeTexture>? src = collectible switch
         {
             Item it => it.Textures,
             Block bl => bl.Textures,
@@ -278,7 +279,7 @@ public static class AttachmentComposer
     }
 
     private static Dictionary<string, AssetLocation> RekeyAssets(
-        Dictionary<string, AssetLocation> src, string prefix)
+        Dictionary<string, AssetLocation>? src, string prefix)
     {
         var dst = new Dictionary<string, AssetLocation>();
         if (src != null)
@@ -286,7 +287,7 @@ public static class AttachmentComposer
         return dst;
     }
 
-    private static Dictionary<string, int[]> RekeySizes(Dictionary<string, int[]> src, string prefix)
+    private static Dictionary<string, int[]> RekeySizes(Dictionary<string, int[]>? src, string prefix)
     {
         var dst = new Dictionary<string, int[]>();
         if (src != null)
@@ -294,7 +295,7 @@ public static class AttachmentComposer
         return dst;
     }
 
-    private static void MergeInto<T>(Dictionary<string, T> target, Dictionary<string, T> src)
+    private static void MergeInto<T>(Dictionary<string, T> target, Dictionary<string, T>? src)
     {
         if (src == null) return;
         foreach (var kv in src) target[kv.Key] = kv.Value;
@@ -307,9 +308,9 @@ public static class AttachmentComposer
         // so the addon's origin (not its geometry centre) sits at the slot, matching the mesh path.
         double[] shift =
         {
-            addonOrigin[0] - tf.Offset[0] * 16.0,
-            addonOrigin[1] - tf.Offset[1] * 16.0,
-            addonOrigin[2] - tf.Offset[2] * 16.0
+            addonOrigin[0] + (tf.Origin[0] - tf.Offset[0]) * 16.0,
+            addonOrigin[1] + (tf.Origin[1] - tf.Offset[1]) * 16.0,
+            addonOrigin[2] + (tf.Origin[2] - tf.Offset[2]) * 16.0
         };
         foreach (var el in addonElements)
         {
@@ -320,12 +321,18 @@ public static class AttachmentComposer
         }
 
         double scale = tf.Scale;
+        double[] pivot =
+        [
+            slotOrigin[0] + tf.Origin[0] * 16.0,
+            slotOrigin[1] + tf.Origin[1] * 16.0,
+            slotOrigin[2] + tf.Origin[2] * 16.0
+        ];
         var wrapper = new ShapeElement
         {
             Name = "addon",
-            From = (double[])slotOrigin.Clone(),
-            To = (double[])slotOrigin.Clone(),
-            RotationOrigin = (double[])slotOrigin.Clone(),
+            From = (double[])pivot.Clone(),
+            To = (double[])pivot.Clone(),
+            RotationOrigin = pivot,
             RotationX = tf.Rotation[0],
             RotationY = tf.Rotation[1],
             RotationZ = tf.Rotation[2],
@@ -339,46 +346,24 @@ public static class AttachmentComposer
         return wrapper;
     }
 
-    private static void Shift(double[] p, double[] delta)
+    private static void Shift(double[]? p, double[] delta)
     {
         if (p == null) return;
         p[0] -= delta[0]; p[1] -= delta[1]; p[2] -= delta[2];
     }
 
-    private static Dictionary<string, (ShapeElement slot, ShapeElement parent)> FindSlotElements(ShapeElement[] roots)
+    private static ShapeElement[] Append(ShapeElement[] elements, ShapeElement added)
     {
-        var map = new Dictionary<string, (ShapeElement, ShapeElement)>();
-        if (roots == null) return map;
-
-        void Walk(ShapeElement el, ShapeElement parent)
-        {
-            if (el.Name != null && el.Name.StartsWith("slot_", StringComparison.OrdinalIgnoreCase))
-                map[el.Name.Substring("slot_".Length)] = (el, parent);
-            if (el.Children != null)
-                foreach (var c in el.Children) Walk(c, el);
-        }
-
-        foreach (var r in roots) Walk(r, null);
-        return map;
+        var result = new ShapeElement[elements.Length + 1];
+        elements.CopyTo(result, 0);
+        result[^1] = added;
+        return result;
     }
 
-    private static void AttachUnder(ShapeElement root, ShapeElement[] addonElements)
+    private static string? RootStepParent(ShapeElement[] elements)
     {
-        foreach (var el in addonElements)
-        {
-            el.StepParentName = null;
-            el.ParentElement = root;
-        }
-
-        if (root.Children == null || root.Children.Length == 0)
-        {
-            root.Children = addonElements;
-            return;
-        }
-
-        var merged = new ShapeElement[root.Children.Length + addonElements.Length];
-        root.Children.CopyTo(merged, 0);
-        addonElements.CopyTo(merged, root.Children.Length);
-        root.Children = merged;
+        foreach (var element in elements)
+            if (!string.IsNullOrEmpty(element.StepParentName)) return element.StepParentName;
+        return null;
     }
 }

@@ -1,31 +1,38 @@
-using Vintagestory.API.Common;
+#nullable enable
+using System.Collections.Generic;
 using Vintagestory.API.MathTools;
 
-namespace ImmersiveBackpacks.attachments;
+namespace ImmersiveModularBackpacks.Attachments;
 
 /// <summary>
 /// Base <see cref="IAttachmentPoint"/> carrying the shared geometry (code, box, occupant transform, anchor);
 /// subclasses decide acceptance. Geometry that comes from the owner shape's <c>slot_&lt;code&gt;</c> marker is
 /// read live by the composer; <see cref="Box"/> here is the fallback for owners without a marker.
 /// </summary>
-public abstract class AttachmentPointBase : IAttachmentPoint
+public abstract class AttachmentPointBase(
+    string code,
+    Cuboidf box,
+    AttachmentTransform? transform = null,
+    Vec3f? origin = null,
+    AttachmentMirror mirror = AttachmentMirror.None,
+    bool isVirtual = false,
+    IReadOnlyList<string>? memberCodes = null,
+    IReadOnlyList<string>? tags = null)
+    : IAttachmentPoint, ITaggedAttachmentPoint
 {
-    protected AttachmentPointBase(string code, Cuboidf box,
-        AttachmentTransform transform = null, Vec3f origin = null)
-    {
-        Code = code;
-        Box = box;
-        Transform = transform ?? AttachmentTransform.Identity;
-        Origin = origin ?? BoxCentre(box);
-    }
-
-    public string Code { get; }
-    public Cuboidf Box { get; }
-    public AttachmentTransform Transform { get; }
-    public Vec3f Origin { get; }
+    public string Code { get; } = code;
+    public bool IsVirtual { get; } = isVirtual;
+    public IReadOnlyList<string> MemberCodes { get; } = memberCodes ?? [];
+    public IReadOnlyList<string> Tags { get; } = tags ?? [];
+    public Cuboidf Box { get; } = box;
+    public AttachmentTransform Transform { get; } = transform ?? AttachmentTransform.Identity;
+    public Vec3f Origin { get; } = origin ?? box.Center.ToVec3f();
+    public AttachmentMirror Mirror { get; } = mirror;
 
     public abstract bool Accepts(IAttachment attachment);
 
-    private static Vec3f BoxCentre(Cuboidf b)
-        => b == null ? new Vec3f() : new Vec3f((b.X1 + b.X2) / 2f, (b.Y1 + b.Y2) / 2f, (b.Z1 + b.Z2) / 2f);
+    public virtual void OnAttached(IAttachment child, IAttachmentHost host) { }
+
+    public virtual void OnDetached() { }
+
 }
